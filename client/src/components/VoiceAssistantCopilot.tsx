@@ -585,9 +585,9 @@ export function VoiceAssistantCopilot({
 
       {/* Expandable Chat Drawer */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 w-[420px] max-w-[calc(100vw-32px)] h-[590px] rounded-2xl bg-[#080e1a]/95 border border-sky-500/40 shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl animate-fadeIn">
+        <div className="fixed bottom-22 right-3 sm:right-6 z-50 w-[410px] max-w-[calc(100vw-24px)] h-[calc(100vh-105px)] max-h-[580px] rounded-2xl bg-[#080e1a]/95 border border-sky-500/40 shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl animate-fadeIn">
           {/* Header */}
-          <div className="p-4 bg-slate-900/90 border-b border-sky-900/40 flex items-center justify-between">
+          <div className="p-3.5 bg-slate-900/90 border-b border-sky-900/40 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-sky-500/20 border border-sky-400/50 flex items-center justify-center text-sky-400 shadow-inner">
                 <Bot size={20} />
@@ -653,7 +653,7 @@ export function VoiceAssistantCopilot({
 
           {/* Voice Customization Settings Drawer */}
           {showVoiceSettings && (
-            <div className="p-3.5 bg-slate-950/95 border-b border-sky-900/40 text-xs animate-fadeIn space-y-3">
+            <div className="p-3 bg-slate-950/95 border-b border-sky-900/40 text-xs animate-fadeIn space-y-2.5 shrink-0 max-h-[220px] overflow-y-auto">
               <div className="flex items-center justify-between">
                 <span className="font-bold text-sky-400 uppercase tracking-wider text-[11px] font-mono flex items-center gap-1.5">
                   <Sliders size={13} /> Change Voice & Speech Settings
@@ -763,7 +763,7 @@ export function VoiceAssistantCopilot({
           )}
 
           {/* Quick Prompts Bar */}
-          <div className="px-3 py-2 bg-slate-950/70 border-b border-slate-800/80 flex gap-2 overflow-x-auto scrollbar-none">
+          <div className="px-3 py-1.5 bg-slate-950/70 border-b border-slate-800/80 flex gap-2 overflow-x-auto scrollbar-none shrink-0">
             {[
               "Today's date",
               "How many workers are working?",
@@ -784,7 +784,7 @@ export function VoiceAssistantCopilot({
           </div>
 
           {/* Messages Thread */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3.5 text-xs">
+          <div className="flex-1 min-h-0 overflow-y-auto p-3.5 space-y-3 text-xs">
             {messages.map((msg) => (
               <div
                 key={msg.id}
@@ -846,7 +846,7 @@ export function VoiceAssistantCopilot({
           </div>
 
           {/* Input & Push-to-Talk Mic Bar */}
-          <div className="p-3 bg-slate-900/95 border-t border-sky-900/40 flex items-center gap-2">
+          <div className="p-2.5 bg-slate-900/95 border-t border-sky-900/40 flex items-center gap-2 shrink-0">
             <button
               onClick={toggleListening}
               className={`p-2.5 rounded-xl transition-all ${
