@@ -11,6 +11,8 @@ import { VoiceAssistantCopilot } from "@/components/VoiceAssistantCopilot";
 import { OnboardingModal } from "@/components/OnboardingModal";
 import { LiveFeedModal } from "@/components/LiveFeedModal";
 import { IntegrationsModal } from "@/components/IntegrationsModal";
+import { SectorModal } from "@/components/SectorModal";
+import { SECTORS, SectorDefinition } from "@shared/sectorsData";
 import { track } from "@/lib/analytics";
 import { recordTaskAssignment, recordApprovalDecision } from "@/lib/supabase";
 import {
@@ -101,6 +103,8 @@ function Home() {
     },
   });
   const [selectedScenario, setSelectedScenario] = useState<Scenario>("balanced");
+  const [activeSector, setActiveSector] = useState<SectorDefinition>(SECTORS[0]);
+  const [isSectorModalOpen, setIsSectorModalOpen] = useState(false);
   const [simulating, setSimulating] = useState(false);
   const [isLiveSimulationOpen, setIsLiveSimulationOpen] = useState(false);
   const [simulationPerson, setSimulationPerson] = useState<string>("Arjun Rao");
@@ -173,10 +177,18 @@ function Home() {
     if (isAuthenticated && accountProfileQuery.data?.user && !accountProfileQuery.data.user.onboardingCompleted) setAccountOpen(true);
   }, [accountProfileQuery.data?.user, isAuthenticated]);
 
-  const liveMetrics = dashboardQuery.data?.metrics ?? {
-    resourceHealth: "87.4%", resourceHealthDelta: "+4.8%", atRiskCapacity: "12.6h", atRiskCapacityDelta: "-18.2%",
-    forecastConfidence: "94.2%", forecastConfidenceDelta: "+2.1%", openDecisions: 4, urgentDecisions: 2,
-  };
+  const liveMetrics = useMemo(() => {
+    return {
+      resourceHealth: activeSector.systemHealth,
+      resourceHealthDelta: "+4.8%",
+      atRiskCapacity: activeSector.atRiskCapacity,
+      atRiskCapacityDelta: "-18.2%",
+      forecastConfidence: activeSector.forecastConfidence,
+      forecastConfidenceDelta: "+2.1%",
+      openDecisions: 4,
+      urgentDecisions: 2,
+    };
+  }, [activeSector]);
   const liveSignals = dashboardQuery.data?.signals ?? riskItems.map((item, index) => ({
     id: index + 1, title: item.title, detail: item.detail, severity: item.level === "High" ? "high" : item.level === "Medium" ? "medium" : "watch", horizon: item.time, status: "active", ownersNotified: 3,
   }));
@@ -188,12 +200,15 @@ function Home() {
   };
   const liveActivity = dashboardQuery.data?.activity ?? [];
   const selected = useMemo(() => liveScenarios.find((scenario) => scenario.scenarioKey === selectedScenario) ?? liveScenarios[0], [liveScenarios, selectedScenario]);
-  const metricCards = [
-    { label: "Resource health", value: liveMetrics.resourceHealth, delta: liveMetrics.resourceHealthDelta, trend: "up", icon: Activity, color: "blue" },
-    { label: "At-risk capacity", value: liveMetrics.atRiskCapacity, delta: liveMetrics.atRiskCapacityDelta, trend: "down", icon: CircleAlert, color: "amber" },
-    { label: "Forecast confidence", value: liveMetrics.forecastConfidence, delta: liveMetrics.forecastConfidenceDelta, trend: "up", icon: Target, color: "violet" },
-    { label: "Open decisions", value: String(liveMetrics.openDecisions).padStart(2, "0"), delta: `${liveMetrics.urgentDecisions} urgent`, trend: "neutral", icon: ShieldCheck, color: "coral" },
-  ];
+  const metricCards = useMemo(
+    () => [
+      { label: "Resource health", value: liveMetrics.resourceHealth, delta: liveMetrics.resourceHealthDelta, trend: "up", icon: Activity, color: "blue" },
+      { label: "At-risk capacity", value: activeSector.atRiskCapacity.split(" ")[0], delta: liveMetrics.atRiskCapacityDelta, trend: "down", icon: CircleAlert, color: "amber" },
+      { label: "Forecast confidence", value: liveMetrics.forecastConfidence, delta: liveMetrics.forecastConfidenceDelta, trend: "up", icon: Target, color: "violet" },
+      { label: "Open decisions", value: String(liveMetrics.openDecisions).padStart(2, "0"), delta: `${liveMetrics.urgentDecisions} urgent`, trend: "neutral", icon: ShieldCheck, color: "coral" },
+    ],
+    [liveMetrics, activeSector]
+  );
 
   const handleSimulation = () => {
     setIsLiveSimulationOpen(true);
@@ -217,11 +232,30 @@ function Home() {
           <div className="brand-icon"><Zap size={16} strokeWidth={2.5} /></div>
           <span>resource<span className="brand-accent">pulse</span></span>
         </div>
-        <div className="workspace-switcher">
-          <div className="workspace-avatar">N</div>
-          <div className="workspace-copy"><span className="eyebrow">Workspace</span><strong>Northstar Ops</strong></div>
+        <button
+          className="workspace-switcher"
+          onClick={() => setIsSectorModalOpen(true)}
+          title="Click to switch industry sector template"
+          style={{ cursor: "pointer", width: "calc(100% - 6px)", textAlign: "left" }}
+        >
+          <div
+            className="workspace-avatar text-sm"
+            style={{
+              background: `${activeSector.accentColor}25`,
+              color: activeSector.accentColor,
+              border: `1px solid ${activeSector.accentColor}40`,
+            }}
+          >
+            {activeSector.icon}
+          </div>
+          <div className="workspace-copy">
+            <span className="eyebrow" style={{ color: activeSector.accentColor }}>
+              Sector · {activeSector.category.split("&")[0]}
+            </span>
+            <strong>{activeSector.organization}</strong>
+          </div>
           <ChevronDown size={15} className="muted-icon" />
-        </div>
+        </button>
         <div className="sidebar-label">Operations</div>
         <nav className="main-nav" aria-label="Primary navigation">
           {navItems.map((item) => {
@@ -270,11 +304,31 @@ function Home() {
       <main className="main-content">
         <header className="topbar">
           <div className="breadcrumb">
-            <span>Northstar Ops</span>
+            <button
+              onClick={() => setIsSectorModalOpen(true)}
+              className="hover:text-sky-300 transition-colors flex items-center gap-1.5 cursor-pointer"
+              title="Click to switch sector template"
+            >
+              <span>{activeSector.icon}</span>
+              <span>{activeSector.organization}</span>
+            </button>
             <span className="slash">/</span>
             <strong>{activeNav}</strong>
           </div>
           <div className="topbar-actions">
+            <button
+              className="command-button"
+              style={{
+                color: activeSector.accentColor,
+                borderColor: `${activeSector.accentColor}50`,
+                background: `${activeSector.accentColor}15`,
+              }}
+              onClick={() => setIsSectorModalOpen(true)}
+              title="Switch Industry Sector Demo"
+            >
+              <span>{activeSector.icon}</span>
+              <span>Sector: {activeSector.name.split("&")[0]}</span>
+            </button>
             <button className="sync-status" onClick={() => loadDashboard(true)}>
               <StatusDot color={dataError ? "coral" : "blue"} />
               <span>{isLoading ? "Syncing…" : dataError ? "Sync paused" : "Live sync"}</span>
@@ -378,6 +432,7 @@ function Home() {
           {/* Conditionally render views based on activeNav */}
           {activeNav === "Resources" && (
             <ResourcesView
+              customResources={activeSector.resources}
               onAssignTask={handleAssignTask}
               onSimulateAbsence={(res) => {
                 setSimulationPerson(res.name);
@@ -407,9 +462,16 @@ function Home() {
               {showNotice && (
                 <div className="incident-banner">
                   <div className="incident-icon"><CircleAlert size={16} /></div>
-                  <div><strong>Signal detected · Mobile release train</strong><span>QA availability changed 14m ago. Cascading impact is being evaluated across 18 dependent tasks.</span></div>
-                  <button className="banner-action" onClick={() => setActiveNav("Impact graph")}>Review impact <ArrowUpRight size={14} /></button>
-                  <button className="close-banner" onClick={() => setShowNotice(false)} aria-label="Dismiss alert"><X size={15} /></button>
+                  <div>
+                    <strong>{activeSector.incidentTitle}</strong>
+                    <span>{activeSector.incidentDetail}</span>
+                  </div>
+                  <button className="banner-action" onClick={() => setActiveNav("Impact graph")}>
+                    Review impact <ArrowUpRight size={14} />
+                  </button>
+                  <button className="close-banner" onClick={() => setShowNotice(false)} aria-label="Dismiss alert">
+                    <X size={15} />
+                  </button>
                 </div>
               )}
 
@@ -609,6 +671,21 @@ function Home() {
       <IntegrationsModal
         open={isIntegrationsOpen}
         onOpenChange={setIsIntegrationsOpen}
+      />
+
+      <SectorModal
+        open={isSectorModalOpen}
+        onOpenChange={setIsSectorModalOpen}
+        activeSectorId={activeSector.id}
+        onSelectSector={(sector) => {
+          setActiveSector(sector);
+          toast.success(`Switched to ${sector.name}`, {
+            description: `Active organization: ${sector.organization}. Loaded ${sector.resources.length} sector resources.`,
+          });
+          speakAnnouncement(
+            `Sector switched to ${sector.name} for ${sector.organization}. All resource models and real-time risk telemetry updated.`
+          );
+        }}
       />
 
       <VoiceAssistantCopilot

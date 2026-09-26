@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Search, Filter, Users, Cpu, Box, DollarSign, Layers, ShieldAlert, CheckCircle2, AlertTriangle, ExternalLink, X, Calendar, Briefcase, Award } from "lucide-react";
 import { toast } from "sonner";
 
@@ -153,11 +153,19 @@ const initialResources: ResourceItem[] = [
 export function ResourcesView({
   onAssignTask,
   onSimulateAbsence,
+  customResources,
 }: {
   onAssignTask?: (resourceName: string, taskName: string) => void;
   onSimulateAbsence?: (resource: ResourceItem) => void;
+  customResources?: ResourceItem[];
 }) {
-  const [resources, setResources] = useState<ResourceItem[]>(initialResources);
+  const [resources, setResources] = useState<ResourceItem[]>(customResources || initialResources);
+
+  useEffect(() => {
+    if (customResources && customResources.length > 0) {
+      setResources(customResources);
+    }
+  }, [customResources]);
   const [search, setSearch] = useState("");
   const [selectedType, setSelectedType] = useState<string>("All");
   const [selectedResource, setSelectedResource] = useState<ResourceItem | null>(null);
