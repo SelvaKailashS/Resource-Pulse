@@ -23,6 +23,7 @@ import {
   Activity,
 } from "lucide-react";
 import { toast } from "sonner";
+import { resolveQueryKnowledgeBase } from "@shared/aiKnowledgeBase";
 
 interface Props {
   activeNav: string;
@@ -71,6 +72,7 @@ export function VoiceAssistantCopilot({
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
+  const lastQueryRef = useRef<string>("");
 
   // Speech Synthesis: speak text aloud with human cadence
   const speak = (text: string) => {
@@ -107,10 +109,9 @@ export function VoiceAssistantCopilot({
       handleAIResponse(data.answer, data.suggestedAction, data.actionPayload);
     },
     onError: (err) => {
-      console.warn("AI query error:", err);
-      handleAIResponse(
-        "I'm monitoring all 8 resources. Arjun Rao is our optimal recovery candidate (94% probability match) to unblock the Mobile Release Train. Would you like me to run the simulation?"
-      );
+      console.warn("API server unavailable, resolving seamlessly via edge knowledge base:", err);
+      const fallback = resolveQueryKnowledgeBase(lastQueryRef.current || "overview");
+      handleAIResponse(fallback.answer, fallback.suggestedAction, fallback.actionPayload);
     },
   });
 
@@ -295,6 +296,7 @@ export function VoiceAssistantCopilot({
     }
 
     // 5. Query OpenRouter / Semantic Knowledge Base for full, human-like answers
+    lastQueryRef.current = text;
     askMutation.mutate({ query: text });
   };
 

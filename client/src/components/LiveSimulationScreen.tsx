@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
+import { computeClientSimulation } from "@shared/aiKnowledgeBase";
 import {
   X,
   Play,
@@ -68,11 +69,23 @@ export function LiveSimulationScreen({ onClose, onApproveAndNavigate }: Props) {
     {
       staleTime: 60_000,
       refetchOnWindowFocus: false,
+      retry: false,
     }
   );
 
-  const data = simulationQuery.data;
-  const isLoading = simulationQuery.isLoading || simulationQuery.isFetching;
+  const fallbackData = useMemo(
+    () =>
+      computeClientSimulation({
+        absentResourceId: selectedPerson.id,
+        absentResourceName: selectedPerson.name,
+        role: selectedPerson.role,
+        project: selectedPerson.project,
+      }),
+    [selectedPerson]
+  );
+
+  const data = simulationQuery.data ?? fallbackData;
+  const isLoading = simulationQuery.isLoading && !simulationQuery.data;
 
   const handleApprove = () => {
     toast.success("Simulation Approved & Executed!", {
