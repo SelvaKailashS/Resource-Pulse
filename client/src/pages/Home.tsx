@@ -9,6 +9,7 @@ import { ApprovalsView } from "@/components/ApprovalsView";
 import { LiveSimulationScreen } from "@/components/LiveSimulationScreen";
 import { VoiceAssistantCopilot } from "@/components/VoiceAssistantCopilot";
 import { track } from "@/lib/analytics";
+import { recordTaskAssignment, recordApprovalDecision } from "@/lib/supabase";
 import {
   Activity,
   ArrowDownRight,
@@ -127,6 +128,7 @@ function Home() {
 
   const handleAssignTask = (person: string, task: string) => {
     setAssignedTaskNotification({ person, task, time: "Just now" });
+    void recordTaskAssignment(person, task);
     toast.success(`Task Assigned to ${person}`, {
       description: `Allocated to ${task}. Notification sent to Admin and Team Lead for review.`,
     });
@@ -190,6 +192,11 @@ function Home() {
 
   const handleApprove = () => {
     approvalMutation.mutate({ id: liveRecommendation.id });
+    void recordApprovalDecision(
+      String(liveRecommendation.id),
+      "Maya Chen",
+      "Reallocation of " + (liveRecommendation.recommendedResource || "Arjun Rao") + " to Mobile Release Train"
+    );
     speakAnnouncement("Plan approved by Maya Chen. Allocations updated and logged in the audit trail.");
   };
 

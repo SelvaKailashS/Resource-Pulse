@@ -18,6 +18,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
+import { recordSimulationRun } from "@/lib/supabase";
 
 interface Props {
   onClose: () => void;
@@ -88,6 +89,13 @@ export function LiveSimulationScreen({ onClose, onApproveAndNavigate }: Props) {
   const isLoading = simulationQuery.isLoading && !simulationQuery.data;
 
   const handleApprove = () => {
+    void recordSimulationRun(
+      selectedPerson.name,
+      data.summary.timeRecovered,
+      data.summary.riskReduction,
+      data.summary.estimatedCost,
+      data.replacements[0]?.name || "Arjun Rao"
+    );
     toast.success("Simulation Approved & Executed!", {
       description: `Plan queued for ${selectedPerson.name} recovery. Transferred to Approval Governance Center.`,
     });
