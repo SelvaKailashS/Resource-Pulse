@@ -17,19 +17,14 @@ import {
   Sparkles,
   RefreshCw,
   Activity,
-  Layers,
   CheckCircle2,
-  AlertTriangle,
-  Play,
-  ArrowUpRight,
-  ArrowDownRight,
-  ChevronRight,
-  ExternalLink,
-  Users,
   LogOut,
   Star,
+  Users,
+  KeyRound,
+  FileText,
+  BadgeCheck,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
@@ -87,7 +82,6 @@ export function AccountCenter({
   const [preferences, setPreferences] = useState(defaultPreferences);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [resetEmail, setResetEmail] = useState(user?.email ?? "mc@northstar.ops");
-  const [simulatedCheckoutOpen, setSimulatedCheckoutOpen] = useState(false);
 
   // Local fallback cash entries for offline & demo resilience
   const [localCashEntries, setLocalCashEntries] = useState(() => {
@@ -231,7 +225,7 @@ export function AccountCenter({
   });
 
   const savePreferences = trpc.account.savePreferences.useMutation({
-    onSuccess: (data) => {
+    onSuccess: () => {
       setAnalyticsConsent(preferences.analyticsConsent);
       toast.success("Preferences updated", {
         description: "Alert and privacy settings have been updated.",
@@ -504,16 +498,19 @@ export function AccountCenter({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl w-[95vw] max-h-[88vh] p-0 overflow-hidden bg-slate-950 border border-sky-500/30 text-white shadow-2xl rounded-2xl flex flex-col">
+      <DialogContent
+        showCloseButton={false}
+        className="!max-w-[96vw] lg:!max-w-[1340px] xl:!max-w-[1480px] !w-[96vw] !h-[88vh] !max-h-[92vh] !p-0 !gap-0 overflow-hidden bg-slate-950 border border-sky-500/40 text-white shadow-2xl rounded-2xl !flex !flex-col"
+      >
         {/* Top Header */}
         <DialogHeader className="p-4 px-6 border-b border-sky-900/40 bg-slate-900/90 shrink-0">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-sky-500/15 border border-sky-400/30 flex items-center justify-center text-sky-400 shadow-sm shadow-sky-950">
-                <Sparkles size={18} />
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-sky-500/15 border border-sky-400/30 flex items-center justify-center text-sky-400 shadow-sm shadow-sky-950">
+                <Sparkles size={20} />
               </div>
               <div>
-                <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+                <DialogTitle className="text-lg font-bold text-white flex items-center gap-2">
                   Account & Workspace Control Center
                 </DialogTitle>
                 <DialogDescription className="text-xs text-slate-400">
@@ -521,27 +518,40 @@ export function AccountCenter({
                 </DialogDescription>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono font-semibold bg-sky-500/15 border border-sky-400/30 text-sky-300">
-                <Shield size={12} className="text-sky-400" />
-                {roleLabel}
-              </span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800">
+                <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-sky-600 to-blue-500 text-white font-bold text-[10px] flex items-center justify-center">
+                  {accountUser?.name
+                    ? accountUser.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .toUpperCase()
+                        .slice(0, 2)
+                    : "MC"}
+                </div>
+                <span className="text-xs font-semibold text-slate-200">{accountUser?.name ?? "Maya Chen"}</span>
+                <span className="text-[10px] font-mono uppercase font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                  {roleLabel}
+                </span>
+              </div>
               <button
                 onClick={() => onOpenChange(false)}
-                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+                className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+                aria-label="Close dialog"
               >
-                <X size={16} />
+                <X size={18} />
               </button>
             </div>
           </div>
         </DialogHeader>
 
-        {/* Modal Body with Clean Vertical Sidebar Tabs */}
-        <div className="flex flex-1 min-h-[500px] overflow-hidden">
+        {/* Modal Body with Wide Horizontal Layout */}
+        <div className="flex flex-1 min-h-0 overflow-hidden">
           {/* Left Tabs Sidebar */}
-          <nav className="w-56 shrink-0 bg-slate-950/95 border-r border-sky-900/30 p-2.5 flex flex-col gap-1 overflow-y-auto">
+          <nav className="w-64 shrink-0 bg-slate-950/95 border-r border-sky-900/30 p-3.5 flex flex-col gap-1.5 overflow-y-auto">
             <div className="px-3 py-1.5 text-[10px] font-mono text-slate-500 uppercase tracking-wider font-semibold">
-              Settings Navigation
+              Control Navigation
             </div>
             {tabs.map(({ id, label, icon: Icon }) => {
               const isActive = tab === id;
@@ -549,13 +559,13 @@ export function AccountCenter({
                 <button
                   key={id}
                   onClick={() => setTab(id)}
-                  className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-all text-left w-full ${
+                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all text-left w-full ${
                     isActive
                       ? "bg-sky-500/20 text-sky-200 font-semibold border border-sky-500/40 shadow-sm shadow-sky-950"
                       : "text-slate-400 hover:text-white hover:bg-slate-900/80"
                   }`}
                 >
-                  <Icon size={15} className={isActive ? "text-sky-400" : "text-slate-500"} />
+                  <Icon size={16} className={isActive ? "text-sky-400" : "text-slate-500"} />
                   <span className="truncate">{label}</span>
                   {id === "notifications" && unreadCount > 0 && (
                     <span className="ml-auto bg-sky-500 text-slate-950 text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full">
@@ -567,146 +577,155 @@ export function AccountCenter({
             })}
           </nav>
 
-          {/* Right Tab Content Panel */}
-          <section className="flex-1 p-6 overflow-y-auto bg-slate-900/20 space-y-5">
+          {/* Right Main Content Area - Wide & Spacious */}
+          <section className="flex-1 min-w-0 p-8 overflow-y-auto bg-slate-900/20 space-y-6">
             {/* OVERVIEW TAB */}
             {tab === "overview" && (
-              <div className="space-y-5 animate-fadeIn">
-                {/* Active Workspace Identity Card */}
-                <div className="p-4 rounded-xl bg-slate-900/70 border border-slate-800 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-sky-600 to-blue-500 text-white font-bold text-sm flex items-center justify-center shadow-lg shadow-sky-500/20 shrink-0">
-                      {accountUser?.name
-                        ? accountUser.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                            .toUpperCase()
-                            .slice(0, 2)
-                        : "MC"}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-base font-bold text-white">{accountUser?.name ?? "Maya Chen"}</h3>
-                        <span className="text-[10px] font-mono uppercase font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30">
-                          {currentRole}
-                        </span>
+              <div className="space-y-6 animate-fadeIn">
+                {/* 2-Column Top Cards */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {/* Identity Card */}
+                  <div className="p-5 rounded-2xl bg-slate-900/70 border border-slate-800 flex items-center justify-between gap-4 shadow-sm">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-sky-600 to-blue-500 text-white font-bold text-base flex items-center justify-center shadow-lg shadow-sky-500/25 shrink-0">
+                        {accountUser?.name
+                          ? accountUser.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .toUpperCase()
+                              .slice(0, 2)
+                          : "MC"}
                       </div>
-                      <p className="text-xs text-slate-400 mt-0.5 font-mono">
-                        {accountUser?.email ?? "mc@northstar.ops"} · Northstar Command Pod
-                      </p>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-lg font-bold text-white">{accountUser?.name ?? "Maya Chen"}</h3>
+                          <span className="text-[10px] font-mono uppercase font-bold px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                            {currentRole}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-1 font-mono">
+                          {accountUser?.email ?? "mc@northstar.ops"} · Northstar Command Pod
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <button
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-850 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors"
-                    onClick={() => {
-                      void logout();
-                      onOpenChange(false);
-                    }}
-                  >
-                    <LogOut size={13} />
-                    Sign out
-                  </button>
-                </div>
-
-                {/* Onboarding & Tour Card */}
-                <div className="p-4 rounded-xl bg-gradient-to-r from-blue-950/60 to-slate-900/80 border border-sky-400/30 flex items-center justify-between gap-4">
-                  <div>
-                    <span className="text-[10px] font-mono text-sky-400 uppercase font-bold block mb-1">
-                      Onboarding & Workspace Setup
-                    </span>
-                    <h4 className="text-sm font-bold text-white">
-                      {onboardingDone ? "Workspace onboarding complete ✓" : "Finish setting up your workspace"}
-                    </h4>
-                    <p className="text-xs text-slate-300 mt-0.5">
-                      {onboardingDone
-                        ? "Account permissions, telemetry, and alert profiles are verified."
-                        : "Walk through the guided tour to personalize role, alerts, and live telemetry."}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
                     <button
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white transition-colors"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-805 text-slate-300 hover:text-white transition-colors shrink-0"
                       onClick={() => {
+                        void logout();
                         onOpenChange(false);
-                        onOpenOnboardingTour?.();
                       }}
                     >
-                      <Sparkles size={13} />
-                      Launch Tour
+                      <LogOut size={13} />
+                      Sign out
                     </button>
-                    {onboardingDone && (
-                      <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-400">
-                        <Check size={16} />
-                      </div>
-                    )}
+                  </div>
+
+                  {/* Onboarding & Tour Card */}
+                  <div className="p-5 rounded-2xl bg-gradient-to-r from-blue-950/60 to-slate-900/80 border border-sky-400/30 flex items-center justify-between gap-4 shadow-sm">
+                    <div>
+                      <span className="text-[10px] font-mono text-sky-400 uppercase font-bold block mb-1">
+                        Workspace State
+                      </span>
+                      <h4 className="text-base font-bold text-white">
+                        {onboardingDone ? "Workspace onboarding complete ✓" : "Finish setting up your workspace"}
+                      </h4>
+                      <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                        {onboardingDone
+                          ? "Account permissions, telemetry, and alert profiles are verified."
+                          : "Walk through the guided tour to personalize role, alerts, and live telemetry."}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white transition-colors"
+                        onClick={() => {
+                          onOpenChange(false);
+                          onOpenOnboardingTour?.();
+                        }}
+                      >
+                        <Sparkles size={14} />
+                        Launch Tour
+                      </button>
+                      {onboardingDone && (
+                        <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-400">
+                          <Check size={18} />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
                 {/* Role Switcher (RBAC) */}
-                <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
+                <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <strong className="text-xs font-bold text-white block">Role Switcher (RBAC)</strong>
-                      <span className="text-[11px] text-slate-400">
+                      <strong className="text-sm font-bold text-white block">Role Switcher (RBAC)</strong>
+                      <span className="text-xs text-slate-400">
                         Switch active governance mode to test role-based UI access and execution authority
                       </span>
                     </div>
-                    <span className="text-[11px] font-mono text-sky-400 font-bold uppercase">
+                    <span className="text-xs font-mono text-sky-400 font-bold uppercase">
                       Current: {currentRole}
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
                     {[
                       {
                         role: "admin" as const,
                         label: "Administrator",
-                        desc: "Full system authority, approvals, financial write, and team management.",
+                        desc: "Full system authority, approvals, financial write, and team access management.",
+                        perms: "system.admin, approvals.write, cash.write",
                       },
                       {
                         role: "operator" as const,
                         label: "Operator",
                         desc: "Execute 5s simulations, allocate tasks, and submit recommendations for sign-off.",
+                        perms: "simulation.execute, allocations.write",
                       },
                       {
                         role: "viewer" as const,
                         label: "Viewer",
                         desc: "Read-only access to live telemetry, dashboards, and audit log history.",
+                        perms: "dashboard.read, audit.read",
                       },
                     ].map((item) => (
                       <button
                         key={item.role}
                         onClick={() => handleRoleChange(item.role)}
-                        className={`p-3 rounded-xl text-left border transition-all ${
+                        className={`p-4 rounded-xl text-left border transition-all ${
                           currentRole === item.role
-                            ? "bg-sky-500/15 border-sky-400/60 shadow-sm shadow-sky-950"
+                            ? "bg-sky-500/15 border-sky-400/60 shadow-md shadow-sky-950/50"
                             : "bg-slate-950/60 border-slate-800 hover:border-slate-700"
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <strong className="text-xs font-bold text-white">{item.label}</strong>
-                          {currentRole === item.role && <CheckCircle2 size={14} className="text-sky-400" />}
+                          <strong className="text-sm font-bold text-white">{item.label}</strong>
+                          {currentRole === item.role && <CheckCircle2 size={16} className="text-sky-400" />}
                         </div>
-                        <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">{item.desc}</p>
+                        <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">{item.desc}</p>
+                        <div className="mt-3 pt-2.5 border-t border-slate-800/80 text-[10px] font-mono text-slate-500">
+                          {item.perms}
+                        </div>
                       </button>
                     ))}
                   </div>
                 </div>
 
                 {/* Team Access & Member Governance */}
-                <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
+                <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4">
                   <div className="flex justify-between items-center">
                     <div>
-                      <strong className="text-xs font-bold text-white block">Team Access & Member Governance</strong>
-                      <span className="text-[11px] text-slate-400">3 verified operators in Northstar Ops</span>
+                      <strong className="text-sm font-bold text-white block">Team Access & Member Governance</strong>
+                      <span className="text-xs text-slate-400">3 verified operators active in Northstar Ops</span>
                     </div>
-                    <span className="text-[10px] font-mono uppercase text-sky-400 font-semibold px-2 py-0.5 rounded bg-sky-500/10 border border-sky-500/20">
+                    <span className="text-xs font-mono uppercase text-sky-400 font-semibold px-2.5 py-1 rounded-full bg-sky-500/10 border border-sky-500/20">
                       RBAC Active
                     </span>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     {[
                       {
                         id: 1,
@@ -732,20 +751,20 @@ export function AccountCenter({
                     ].map((m) => (
                       <div
                         key={m.id}
-                        className="p-3 rounded-lg bg-slate-950/70 border border-slate-800/80 hover:border-sky-500/30 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                        className="p-4 rounded-xl bg-slate-950/70 border border-slate-800/80 hover:border-sky-500/30 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
                       >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-sky-900/40 border border-sky-500/30 text-sky-300 font-bold text-xs flex items-center justify-center shrink-0">
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-10 h-10 rounded-full bg-sky-900/40 border border-sky-500/30 text-sky-300 font-bold text-xs flex items-center justify-center shrink-0">
                             {m.name
                               .split(" ")
                               .map((n) => n[0])
                               .join("")}
                           </div>
                           <div>
-                            <div className="flex items-center gap-2">
-                              <strong className="text-xs font-bold text-white">{m.name}</strong>
+                            <div className="flex items-center gap-2.5">
+                              <strong className="text-sm font-bold text-white">{m.name}</strong>
                               <span
-                                className={`text-[10px] font-mono uppercase font-bold px-2 py-0.5 rounded-full ${
+                                className={`text-[10px] font-mono uppercase font-bold px-2.5 py-0.5 rounded-full ${
                                   m.role === "admin"
                                     ? "bg-sky-500/20 text-sky-300 border border-sky-500/30"
                                     : m.role === "operator"
@@ -756,14 +775,14 @@ export function AccountCenter({
                                 {m.role}
                               </span>
                             </div>
-                            <p className="text-[11px] text-slate-400 mt-0.5 font-mono">{m.email}</p>
+                            <p className="text-xs text-slate-400 mt-0.5 font-mono">{m.email}</p>
                           </div>
                         </div>
-                        <div className="flex flex-wrap gap-1.5 sm:justify-end">
+                        <div className="flex flex-wrap gap-2 md:justify-end">
                           {m.perms.map((p, idx) => (
                             <span
                               key={idx}
-                              className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 text-slate-300 border border-slate-800"
+                              className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-800"
                             >
                               {p}
                             </span>
@@ -778,7 +797,7 @@ export function AccountCenter({
 
             {/* SECURITY & AUTH TAB */}
             {tab === "security" && (
-              <div className="space-y-5 animate-fadeIn">
+              <div className="space-y-6 animate-fadeIn">
                 <div className="pb-4 border-b border-sky-900/30">
                   <span className="text-[10px] font-mono uppercase text-sky-400 font-bold block mb-1">
                     Authentication & Credentials
@@ -789,88 +808,91 @@ export function AccountCenter({
                   </p>
                 </div>
 
-                <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
+                <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3">
                   <strong className="text-xs font-bold text-sky-400 uppercase tracking-wider block">
                     Fast 1-Click Profile Sign-In
                   </strong>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <button
-                      className="p-3 rounded-xl bg-slate-950 border border-sky-900/50 hover:border-sky-400 text-left transition-all"
+                      className="p-4 rounded-xl bg-slate-950 border border-sky-900/50 hover:border-sky-400 text-left transition-all"
                       onClick={() => handleDirectLogin("admin")}
                     >
-                      <strong className="text-xs text-white block">Maya Chen</strong>
-                      <span className="text-[10px] text-sky-400 font-mono">Administrator</span>
+                      <strong className="text-sm text-white block">Maya Chen</strong>
+                      <span className="text-xs text-sky-400 font-mono">Administrator</span>
                     </button>
 
                     <button
-                      className="p-3 rounded-xl bg-slate-950 border border-sky-900/50 hover:border-sky-400 text-left transition-all"
+                      className="p-4 rounded-xl bg-slate-950 border border-sky-900/50 hover:border-sky-400 text-left transition-all"
                       onClick={() => handleDirectLogin("operator")}
                     >
-                      <strong className="text-xs text-white block">Arjun Rao</strong>
-                      <span className="text-[10px] text-sky-400 font-mono">Operator</span>
+                      <strong className="text-sm text-white block">Arjun Rao</strong>
+                      <span className="text-xs text-sky-400 font-mono">Operator</span>
                     </button>
 
                     <button
-                      className="p-3 rounded-xl bg-slate-950 border border-sky-900/50 hover:border-sky-400 text-left transition-all"
+                      className="p-4 rounded-xl bg-slate-950 border border-sky-900/50 hover:border-sky-400 text-left transition-all"
                       onClick={() => handleDirectLogin("viewer")}
                     >
-                      <strong className="text-xs text-white block">Priya Sharma</strong>
-                      <span className="text-[10px] text-sky-400 font-mono">Viewer</span>
+                      <strong className="text-sm text-white block">Priya Sharma</strong>
+                      <span className="text-xs text-sky-400 font-mono">Viewer</span>
                     </button>
                   </div>
                 </div>
 
-                {/* Email Verification Card */}
-                <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-sky-500/10 border border-sky-400/20 flex items-center justify-center text-sky-400 shrink-0">
-                      <MailCheck size={18} />
+                {/* 2-Column Grid for Verification & Reset */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {/* Email Verification Card */}
+                  <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3.5">
+                      <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-400/20 flex items-center justify-center text-sky-400 shrink-0">
+                        <MailCheck size={20} />
+                      </div>
+                      <div>
+                        <strong className="text-sm font-bold text-white block">Email Verification Status</strong>
+                        <span className="text-xs text-slate-400">
+                          {accountUser?.emailVerified ? "Verified ✓ (Secure Auth active)" : "Pending verification link"}
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <strong className="text-xs font-bold text-white block">Email Verification Status</strong>
-                      <span className="text-[11px] text-slate-400">
-                        {accountUser?.emailVerified ? "Verified ✓ (Secure Auth active)" : "Pending verification link"}
+                    {accountUser?.emailVerified ? (
+                      <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1.5 font-mono bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20">
+                        <CheckCircle2 size={14} /> ACTIVE
                       </span>
-                    </div>
+                    ) : (
+                      <button
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white transition-colors"
+                        onClick={() => verifyMutation.mutate()}
+                        disabled={verifyMutation.isPending}
+                      >
+                        Verify Now
+                      </button>
+                    )}
                   </div>
-                  {accountUser?.emailVerified ? (
-                    <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1 font-mono">
-                      <CheckCircle2 size={14} /> ACTIVE
-                    </span>
-                  ) : (
-                    <button
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white transition-colors"
-                      onClick={() => verifyMutation.mutate()}
-                      disabled={verifyMutation.isPending}
-                    >
-                      Verify Now
-                    </button>
-                  )}
-                </div>
 
-                {/* Password Reset */}
-                <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
-                  <strong className="text-xs font-bold text-white block">Password Reset Request</strong>
-                  <div className="flex gap-2">
-                    <Input
-                      type="email"
-                      value={resetEmail}
-                      onChange={(e) => setResetEmail(e.target.value)}
-                      placeholder="you@company.com"
-                      className="bg-slate-950 border-slate-700 text-white text-xs"
-                    />
-                    <button
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white transition-colors shrink-0"
-                      disabled={resetMutation.isPending || !resetEmail}
-                      onClick={() => resetMutation.mutate({ email: resetEmail })}
-                    >
-                      {resetMutation.isPending ? "Sending…" : "Request Reset"}
-                    </button>
+                  {/* Password Reset */}
+                  <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3">
+                    <strong className="text-sm font-bold text-white block">Password Reset Request</strong>
+                    <div className="flex gap-2">
+                      <Input
+                        type="email"
+                        value={resetEmail}
+                        onChange={(e) => setResetEmail(e.target.value)}
+                        placeholder="you@company.com"
+                        className="bg-slate-950 border-slate-700 text-white text-xs h-10"
+                      />
+                      <button
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white transition-colors shrink-0"
+                        disabled={resetMutation.isPending || !resetEmail}
+                        onClick={() => resetMutation.mutate({ email: resetEmail })}
+                      >
+                        {resetMutation.isPending ? "Sending…" : "Request Reset"}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
                 {/* Danger Zone */}
-                <div className="p-4 rounded-xl bg-rose-950/20 border border-rose-500/30 space-y-3">
+                <div className="p-5 rounded-2xl bg-rose-950/20 border border-rose-500/30 space-y-3">
                   <div>
                     <span className="text-[10px] font-mono uppercase text-rose-400 font-bold block mb-1">
                       Danger Zone
@@ -880,19 +902,19 @@ export function AccountCenter({
                       Permanently wipes preferences, local storage, notifications, and cash logs.
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 max-w-md">
                     <Input
                       value={deleteConfirmation}
                       onChange={(e) => setDeleteConfirmation(e.target.value)}
                       placeholder="Type DELETE"
-                      className="bg-slate-950 border-rose-900 text-white text-xs"
+                      className="bg-slate-950 border-rose-900 text-white text-xs h-10"
                     />
                     <button
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white transition-colors shrink-0 disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white transition-colors shrink-0 disabled:opacity-50"
                       disabled={deleteConfirmation !== "DELETE" || deleteMutation.isPending}
                       onClick={() => deleteMutation.mutate({ confirmation: "DELETE" })}
                     >
-                      <Trash2 size={13} /> {deleteMutation.isPending ? "Deleting…" : "Delete Account"}
+                      <Trash2 size={14} /> {deleteMutation.isPending ? "Deleting…" : "Delete Account"}
                     </button>
                   </div>
                 </div>
@@ -901,7 +923,7 @@ export function AccountCenter({
 
             {/* NOTIFICATIONS TAB */}
             {tab === "notifications" && (
-              <div className="space-y-4 animate-fadeIn">
+              <div className="space-y-5 animate-fadeIn">
                 <div className="flex items-center justify-between pb-4 border-b border-sky-900/30">
                   <div>
                     <span className="text-[10px] font-mono uppercase text-sky-400 font-bold block mb-1">
@@ -914,14 +936,14 @@ export function AccountCenter({
                   </div>
                   <div className="flex items-center gap-2">
                     <button
-                      className="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                      className="text-xs px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors font-semibold"
                       onClick={handleSendTestAlert}
                     >
                       + Test Alert
                     </button>
                     {unreadCount > 0 && (
                       <button
-                        className="text-xs px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white transition-colors"
+                        className="text-xs px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white transition-colors font-semibold"
                         onClick={handleMarkAllRead}
                       >
                         Mark All Read
@@ -930,10 +952,10 @@ export function AccountCenter({
                   </div>
                 </div>
 
-                <div className="space-y-2 max-h-72 overflow-y-auto">
+                <div className="space-y-2.5 max-h-96 overflow-y-auto">
                   {allNotifications.length === 0 ? (
-                    <div className="p-8 text-center bg-slate-900/40 rounded-xl border border-slate-800">
-                      <Bell size={28} className="text-sky-400 mx-auto mb-2 opacity-60" />
+                    <div className="p-12 text-center bg-slate-900/40 rounded-2xl border border-slate-800">
+                      <Bell size={32} className="text-sky-400 mx-auto mb-2 opacity-60" />
                       <strong className="text-sm text-white block">No notifications yet</strong>
                       <span className="text-xs text-slate-400">Signals and approvals will appear here in real time.</span>
                     </div>
@@ -950,13 +972,13 @@ export function AccountCenter({
                             localStorage.setItem("resourcepulse_notifications", JSON.stringify(updated));
                           } catch {}
                         }}
-                        className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                        className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-4 ${
                           n.readAt ? "bg-slate-950/40 border-slate-800/60 opacity-60" : "bg-sky-950/30 border-sky-400/30"
                         }`}
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3.5">
                           <span
-                            className={`w-2 h-2 rounded-full shrink-0 ${
+                            className={`w-2.5 h-2.5 rounded-full shrink-0 ${
                               n.type === "signal"
                                 ? "bg-rose-400"
                                 : n.type === "approval"
@@ -965,11 +987,11 @@ export function AccountCenter({
                             }`}
                           />
                           <div>
-                            <strong className="text-xs text-white block">{n.title}</strong>
-                            <span className="text-[11px] text-slate-300">{n.body}</span>
+                            <strong className="text-sm text-white block">{n.title}</strong>
+                            <span className="text-xs text-slate-300 mt-0.5 block">{n.body}</span>
                           </div>
                         </div>
-                        <span className="text-[10px] font-mono text-sky-400 shrink-0">
+                        <span className="text-[10px] font-mono text-sky-400 shrink-0 px-2 py-0.5 rounded bg-sky-500/10 border border-sky-500/20">
                           {n.readAt ? "Read" : "New"}
                         </span>
                       </div>
@@ -981,7 +1003,7 @@ export function AccountCenter({
 
             {/* CASH & BUDGETS TAB */}
             {tab === "cash" && (
-              <div className="space-y-5 animate-fadeIn">
+              <div className="space-y-6 animate-fadeIn">
                 <div className="pb-4 border-b border-sky-900/30">
                   <span className="text-[10px] font-mono uppercase text-sky-400 font-bold block mb-1">
                     Financial Governance
@@ -990,24 +1012,24 @@ export function AccountCenter({
                   <p className="text-xs text-slate-400">Record project expenditures, contractor invoices, and budget inflows.</p>
                 </div>
 
-                {/* Summary Cards */}
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800">
+                {/* 3 Metric Cards Spanning Full Width */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
                     <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block mb-1">Total Inflow</span>
-                    <strong className="text-base text-emerald-400 font-mono block">
+                    <strong className="text-xl text-emerald-400 font-mono block">
                       {formatMoney(effectiveCashSummary.inflowCents)}
                     </strong>
                   </div>
-                  <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800">
+                  <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
                     <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block mb-1">Total Outflow</span>
-                    <strong className="text-base text-rose-400 font-mono block">
+                    <strong className="text-xl text-rose-400 font-mono block">
                       {formatMoney(effectiveCashSummary.outflowCents)}
                     </strong>
                   </div>
-                  <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800">
+                  <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
                     <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block mb-1">Net Balance</span>
                     <strong
-                      className={`text-base font-mono block ${
+                      className={`text-xl font-mono block ${
                         effectiveCashSummary.netCents >= 0 ? "text-emerald-400" : "text-rose-400"
                       }`}
                     >
@@ -1016,85 +1038,107 @@ export function AccountCenter({
                   </div>
                 </div>
 
-                {/* Cash Input Form */}
-                <form
-                  onSubmit={handleCashSubmit}
-                  className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3"
-                >
-                  <strong className="text-xs font-bold text-white block">Log Financial Transaction</strong>
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                    <Input
-                      value={cashForm.project}
-                      onChange={(e) => setCashForm({ ...cashForm, project: e.target.value })}
-                      placeholder="Project name"
-                      className="bg-slate-950 border-slate-700 text-white text-xs"
-                    />
-                    <select
-                      value={cashForm.direction}
-                      onChange={(e) => setCashForm({ ...cashForm, direction: e.target.value as any })}
-                      className="bg-slate-950 border border-slate-700 text-white text-xs rounded-lg px-2"
-                    >
-                      <option value="outflow">Outflow (−)</option>
-                      <option value="inflow">Inflow (+)</option>
-                    </select>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={cashForm.amount}
-                      onChange={(e) => setCashForm({ ...cashForm, amount: e.target.value })}
-                      placeholder="Amount ($)"
-                      className="bg-slate-950 border-slate-700 text-white text-xs"
-                    />
-                    <Input
-                      value={cashForm.description}
-                      onChange={(e) => setCashForm({ ...cashForm, description: e.target.value })}
-                      placeholder="Description"
-                      className="bg-slate-950 border-slate-700 text-white text-xs"
-                    />
-                  </div>
-                  <button
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white transition-colors"
-                    disabled={cashMutation.isPending}
+                {/* 2-Column Split: Form on Left, Ledger on Right */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                  {/* Cash Input Form */}
+                  <form
+                    onSubmit={handleCashSubmit}
+                    className="lg:col-span-5 p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3.5"
                   >
-                    {cashMutation.isPending ? "Saving…" : "+ Record Cash Movement"}
-                  </button>
-                </form>
-
-                {/* Cash History List */}
-                <div className="space-y-2 max-h-56 overflow-y-auto">
-                  {effectiveCashSummary.entries.length === 0 ? (
-                    <div className="p-6 text-center bg-slate-900/40 rounded-xl border border-slate-800">
-                      <Wallet size={24} className="text-sky-400 mx-auto mb-1.5 opacity-60" />
-                      <span className="text-xs text-slate-400">No cash transactions logged yet.</span>
-                    </div>
-                  ) : (
-                    effectiveCashSummary.entries.map((entry: any) => (
-                      <div
-                        key={entry.id}
-                        className="flex items-center justify-between p-3 rounded-lg bg-slate-950/60 border border-slate-800/80"
-                      >
-                        <div>
-                          <strong className="text-xs text-white block">{entry.project}</strong>
-                          <span className="text-[11px] text-slate-400">{entry.description}</span>
-                        </div>
-                        <span
-                          className={`text-xs font-mono font-bold ${
-                            entry.direction === "inflow" ? "text-emerald-400" : "text-rose-400"
-                          }`}
-                        >
-                          {entry.direction === "inflow" ? "+" : "−"}
-                          {formatMoney(entry.amountCents)}
-                        </span>
+                    <strong className="text-sm font-bold text-white block">Log Financial Transaction</strong>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-[11px] font-mono text-slate-400 block mb-1">Project</label>
+                        <Input
+                          value={cashForm.project}
+                          onChange={(e) => setCashForm({ ...cashForm, project: e.target.value })}
+                          placeholder="Project name (e.g. Mobile QA)"
+                          className="bg-slate-950 border-slate-700 text-white text-xs h-10"
+                        />
                       </div>
-                    ))
-                  )}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[11px] font-mono text-slate-400 block mb-1">Direction</label>
+                          <select
+                            value={cashForm.direction}
+                            onChange={(e) => setCashForm({ ...cashForm, direction: e.target.value as any })}
+                            className="w-full bg-slate-950 border border-slate-700 text-white text-xs rounded-lg px-2 h-10"
+                          >
+                            <option value="outflow">Outflow (−)</option>
+                            <option value="inflow">Inflow (+)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-mono text-slate-400 block mb-1">Amount ($)</label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={cashForm.amount}
+                            onChange={(e) => setCashForm({ ...cashForm, amount: e.target.value })}
+                            placeholder="0.00"
+                            className="bg-slate-950 border-slate-700 text-white text-xs h-10"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-mono text-slate-400 block mb-1">Description</label>
+                        <Input
+                          value={cashForm.description}
+                          onChange={(e) => setCashForm({ ...cashForm, description: e.target.value })}
+                          placeholder="Description of transaction"
+                          className="bg-slate-950 border-slate-700 text-white text-xs h-10"
+                        />
+                      </div>
+                    </div>
+                    <button
+                      className="w-full inline-flex items-center justify-center gap-1.5 text-xs font-semibold px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white transition-colors"
+                      disabled={cashMutation.isPending}
+                    >
+                      {cashMutation.isPending ? "Saving…" : "+ Record Cash Movement"}
+                    </button>
+                  </form>
+
+                  {/* Cash History List */}
+                  <div className="lg:col-span-7 p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3">
+                    <strong className="text-sm font-bold text-white block">Recent Financial Transactions</strong>
+                    <div className="space-y-2 max-h-72 overflow-y-auto">
+                      {effectiveCashSummary.entries.length === 0 ? (
+                        <div className="p-8 text-center bg-slate-950/40 rounded-xl border border-slate-800">
+                          <Wallet size={24} className="text-sky-400 mx-auto mb-1.5 opacity-60" />
+                          <span className="text-xs text-slate-400">No cash transactions logged yet.</span>
+                        </div>
+                      ) : (
+                        effectiveCashSummary.entries.map((entry: any) => (
+                          <div
+                            key={entry.id}
+                            className="flex items-center justify-between p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80"
+                          >
+                            <div>
+                              <strong className="text-xs text-white block">{entry.project}</strong>
+                              <span className="text-[11px] text-slate-400">{entry.description}</span>
+                            </div>
+                            <span
+                              className={`text-xs font-mono font-bold px-2 py-1 rounded ${
+                                entry.direction === "inflow"
+                                  ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                  : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                              }`}
+                            >
+                              {entry.direction === "inflow" ? "+" : "−"}
+                              {formatMoney(entry.amountCents)}
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
 
             {/* BILLING & PLANS TAB */}
             {tab === "billing" && (
-              <div className="space-y-5 animate-fadeIn">
+              <div className="space-y-6 animate-fadeIn">
                 <div className="pb-4 border-b border-sky-900/30">
                   <span className="text-[10px] font-mono uppercase text-sky-400 font-bold block mb-1">
                     Subscription & Commercial Tier
@@ -1105,26 +1149,30 @@ export function AccountCenter({
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800">
                     <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block mb-1">Starter Tier</span>
-                    <strong className="text-xl text-white block">$0 / month</strong>
-                    <p className="text-xs text-slate-400 mt-2">Up to 3 active resources and 5 historical simulations.</p>
+                    <strong className="text-2xl text-white block">$0 / month</strong>
+                    <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                      Up to 3 active resources and 5 historical simulations. Standard support.
+                    </p>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-gradient-to-br from-blue-950/80 to-slate-900 border border-sky-400/50 shadow-lg">
+                  <div className="p-5 rounded-2xl bg-gradient-to-br from-blue-950/80 to-slate-900 border border-sky-400/50 shadow-lg">
                     <div className="flex justify-between items-center mb-1">
                       <span className="text-[10px] font-mono text-sky-400 uppercase font-bold">Pro Tier (Recommended)</span>
                       <span className="bg-sky-500 text-slate-950 text-[10px] font-bold px-2 py-0.5 rounded">Active</span>
                     </div>
-                    <strong className="text-xl text-white block">$49 / month</strong>
-                    <p className="text-xs text-sky-200 mt-2">Unlimited 5s simulations, Samantha AI Copilot, & Supabase cloud sync.</p>
+                    <strong className="text-2xl text-white block">$49 / month</strong>
+                    <p className="text-xs text-sky-200 mt-2 leading-relaxed">
+                      Unlimited 5s simulations, Samantha AI Copilot, Supabase cloud sync, and 24/7 priority SLA.
+                    </p>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-3">
                   <button
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white transition-colors"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white transition-colors"
                     onClick={() => toast.info("Stripe Billing Portal: https://billing.stripe.com/p/session/live")}
                   >
                     Manage Payment & Invoices
@@ -1135,7 +1183,7 @@ export function AccountCenter({
 
             {/* PRIVACY TAB */}
             {tab === "privacy" && (
-              <div className="space-y-5 animate-fadeIn">
+              <div className="space-y-6 animate-fadeIn">
                 <div className="pb-4 border-b border-sky-900/30">
                   <span className="text-[10px] font-mono uppercase text-sky-400 font-bold block mb-1">
                     Privacy Control Center
@@ -1144,7 +1192,7 @@ export function AccountCenter({
                   <p className="text-xs text-slate-400">Your consent choices dictate how anonymized telemetry and alert systems function.</p>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-3.5">
                   <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between">
                     <div>
                       <strong className="text-sm font-bold text-white block">Anonymous Product Analytics</strong>
@@ -1186,7 +1234,7 @@ export function AccountCenter({
                 </div>
 
                 <button
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white transition-colors"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white transition-colors"
                   disabled={savePreferences.isPending}
                   onClick={() => savePreferences.mutate(preferences)}
                 >
@@ -1197,7 +1245,7 @@ export function AccountCenter({
 
             {/* ANALYTICS STREAM TAB */}
             {tab === "analytics" && (
-              <div className="space-y-4 animate-fadeIn">
+              <div className="space-y-5 animate-fadeIn">
                 <div className="flex items-center justify-between pb-4 border-b border-sky-900/30">
                   <div>
                     <span className="text-[10px] font-mono uppercase text-sky-400 font-bold block mb-1">
@@ -1207,17 +1255,17 @@ export function AccountCenter({
                     <p className="text-xs text-slate-400">Inspect real-time event dispatches recorded by the tracking pipeline.</p>
                   </div>
                   <button
-                    className="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors flex items-center gap-1.5"
+                    className="text-xs px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors flex items-center gap-1.5 font-semibold"
                     onClick={loadAnalyticsEvents}
                   >
-                    <RefreshCw size={13} /> Refresh
+                    <RefreshCw size={14} /> Refresh
                   </button>
                 </div>
 
-                <div className="space-y-2 max-h-72 overflow-y-auto">
+                <div className="space-y-2.5 max-h-96 overflow-y-auto">
                   {analyticsEvents.length === 0 ? (
-                    <div className="p-8 text-center bg-slate-900/40 rounded-xl border border-slate-800">
-                      <Activity size={28} className="text-sky-400 mx-auto mb-2 opacity-60" />
+                    <div className="p-12 text-center bg-slate-900/40 rounded-2xl border border-slate-800">
+                      <Activity size={32} className="text-sky-400 mx-auto mb-2 opacity-60" />
                       <strong className="text-sm text-white block">No analytics events recorded yet</strong>
                       <span className="text-xs text-slate-400">Events stream in as you run simulations and assign resources.</span>
                     </div>
@@ -1225,13 +1273,13 @@ export function AccountCenter({
                     analyticsEvents.map((evt, idx) => (
                       <div
                         key={idx}
-                        className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80 text-xs flex justify-between items-center"
+                        className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 text-xs flex justify-between items-center gap-4"
                       >
                         <div>
-                          <strong className="text-sky-300 font-mono block">{evt.event}</strong>
-                          <span className="text-slate-400 text-[11px]">{JSON.stringify(evt.properties)}</span>
+                          <strong className="text-sky-300 font-mono block text-xs">{evt.event}</strong>
+                          <span className="text-slate-400 text-[11px] mt-0.5 block">{JSON.stringify(evt.properties)}</span>
                         </div>
-                        <span className="text-[10px] font-mono text-slate-500">
+                        <span className="text-[10px] font-mono text-slate-500 shrink-0">
                           {new Date(evt.at).toLocaleTimeString()}
                         </span>
                       </div>
@@ -1243,7 +1291,7 @@ export function AccountCenter({
 
             {/* BETA FEEDBACK TAB */}
             {tab === "beta" && (
-              <div className="space-y-5 animate-fadeIn">
+              <div className="space-y-6 animate-fadeIn">
                 <div className="flex items-center justify-between pb-4 border-b border-sky-900/30">
                   <div>
                     <span className="text-[10px] font-mono uppercase text-sky-400 font-bold block mb-1">
@@ -1253,7 +1301,7 @@ export function AccountCenter({
                     <p className="text-xs text-slate-400">Help shape future release cycles with targeted observation notes.</p>
                   </div>
                   <button
-                    className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white transition-colors"
+                    className="text-xs font-semibold px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white transition-colors"
                     disabled={joinBetaMutation.isPending || betaStatus === "Active Pilot Participant"}
                     onClick={() => joinBetaMutation.mutate()}
                   >
@@ -1261,67 +1309,90 @@ export function AccountCenter({
                   </button>
                 </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-xs font-semibold text-slate-300 block mb-1">Target Product Area</label>
-                    <select
-                      value={betaForm.productArea}
-                      onChange={(e) => setBetaForm({ ...betaForm, productArea: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-700 text-white text-xs rounded-lg px-3 py-2"
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Feedback Form */}
+                  <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4">
+                    <strong className="text-sm font-bold text-white block">Submit Pilot Feedback</strong>
+                    <div>
+                      <label className="text-xs font-semibold text-slate-300 block mb-1">Target Product Area</label>
+                      <select
+                        value={betaForm.productArea}
+                        onChange={(e) => setBetaForm({ ...betaForm, productArea: e.target.value })}
+                        className="w-full bg-slate-950 border border-slate-700 text-white text-xs rounded-xl px-3 py-2.5 h-10"
+                      >
+                        <option value="Command center">Command Center & KPIs</option>
+                        <option value="Simulation">5-Second Live Simulation</option>
+                        <option value="Impact graph">Cascading Impact Graph</option>
+                        <option value="Resources">Resources & Workload Balancing</option>
+                        <option value="Copilot">Samantha AI Voice Copilot</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-slate-300 block mb-1">Rating</label>
+                      <div className="flex items-center gap-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setBetaForm({ ...betaForm, rating: star })}
+                            className={`p-2 rounded-xl border transition-all ${
+                              betaForm.rating >= star
+                                ? "bg-amber-500/20 border-amber-400 text-amber-300"
+                                : "bg-slate-900 border-slate-800 text-slate-500"
+                            }`}
+                          >
+                            <Star size={16} fill={betaForm.rating >= star ? "currentColor" : "none"} />
+                          </button>
+                        ))}
+                        <span className="text-xs text-slate-400 font-mono ml-2">{betaForm.rating} / 5 Stars</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-slate-300 block mb-1">Feedback Notes</label>
+                      <textarea
+                        value={betaForm.notes}
+                        onChange={(e) => setBetaForm({ ...betaForm, notes: e.target.value })}
+                        placeholder="Share your thoughts on what could be improved or new features you'd like to see..."
+                        rows={3}
+                        className="w-full bg-slate-950 border border-slate-700 text-white text-xs rounded-xl p-3"
+                      />
+                    </div>
+
+                    <button
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white transition-colors"
+                      disabled={betaMutation.isPending || !betaForm.notes.trim()}
+                      onClick={() =>
+                        betaMutation.mutate({
+                          productArea: betaForm.productArea,
+                          rating: betaForm.rating,
+                          notes: betaForm.notes,
+                        })
+                      }
                     >
-                      <option value="Command center">Command Center & KPIs</option>
-                      <option value="Simulation">5-Second Live Simulation</option>
-                      <option value="Impact graph">Cascading Impact Graph</option>
-                      <option value="Resources">Resources & Workload Balancing</option>
-                      <option value="Copilot">Samantha AI Voice Copilot</option>
-                    </select>
+                      {betaMutation.isPending ? "Submitting…" : "Submit Feedback"}
+                    </button>
                   </div>
 
-                  <div>
-                    <label className="text-xs font-semibold text-slate-300 block mb-1">Rating</label>
-                    <div className="flex items-center gap-2">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          type="button"
-                          onClick={() => setBetaForm({ ...betaForm, rating: star })}
-                          className={`p-1.5 rounded-lg border transition-all ${
-                            betaForm.rating >= star
-                              ? "bg-amber-500/20 border-amber-400 text-amber-300"
-                              : "bg-slate-900 border-slate-800 text-slate-500"
-                          }`}
-                        >
-                          <Star size={16} fill={betaForm.rating >= star ? "currentColor" : "none"} />
-                        </button>
-                      ))}
-                      <span className="text-xs text-slate-400 font-mono ml-2">{betaForm.rating} / 5 Stars</span>
+                  {/* Cohort Perks Card */}
+                  <div className="p-5 rounded-2xl bg-gradient-to-br from-blue-950/40 via-slate-900/60 to-slate-950 border border-sky-400/30 space-y-4">
+                    <strong className="text-sm font-bold text-white block">Cohort Alpha Benefits</strong>
+                    <div className="space-y-3 text-xs text-slate-300">
+                      <div className="flex items-start gap-2.5">
+                        <CheckCircle2 size={16} className="text-sky-400 shrink-0 mt-0.5" />
+                        <span>Direct Slack channel with Deepmind engineering architects.</span>
+                      </div>
+                      <div className="flex items-start gap-2.5">
+                        <CheckCircle2 size={16} className="text-sky-400 shrink-0 mt-0.5" />
+                        <span>Preview access to next-gen Monte-Carlo cascade forecasting algorithms.</span>
+                      </div>
+                      <div className="flex items-start gap-2.5">
+                        <CheckCircle2 size={16} className="text-sky-400 shrink-0 mt-0.5" />
+                        <span>Priority support ticket routing with 15-minute response SLA.</span>
+                      </div>
                     </div>
                   </div>
-
-                  <div>
-                    <label className="text-xs font-semibold text-slate-300 block mb-1">Feedback Notes</label>
-                    <textarea
-                      value={betaForm.notes}
-                      onChange={(e) => setBetaForm({ ...betaForm, notes: e.target.value })}
-                      placeholder="Share your thoughts on what could be improved or new features you'd like to see..."
-                      rows={3}
-                      className="w-full bg-slate-950 border border-slate-700 text-white text-xs rounded-lg p-3"
-                    />
-                  </div>
-
-                  <button
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white transition-colors"
-                    disabled={betaMutation.isPending || !betaForm.notes.trim()}
-                    onClick={() =>
-                      betaMutation.mutate({
-                        productArea: betaForm.productArea,
-                        rating: betaForm.rating,
-                        notes: betaForm.notes,
-                      })
-                    }
-                  >
-                    {betaMutation.isPending ? "Submitting…" : "Submit Feedback"}
-                  </button>
                 </div>
               </div>
             )}
