@@ -21,6 +21,10 @@ import {
   CheckCircle2,
   AlertTriangle,
   Play,
+  ArrowUpRight,
+  ArrowDownRight,
+  ChevronRight,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -66,11 +70,7 @@ export function AccountCenter({
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [verificationToken, setVerificationToken] = useState("");
   const [resetEmail, setResetEmail] = useState(user?.email ?? "mc@northstar.ops");
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [isRegistering, setIsRegistering] = useState(false);
   const [simulatedCheckoutOpen, setSimulatedCheckoutOpen] = useState(false);
-  const [subscribedPlan, setSubscribedPlan] = useState<string | null>("Pro Plan (Active)");
 
   // Local fallback cash entries for offline & demo resilience
   const [localCashEntries, setLocalCashEntries] = useState(() => {
@@ -146,7 +146,6 @@ export function AccountCenter({
       toast.success("Workspace Ready", { description: "Your onboarding and privacy choices are saved." });
     },
     onError: () => {
-      // Local fallback
       onUserUpdate?.({ onboardingCompleted: 1 });
       toast.success("Workspace Ready (Saved)", { description: "Your onboarding and privacy choices are saved." });
     },
@@ -215,10 +214,6 @@ export function AccountCenter({
     },
   });
 
-  const readMutation = trpc.notifications.markRead.useMutation({
-    onSuccess: () => void notificationsQuery.refetch(),
-  });
-
   const checkoutMutation = trpc.billing.startCheckout.useMutation({
     onSuccess: ({ url }) => {
       if (url) window.open(url, "_blank", "noopener,noreferrer");
@@ -277,16 +272,6 @@ export function AccountCenter({
       setBetaStatus("Active Pilot Participant");
       localStorage.setItem("resourcepulse_beta_status", "Active Pilot Participant");
       toast.success("Enrolled in Beta Pilot", { description: "You are now an active tester for Cohort Alpha." });
-    },
-  });
-
-  const roleMutation = trpc.admin.setRole.useMutation({
-    onSuccess: () => {
-      void adminMembersQuery.refetch();
-      toast.success("Permissions updated");
-    },
-    onError: () => {
-      toast.success("Permissions updated in workspace");
     },
   });
 
@@ -380,69 +365,97 @@ export function AccountCenter({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="account-dialog max-w-3xl" aria-describedby="account-center-description">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] p-0 overflow-hidden bg-slate-950 border border-sky-500/30 text-white shadow-2xl rounded-2xl flex flex-col">
+        {/* Top Header */}
+        <DialogHeader className="p-5 border-b border-sky-900/30 bg-slate-900/70 shrink-0">
           <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
+            <div className="space-y-1">
+              <DialogTitle className="text-lg font-bold text-white flex items-center gap-2">
                 <Sparkles size={18} className="text-sky-400" /> Workspace Account & Control Center
               </DialogTitle>
-              <DialogDescription id="account-center-description" className="text-xs text-slate-400">
-                Manage access, role permissions (RBAC), alerts, cash movement, billing, and privacy governance.
+              <DialogDescription className="text-xs text-slate-400">
+                Manage role permissions (RBAC), alerts, cash movement, billing, and privacy governance.
               </DialogDescription>
             </div>
             <div className="flex items-center gap-2">
-              <span className="permission-chip"><Shield size={13} /> {roleLabel}</span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-sky-500/15 border border-sky-400/30 text-sky-400">
+                <Shield size={12} /> {roleLabel}
+              </span>
             </div>
           </div>
         </DialogHeader>
 
-        <div className="account-layout">
-          <nav className="account-tabs" aria-label="Account settings">
-            {tabs.map(({ id, label, icon: Icon }) => (
-              <button
-                key={id}
-                className={`account-tab ${tab === id ? "active" : ""}`}
-                onClick={() => setTab(id)}
-                aria-current={tab === id ? "page" : undefined}
-              >
-                <Icon size={15} />
-                <span>{label}</span>
-                {id === "notifications" && unreadCount > 0 && <b>{unreadCount}</b>}
-              </button>
-            ))}
+        {/* Modal Body with Sidebar Tabs */}
+        <div className="flex flex-col md:flex-row flex-1 min-h-[460px] overflow-hidden">
+          {/* Tabs Sidebar */}
+          <nav className="w-full md:w-56 shrink-0 bg-slate-950/90 border-r border-sky-900/30 p-2.5 flex flex-row md:flex-col gap-1 overflow-x-auto md:overflow-y-auto">
+            {tabs.map(({ id, label, icon: Icon }) => {
+              const isActive = tab === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => setTab(id)}
+                  className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all text-left w-full shrink-0 ${
+                    isActive
+                      ? "bg-sky-500/20 text-sky-300 font-semibold border border-sky-500/40 shadow-sm shadow-sky-950"
+                      : "text-slate-400 hover:text-white hover:bg-slate-900"
+                  }`}
+                >
+                  <Icon size={15} className={isActive ? "text-sky-400" : "text-slate-400"} />
+                  <span className="truncate">{label}</span>
+                  {id === "notifications" && unreadCount > 0 && (
+                    <span className="ml-auto bg-sky-500 text-slate-950 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </nav>
 
-          <section className="account-panel" aria-live="polite">
+          {/* Tab Content Panel */}
+          <section className="flex-1 p-6 overflow-y-auto space-y-5 bg-slate-900/30">
             {/* OVERVIEW TAB */}
             {tab === "overview" && (
-              <>
-                <div className="account-section-heading">
+              <div className="space-y-5 animate-fadeIn">
+                {/* Profile Heading */}
+                <div className="flex items-center justify-between pb-4 border-b border-sky-900/30">
                   <div>
-                    <span className="eyebrow">WORKSPACE PROFILE</span>
-                    <h3>{accountUser?.name ?? "Maya Chen"}</h3>
-                    <p>{accountUser?.email ?? "mc@northstar.ops"} · Northstar Command Pod</p>
+                    <span className="text-[10px] font-mono uppercase text-sky-400 font-bold block mb-1">
+                      Active Workspace Identity
+                    </span>
+                    <h3 className="text-xl font-bold text-white">{accountUser?.name ?? "Maya Chen"}</h3>
+                    <p className="text-xs text-slate-400">{accountUser?.email ?? "mc@northstar.ops"} · Northstar Command Pod</p>
                   </div>
-                  <div className="account-heading-actions">
-                    <button className="secondary-button text-xs" onClick={() => { void logout(); onOpenChange(false); }}>
-                      Sign out
-                    </button>
-                  </div>
+                  <button
+                    className="secondary-button text-xs px-3 py-1.5"
+                    onClick={() => {
+                      void logout();
+                      onOpenChange(false);
+                    }}
+                  >
+                    Sign out
+                  </button>
                 </div>
 
-                <div className="onboarding-card">
+                {/* Onboarding Status Card */}
+                <div className="p-4 rounded-xl bg-gradient-to-r from-blue-950/60 to-slate-900 border border-sky-400/40 flex items-center justify-between gap-4">
                   <div>
-                    <span className="panel-kicker">ONBOARDING & TOUR</span>
-                    <h4>{onboardingDone ? "Workspace onboarding complete ✓" : "Finish setting up your workspace"}</h4>
-                    <p>
+                    <span className="text-[10px] font-mono text-sky-400 uppercase font-bold block mb-1">
+                      Onboarding Status
+                    </span>
+                    <h4 className="text-sm font-bold text-white">
+                      {onboardingDone ? "Workspace onboarding complete ✓" : "Finish setting up your workspace"}
+                    </h4>
+                    <p className="text-xs text-slate-300 mt-0.5">
                       {onboardingDone
-                        ? "Your account, telemetry preferences, and role permissions are configured."
+                        ? "Account permissions, telemetry, and alert profiles are configured."
                         : "Walk through the 4-step wizard to personalize role, alerts, and telemetry."}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     <button
-                      className="secondary-button text-xs"
+                      className="secondary-button text-xs px-3 py-1.5"
                       onClick={() => {
                         onOpenChange(false);
                         onOpenOnboardingTour?.();
@@ -451,10 +464,12 @@ export function AccountCenter({
                       Launch Tour
                     </button>
                     {onboardingDone ? (
-                      <Check className="success-icon" size={20} />
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-400">
+                        <Check size={18} />
+                      </div>
                     ) : (
                       <button
-                        className="primary-button text-xs"
+                        className="primary-button text-xs px-3 py-1.5"
                         disabled={completeOnboarding.isPending}
                         onClick={() => completeOnboarding.mutate({ privacyAccepted: true })}
                       >
@@ -464,34 +479,51 @@ export function AccountCenter({
                   </div>
                 </div>
 
-                <div className="account-grid">
-                  <div className="mini-setting">
-                    <MailCheck size={16} />
-                    <div>
-                      <strong>Email verification</strong>
-                      <span>{accountUser?.emailVerified ? "Verified ✓" : "Verification required for alerts"}</span>
+                {/* Settings Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-sky-500/10 border border-sky-400/20 flex items-center justify-center text-sky-400 shrink-0">
+                        <MailCheck size={18} />
+                      </div>
+                      <div>
+                        <strong className="text-xs font-bold text-white block">Email Verification</strong>
+                        <span className="text-[11px] text-slate-400">
+                          {accountUser?.emailVerified ? "Verified ✓" : "Verification required"}
+                        </span>
+                      </div>
                     </div>
                     {accountUser?.emailVerified ? (
-                      <Check className="success-icon" size={15} />
+                      <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1">
+                        <CheckCircle2 size={15} /> Active
+                      </span>
                     ) : (
-                      <button onClick={() => verifyMutation.mutate()} disabled={verifyMutation.isPending}>
-                        {verifyMutation.isPending ? "…" : "Verify"}
+                      <button
+                        className="secondary-button text-xs px-2.5 py-1"
+                        onClick={() => verifyMutation.mutate()}
+                        disabled={verifyMutation.isPending}
+                      >
+                        Verify
                       </button>
                     )}
                   </div>
 
-                  <div className="mini-setting">
-                    <Shield size={16} />
-                    <div>
-                      <strong>Role Switcher (RBAC)</strong>
-                      <span>Switch active governance mode</span>
+                  <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-sky-500/10 border border-sky-400/20 flex items-center justify-center text-sky-400 shrink-0">
+                        <Shield size={18} />
+                      </div>
+                      <div>
+                        <strong className="text-xs font-bold text-white block">Role Switcher (RBAC)</strong>
+                        <span className="text-[11px] text-slate-400">Switch governance mode</span>
+                      </div>
                     </div>
                     <select
-                      className="bg-slate-900 text-sky-400 text-xs border border-sky-900 rounded p-1"
+                      className="bg-slate-950 text-sky-400 text-xs border border-sky-900 rounded-lg px-2.5 py-1.5 cursor-pointer"
                       value={currentRole}
                       onChange={(e) => handleRoleChange(e.target.value as any)}
                     >
-                      <option value="admin">Admin</option>
+                      <option value="admin">Administrator</option>
                       <option value="operator">Operator</option>
                       <option value="viewer">Viewer</option>
                     </select>
@@ -500,437 +532,493 @@ export function AccountCenter({
 
                 {/* Dev token verification box */}
                 {!accountUser?.emailVerified && verificationToken && (
-                  <div className="verification-inline">
-                    <span className="panel-kicker">DEV PREVIEW TOKEN</span>
-                    <div>
+                  <div className="p-3.5 rounded-xl bg-sky-950/40 border border-sky-400/40 space-y-2">
+                    <span className="text-[10px] font-mono text-sky-400 uppercase font-bold block">
+                      Generated Dev Preview Token
+                    </span>
+                    <div className="flex gap-2">
                       <Input
                         value={verificationToken}
                         onChange={(event) => setVerificationToken(event.target.value)}
-                        aria-label="Email verification token"
+                        className="bg-slate-950 border-sky-900 text-white font-mono text-xs"
                       />
                       <button
-                        className="secondary-button"
+                        className="secondary-button text-xs px-4"
                         disabled={verifyTokenMutation.isPending}
                         onClick={() => verifyTokenMutation.mutate({ token: verificationToken })}
                       >
-                        {verifyTokenMutation.isPending ? "Checking…" : "Verify email"}
+                        Confirm Token
                       </button>
                     </div>
                   </div>
                 )}
 
-                {/* Team member management */}
-                <div className="member-management mt-4">
-                  <div className="member-heading">
-                    <span className="panel-kicker">TEAM ACCESS & PERMISSIONS</span>
-                    <span className="member-count">3 active operators</span>
+                {/* Team Members List */}
+                <div className="p-4 rounded-xl bg-slate-900/40 border border-slate-800 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-mono text-sky-400 uppercase font-bold">
+                      Team Access & Member Governance
+                    </span>
+                    <span className="text-xs text-slate-400 font-mono">3 Active Profiles</span>
                   </div>
-                  {[
-                    { id: 1, name: "Maya Chen", email: "mc@northstar.ops", role: "admin", perm: "system.admin,approvals.write" },
-                    { id: 2, name: "Arjun Rao", email: "arjun@northstar.ops", role: "operator", perm: "simulation.execute,approvals.write" },
-                    { id: 3, name: "Priya Sharma", email: "priya@northstar.ops", role: "viewer", perm: "dashboard.read" },
-                  ].map((m) => (
-                    <div className="member-row" key={m.id}>
-                      <div>
-                        <strong>{m.name}</strong>
-                        <span>{m.email} · {m.perm}</span>
+
+                  <div className="space-y-2">
+                    {[
+                      { id: 1, name: "Maya Chen", email: "mc@northstar.ops", role: "admin", perm: "system.admin, approvals.write, cash.write" },
+                      { id: 2, name: "Arjun Rao", email: "arjun@northstar.ops", role: "operator", perm: "simulation.execute, allocations.write" },
+                      { id: 3, name: "Priya Sharma", email: "priya@northstar.ops", role: "viewer", perm: "dashboard.read, audit.read" },
+                    ].map((m) => (
+                      <div key={m.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-950/60 border border-slate-800/80">
+                        <div>
+                          <strong className="text-xs text-white block">{m.name}</strong>
+                          <span className="text-[11px] text-slate-400">{m.email} · {m.perm}</span>
+                        </div>
+                        <span className="text-[10px] font-mono uppercase font-bold px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                          {m.role}
+                        </span>
                       </div>
-                      <span className="mono text-xs text-sky-400 font-bold uppercase">{m.role}</span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </>
+              </div>
             )}
 
             {/* SECURITY & AUTH TAB */}
             {tab === "security" && (
-              <>
-                <div className="account-section-heading">
-                  <div>
-                    <span className="eyebrow">AUTHENTICATION & RECOVERY</span>
-                    <h3>Sign-in & Password Controls</h3>
-                    <p>Switch between test profiles, request password recovery, or generate verification codes.</p>
-                  </div>
+              <div className="space-y-5 animate-fadeIn">
+                <div className="pb-4 border-b border-sky-900/30">
+                  <span className="text-[10px] font-mono uppercase text-sky-400 font-bold block mb-1">
+                    Authentication & Credentials
+                  </span>
+                  <h3 className="text-xl font-bold text-white">Sign-in & Password Recovery</h3>
+                  <p className="text-xs text-slate-400">Switch between test profiles, request password recovery, or generate verification codes.</p>
                 </div>
 
-                <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 mb-4">
-                  <strong className="text-xs font-bold text-sky-400 uppercase tracking-wider block mb-2">
+                <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
+                  <strong className="text-xs font-bold text-sky-400 uppercase tracking-wider block">
                     Quick 1-Click Profile Sign-In
                   </strong>
-                  <div className="grid grid-cols-3 gap-2">
-                    <button className="secondary-button text-xs py-2" onClick={() => handleDirectLogin("admin")}>
-                      Maya Chen (Admin)
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <button
+                      className="p-3 rounded-xl bg-slate-950 border border-sky-900/50 hover:border-sky-400 text-left transition-all"
+                      onClick={() => handleDirectLogin("admin")}
+                    >
+                      <strong className="text-xs text-white block">Maya Chen</strong>
+                      <span className="text-[10px] text-sky-400 font-mono">Administrator</span>
                     </button>
-                    <button className="secondary-button text-xs py-2" onClick={() => handleDirectLogin("operator")}>
-                      Arjun Rao (Operator)
+
+                    <button
+                      className="p-3 rounded-xl bg-slate-950 border border-sky-900/50 hover:border-sky-400 text-left transition-all"
+                      onClick={() => handleDirectLogin("operator")}
+                    >
+                      <strong className="text-xs text-white block">Arjun Rao</strong>
+                      <span className="text-[10px] text-sky-400 font-mono">Operator</span>
                     </button>
-                    <button className="secondary-button text-xs py-2" onClick={() => handleDirectLogin("viewer")}>
-                      Priya Sharma (Viewer)
+
+                    <button
+                      className="p-3 rounded-xl bg-slate-950 border border-sky-900/50 hover:border-sky-400 text-left transition-all"
+                      onClick={() => handleDirectLogin("viewer")}
+                    >
+                      <strong className="text-xs text-white block">Priya Sharma</strong>
+                      <span className="text-[10px] text-sky-400 font-mono">Viewer</span>
                     </button>
                   </div>
                 </div>
 
-                <label className="field-label">Password reset email</label>
-                <div className="inline-form">
-                  <Input
-                    type="email"
-                    value={resetEmail}
-                    onChange={(event) => setResetEmail(event.target.value)}
-                    placeholder="you@company.com"
-                    aria-label="Password reset email"
-                  />
-                  <button
-                    className="secondary-button"
-                    disabled={resetMutation.isPending || !resetEmail}
-                    onClick={() => resetMutation.mutate({ email: resetEmail })}
-                  >
-                    {resetMutation.isPending ? "Sending…" : "Request reset"}
-                  </button>
+                <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
+                  <label className="text-xs font-semibold text-slate-300 block">Password Reset Request</label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="email"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      placeholder="you@company.com"
+                      className="bg-slate-950 border-sky-900 text-white text-xs"
+                    />
+                    <button
+                      className="secondary-button text-xs px-4 shrink-0"
+                      disabled={resetMutation.isPending || !resetEmail}
+                      onClick={() => resetMutation.mutate({ email: resetEmail })}
+                    >
+                      {resetMutation.isPending ? "Sending…" : "Request Reset"}
+                    </button>
+                  </div>
                 </div>
 
-                <div className="mini-setting mt-4">
-                  <MailCheck size={16} />
+                <div className="p-4 rounded-xl bg-rose-950/20 border border-rose-500/30 space-y-3">
                   <div>
-                    <strong>Generate Email Verification Token</strong>
-                    <span>Test dev token preview for email confirmation flow</span>
+                    <span className="text-[10px] font-mono uppercase text-rose-400 font-bold block mb-1">
+                      Danger Zone
+                    </span>
+                    <h4 className="text-sm font-bold text-white">Delete Workspace Account</h4>
+                    <p className="text-xs text-slate-400">
+                      Permanently wipes preferences, local storage, notifications, and cash logs.
+                    </p>
                   </div>
-                  <button
-                    className="secondary-button text-xs"
-                    onClick={() => verifyMutation.mutate()}
-                    disabled={verifyMutation.isPending}
-                  >
-                    Generate Token
-                  </button>
-                </div>
-
-                <div className="danger-zone mt-6">
-                  <div>
-                    <span className="eyebrow">DANGER ZONE</span>
-                    <h4>Delete this account</h4>
-                    <p>Permanently removes preferences, notifications, cash entries, feedback, and user session.</p>
+                  <div className="flex gap-2">
+                    <Input
+                      value={deleteConfirmation}
+                      onChange={(e) => setDeleteConfirmation(e.target.value)}
+                      placeholder="Type DELETE"
+                      className="bg-slate-950 border-rose-900 text-white text-xs"
+                    />
+                    <button
+                      className="danger-button text-xs px-4 shrink-0"
+                      disabled={deleteConfirmation !== "DELETE" || deleteMutation.isPending}
+                      onClick={() => deleteMutation.mutate({ confirmation: "DELETE" })}
+                    >
+                      <Trash2 size={14} /> {deleteMutation.isPending ? "Deleting…" : "Delete Account"}
+                    </button>
                   </div>
-                  <Input
-                    value={deleteConfirmation}
-                    onChange={(event) => setDeleteConfirmation(event.target.value)}
-                    placeholder="Type DELETE"
-                    aria-label="Type DELETE to confirm account deletion"
-                  />
-                  <button
-                    className="danger-button"
-                    disabled={deleteConfirmation !== "DELETE" || deleteMutation.isPending}
-                    onClick={() => deleteMutation.mutate({ confirmation: "DELETE" })}
-                  >
-                    <Trash2 size={14} /> {deleteMutation.isPending ? "Deleting…" : "Delete account"}
-                  </button>
                 </div>
-              </>
+              </div>
             )}
 
             {/* PRIVACY TAB */}
             {tab === "privacy" && (
-              <>
-                <div className="account-section-heading">
-                  <div>
-                    <span className="eyebrow">PRIVACY & TELEMETRY</span>
-                    <h3>Your Data, Your Choices</h3>
-                    <p>Manage product analytics consent and accessibility preferences.</p>
-                  </div>
+              <div className="space-y-5 animate-fadeIn">
+                <div className="pb-4 border-b border-sky-900/30">
+                  <span className="text-[10px] font-mono uppercase text-sky-400 font-bold block mb-1">
+                    Privacy Control Center
+                  </span>
+                  <h3 className="text-xl font-bold text-white">Telemetry & Privacy Setup</h3>
+                  <p className="text-xs text-slate-400">Your consent choices dictate how anonymized telemetry and alert systems function.</p>
                 </div>
 
-                <div className="preference-list">
-                  <label className="preference-row">
+                <div className="space-y-3">
+                  <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between">
                     <div>
-                      <strong>Product analytics</strong>
-                      <span>Allow anonymous usage analytics to improve rebalancing algorithms.</span>
+                      <strong className="text-sm font-bold text-white block">Anonymous Product Analytics</strong>
+                      <p className="text-xs text-slate-400">Allows telemetry to optimize 5-second rebalancing simulation latency.</p>
                     </div>
                     <input
                       type="checkbox"
                       checked={preferences.analyticsConsent}
-                      onChange={(event) => updatePreference("analyticsConsent", event.target.checked)}
+                      onChange={(e) => updatePreference("analyticsConsent", e.target.checked)}
+                      className="w-4 h-4 accent-sky-500 rounded cursor-pointer"
                     />
-                  </label>
-                  <label className="preference-row">
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between">
                     <div>
-                      <strong>Marketing updates</strong>
-                      <span>Receive occasional product releases and beta pilot announcements.</span>
+                      <strong className="text-sm font-bold text-white block">Marketing & Roadmap Announcements</strong>
+                      <p className="text-xs text-slate-400">Receive notifications regarding newly trained optimization models.</p>
                     </div>
                     <input
                       type="checkbox"
                       checked={preferences.marketingConsent}
-                      onChange={(event) => updatePreference("marketingConsent", event.target.checked)}
+                      onChange={(e) => updatePreference("marketingConsent", e.target.checked)}
+                      className="w-4 h-4 accent-sky-500 rounded cursor-pointer"
                     />
-                  </label>
-                  <label className="preference-row">
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between">
                     <div>
-                      <strong>Reduced motion</strong>
-                      <span>Minimize non-essential animations for accessibility.</span>
+                      <strong className="text-sm font-bold text-white block">Reduced Motion</strong>
+                      <p className="text-xs text-slate-400">Disable non-essential animations for accessibility.</p>
                     </div>
                     <input
                       type="checkbox"
                       checked={preferences.reducedMotion}
-                      onChange={(event) => updatePreference("reducedMotion", event.target.checked)}
+                      onChange={(e) => updatePreference("reducedMotion", e.target.checked)}
+                      className="w-4 h-4 accent-sky-500 rounded cursor-pointer"
                     />
-                  </label>
+                  </div>
                 </div>
 
-                <button className="primary-button" disabled={savePreferences.isPending} onClick={() => savePreferences.mutate(preferences)}>
-                  {savePreferences.isPending ? "Saving…" : "Save privacy settings"}
+                <button
+                  className="primary-button text-xs px-4 py-2"
+                  disabled={savePreferences.isPending}
+                  onClick={() => savePreferences.mutate(preferences)}
+                >
+                  {savePreferences.isPending ? "Saving…" : "Save Privacy Settings"}
                 </button>
 
-                <div className="privacy-note mt-4">
-                  <Shield size={15} />
-                  <span>We do not store passwords or payment card details. Stripe handles all billing tokens. Data persists securely in Supabase with TLS encryption.</span>
+                <div className="p-3.5 rounded-xl bg-sky-950/30 border border-sky-400/20 text-xs text-sky-200 flex items-center gap-2">
+                  <Shield size={16} className="text-sky-400 shrink-0" />
+                  <span>Zero password exposure. No payment cards stored on our servers. Backed by Supabase TLS encryption.</span>
                 </div>
-              </>
+              </div>
             )}
 
             {/* NOTIFICATIONS TAB */}
             {tab === "notifications" && (
-              <>
-                <div className="account-section-heading">
+              <div className="space-y-4 animate-fadeIn">
+                <div className="flex items-center justify-between pb-4 border-b border-sky-900/30">
                   <div>
-                    <span className="eyebrow">NOTIFICATION CENTER</span>
-                    <h3>{unreadCount ? `${unreadCount} unread updates` : "You are all caught up"}</h3>
-                    <p>Real-time capacity signals, task allocations, and system alerts.</p>
+                    <span className="text-[10px] font-mono uppercase text-sky-400 font-bold block mb-1">
+                      Signal Dispatch Center
+                    </span>
+                    <h3 className="text-xl font-bold text-white">
+                      {unreadCount ? `${unreadCount} Unread Notifications` : "All Caught Up"}
+                    </h3>
+                    <p className="text-xs text-slate-400">Real-time alerts, allocation triggers, and system notifications.</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button className="secondary-button text-xs" onClick={handleSendTestAlert}>
+                    <button className="secondary-button text-xs px-3 py-1.5" onClick={handleSendTestAlert}>
                       + Test Alert
                     </button>
                     {unreadCount > 0 && (
-                      <button className="secondary-button text-xs" onClick={handleMarkAllRead}>
-                        Mark all read
+                      <button className="secondary-button text-xs px-3 py-1.5" onClick={handleMarkAllRead}>
+                        Mark All Read
                       </button>
                     )}
                   </div>
                 </div>
 
-                <div className="notification-list">
+                <div className="space-y-2 max-h-72 overflow-y-auto">
                   {allNotifications.length === 0 ? (
-                    <div className="empty-state">
-                      <Bell size={24} className="text-sky-400 mb-2" />
-                      <strong>No notifications yet</strong>
-                      <span>New signals and approval events will appear here in real time.</span>
+                    <div className="p-8 text-center bg-slate-900/40 rounded-xl border border-slate-800">
+                      <Bell size={28} className="text-sky-400 mx-auto mb-2 opacity-60" />
+                      <strong className="text-sm text-white block">No notifications yet</strong>
+                      <span className="text-xs text-slate-400">Signals and approvals will appear here in real time.</span>
                     </div>
                   ) : (
                     allNotifications.map((n) => (
-                      <button
-                        className={`notification-row ${n.readAt ? "read" : "unread"}`}
+                      <div
                         key={n.id}
                         onClick={() => {
-                          const updated = localNotifications.map((item) => item.id === n.id ? { ...item, readAt: new Date().toISOString() } : item);
+                          const updated = localNotifications.map((item) =>
+                            item.id === n.id ? { ...item, readAt: new Date().toISOString() } : item
+                          );
                           setLocalNotifications(updated);
                           try {
                             localStorage.setItem("resourcepulse_notifications", JSON.stringify(updated));
                           } catch {}
                         }}
+                        className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                          n.readAt
+                            ? "bg-slate-950/40 border-slate-800/60 opacity-60"
+                            : "bg-sky-950/30 border-sky-400/30"
+                        }`}
                       >
-                        <span className={`notification-type type-${n.type || "signal"}`} />
-                        <div>
-                          <strong>{n.title}</strong>
-                          <span>{n.body}</span>
+                        <div className="flex items-center gap-3">
+                          <span
+                            className={`w-2 h-2 rounded-full shrink-0 ${
+                              n.type === "signal" ? "bg-rose-400" : n.type === "approval" ? "bg-amber-400" : "bg-sky-400"
+                            }`}
+                          />
+                          <div>
+                            <strong className="text-xs text-white block">{n.title}</strong>
+                            <span className="text-[11px] text-slate-300">{n.body}</span>
+                          </div>
                         </div>
-                        <small>{n.readAt ? "Read" : "New"}</small>
-                      </button>
+                        <span className="text-[10px] font-mono text-sky-400 shrink-0">
+                          {n.readAt ? "Read" : "New"}
+                        </span>
+                      </div>
                     ))
                   )}
                 </div>
-              </>
+              </div>
             )}
 
             {/* CASH REPORT TAB */}
             {tab === "cash" && (
-              <>
-                <div className="account-section-heading">
-                  <div>
-                    <span className="eyebrow">CASH & EXPENSE REPORTING</span>
-                    <h3>Operational Cash Movement</h3>
-                    <p>Track project inflows, budget burn, and contractor expenditures.</p>
-                  </div>
+              <div className="space-y-5 animate-fadeIn">
+                <div className="pb-4 border-b border-sky-900/30">
+                  <span className="text-[10px] font-mono uppercase text-sky-400 font-bold block mb-1">
+                    Financial Governance
+                  </span>
+                  <h3 className="text-xl font-bold text-white">Cash & Budget Tracking</h3>
+                  <p className="text-xs text-slate-400">Record project expenditures, contractor invoices, and budget inflows.</p>
                 </div>
 
-                <div className="cash-summary">
-                  <div>
-                    <span>Inflow</span>
-                    <strong className="cash-positive">{formatMoney(effectiveCashSummary.inflowCents)}</strong>
+                {/* Summary Cards */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800">
+                    <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block mb-1">Total Inflow</span>
+                    <strong className="text-base text-emerald-400 font-mono block">
+                      {formatMoney(effectiveCashSummary.inflowCents)}
+                    </strong>
                   </div>
-                  <div>
-                    <span>Outflow</span>
-                    <strong className="cash-negative">{formatMoney(effectiveCashSummary.outflowCents)}</strong>
+                  <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800">
+                    <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block mb-1">Total Outflow</span>
+                    <strong className="text-base text-rose-400 font-mono block">
+                      {formatMoney(effectiveCashSummary.outflowCents)}
+                    </strong>
                   </div>
-                  <div>
-                    <span>Net Balance</span>
-                    <strong className={effectiveCashSummary.netCents >= 0 ? "cash-positive" : "cash-negative"}>
+                  <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800">
+                    <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block mb-1">Net Balance</span>
+                    <strong className={`text-base font-mono block ${effectiveCashSummary.netCents >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                       {formatMoney(effectiveCashSummary.netCents)}
                     </strong>
                   </div>
                 </div>
 
-                <form className="cash-form" onSubmit={handleCashSubmit}>
-                  <Input
-                    value={cashForm.project}
-                    onChange={(event) => setCashForm({ ...cashForm, project: event.target.value })}
-                    placeholder="Project name"
-                    aria-label="Cash project"
-                  />
-                  <select
-                    value={cashForm.direction}
-                    onChange={(event) => setCashForm({ ...cashForm, direction: event.target.value as "inflow" | "outflow" })}
-                    aria-label="Cash direction"
-                  >
-                    <option value="outflow">Outflow (−)</option>
-                    <option value="inflow">Inflow (+)</option>
-                  </select>
-                  <Input
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    value={cashForm.amount}
-                    onChange={(event) => setCashForm({ ...cashForm, amount: event.target.value })}
-                    placeholder="Amount in USD"
-                    aria-label="Cash amount"
-                  />
-                  <Input
-                    value={cashForm.description}
-                    onChange={(event) => setCashForm({ ...cashForm, description: event.target.value })}
-                    placeholder="Description / Reason"
-                    aria-label="Cash description"
-                  />
-                  <button className="primary-button" disabled={cashMutation.isPending}>
-                    {cashMutation.isPending ? "Saving…" : "Add Entry"}
+                {/* Cash Input Form */}
+                <form onSubmit={handleCashSubmit} className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
+                  <strong className="text-xs font-bold text-white block">Log Financial Transaction</strong>
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                    <Input
+                      value={cashForm.project}
+                      onChange={(e) => setCashForm({ ...cashForm, project: e.target.value })}
+                      placeholder="Project name"
+                      className="bg-slate-950 border-sky-900 text-white text-xs"
+                    />
+                    <select
+                      value={cashForm.direction}
+                      onChange={(e) => setCashForm({ ...cashForm, direction: e.target.value as any })}
+                      className="bg-slate-950 border border-sky-900 text-white text-xs rounded-lg px-2"
+                    >
+                      <option value="outflow">Outflow (−)</option>
+                      <option value="inflow">Inflow (+)</option>
+                    </select>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={cashForm.amount}
+                      onChange={(e) => setCashForm({ ...cashForm, amount: e.target.value })}
+                      placeholder="Amount ($)"
+                      className="bg-slate-950 border-sky-900 text-white text-xs"
+                    />
+                    <Input
+                      value={cashForm.description}
+                      onChange={(e) => setCashForm({ ...cashForm, description: e.target.value })}
+                      placeholder="Description"
+                      className="bg-slate-950 border-sky-900 text-white text-xs"
+                    />
+                  </div>
+                  <button className="primary-button text-xs px-4 py-2" disabled={cashMutation.isPending}>
+                    {cashMutation.isPending ? "Saving…" : "+ Record Cash Movement"}
                   </button>
                 </form>
 
-                <div className="cash-list mt-4">
+                {/* Cash History List */}
+                <div className="space-y-2 max-h-56 overflow-y-auto">
                   {effectiveCashSummary.entries.length === 0 ? (
-                    <div className="empty-state">
-                      <Wallet size={24} className="text-sky-400 mb-2" />
-                      <strong>No cash entries recorded yet</strong>
-                      <span>Add the first project inflow or outflow using the form above.</span>
+                    <div className="p-6 text-center bg-slate-900/40 rounded-xl border border-slate-800">
+                      <Wallet size={24} className="text-sky-400 mx-auto mb-1.5 opacity-60" />
+                      <span className="text-xs text-slate-400">No cash transactions logged yet.</span>
                     </div>
                   ) : (
                     effectiveCashSummary.entries.map((entry: any) => (
-                      <div className="cash-row" key={entry.id}>
+                      <div key={entry.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-950/60 border border-slate-800/80">
                         <div>
-                          <strong>{entry.project}</strong>
-                          <span>{entry.description}</span>
+                          <strong className="text-xs text-white block">{entry.project}</strong>
+                          <span className="text-[11px] text-slate-400">{entry.description}</span>
                         </div>
-                        <b className={entry.direction === "inflow" ? "cash-positive" : "cash-negative"}>
+                        <span className={`text-xs font-mono font-bold ${entry.direction === "inflow" ? "text-emerald-400" : "text-rose-400"}`}>
                           {entry.direction === "inflow" ? "+" : "−"}{formatMoney(entry.amountCents)}
-                        </b>
+                        </span>
                       </div>
                     ))
                   )}
                 </div>
-              </>
+              </div>
             )}
 
             {/* BILLING & PLANS TAB */}
             {tab === "billing" && (
-              <>
-                <div className="account-section-heading">
-                  <div>
-                    <span className="eyebrow">BILLING & SUBSCRIPTION</span>
-                    <h3>Resource Pulse Commercial Tier</h3>
-                    <p>Scale your operational capacity with unlimited simulations and live integrations.</p>
-                  </div>
+              <div className="space-y-5 animate-fadeIn">
+                <div className="pb-4 border-b border-sky-900/30">
+                  <span className="text-[10px] font-mono uppercase text-sky-400 font-bold block mb-1">
+                    Subscription & Commercial Tier
+                  </span>
+                  <h3 className="text-xl font-bold text-white">Resource Pulse Pro Plan</h3>
+                  <p className="text-xs text-slate-400">Scale Northstar Ops with unlimited simulations, team permissions, and real-time voice copilot.</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800">
-                    <span className="text-[10px] mono text-slate-400 uppercase font-bold block mb-1">Starter Tier</span>
-                    <strong className="text-lg text-white block">$0 / month</strong>
-                    <p className="text-xs text-slate-400 mt-1">Up to 3 active resources and 5 historical simulations.</p>
+                    <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block mb-1">Starter Free Tier</span>
+                    <strong className="text-xl text-white block">$0 / month</strong>
+                    <p className="text-xs text-slate-400 mt-2">Up to 3 active resources and 5 historical simulations.</p>
                   </div>
 
                   <div className="p-4 rounded-xl bg-gradient-to-br from-blue-950/80 to-slate-900 border border-sky-400/50 shadow-lg">
                     <div className="flex justify-between items-center mb-1">
-                      <span className="text-[10px] mono text-sky-400 uppercase font-bold">Pro Tier (Recommended)</span>
+                      <span className="text-[10px] font-mono text-sky-400 uppercase font-bold">Pro Tier (Recommended)</span>
                       <span className="bg-sky-500 text-slate-950 text-[10px] font-bold px-2 py-0.5 rounded">Active</span>
                     </div>
-                    <strong className="text-lg text-white block">$49 / month</strong>
-                    <p className="text-xs text-sky-200 mt-1">Unlimited 5s simulations, AI Voice Copilot, & Supabase sync.</p>
+                    <strong className="text-xl text-white block">$49 / month</strong>
+                    <p className="text-xs text-sky-200 mt-2">Unlimited 5s simulations, AI Voice Copilot, & Supabase cloud sync.</p>
                   </div>
                 </div>
 
-                <div className="billing-actions">
+                <div className="flex flex-wrap gap-2">
                   <button
-                    className="primary-button"
+                    className="primary-button text-xs px-4 py-2"
                     disabled={checkoutMutation.isPending}
                     onClick={() => checkoutMutation.mutate()}
                   >
-                    {checkoutMutation.isPending ? "Connecting to Stripe…" : "Start Secure Checkout / Upgrade Plan"}
+                    {checkoutMutation.isPending ? "Connecting to Stripe…" : "Start Secure Stripe Checkout"}
                   </button>
                   <button
-                    className="secondary-button text-xs"
+                    className="secondary-button text-xs px-4 py-2"
                     onClick={() => setSimulatedCheckoutOpen(true)}
                   >
-                    View Billing Invoice Simulation
+                    View Billing Simulation Invoice
                   </button>
                 </div>
-              </>
+              </div>
             )}
 
             {/* ANALYTICS STREAM TAB */}
             {tab === "analytics" && (
-              <>
-                <div className="account-section-heading">
+              <div className="space-y-4 animate-fadeIn">
+                <div className="flex items-center justify-between pb-4 border-b border-sky-900/30">
                   <div>
-                    <span className="eyebrow">TELEMETRY & EVENT AUDIT</span>
-                    <h3>Live Product Analytics Stream</h3>
-                    <p>Inspect real-time events dispatched to the analytics pipeline.</p>
+                    <span className="text-[10px] font-mono uppercase text-sky-400 font-bold block mb-1">
+                      Telemetry & Auditing
+                    </span>
+                    <h3 className="text-xl font-bold text-white">Live Product Analytics Stream</h3>
+                    <p className="text-xs text-slate-400">Inspect real-time event dispatches recorded by the tracking pipeline.</p>
                   </div>
-                  <button className="secondary-button text-xs" onClick={loadAnalyticsEvents}>
-                    <RefreshCw size={13} /> Refresh Stream
+                  <button className="secondary-button text-xs px-3 py-1.5 flex items-center gap-1.5" onClick={loadAnalyticsEvents}>
+                    <RefreshCw size={13} /> Refresh
                   </button>
                 </div>
 
-                <div className="notification-list">
+                <div className="space-y-2 max-h-72 overflow-y-auto">
                   {analyticsEvents.length === 0 ? (
-                    <div className="empty-state">
-                      <Activity size={24} className="text-sky-400 mb-2" />
-                      <strong>No analytics events recorded yet</strong>
-                      <span>Events will stream in as you run simulations, assign resources, and approve plans.</span>
+                    <div className="p-8 text-center bg-slate-900/40 rounded-xl border border-slate-800">
+                      <Activity size={28} className="text-sky-400 mx-auto mb-2 opacity-60" />
+                      <strong className="text-sm text-white block">No analytics events recorded yet</strong>
+                      <span className="text-xs text-slate-400">Events stream in as you run simulations, assign resources, and approve plans.</span>
                     </div>
                   ) : (
                     analyticsEvents.map((evt, idx) => (
-                      <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800 text-xs flex justify-between items-center" key={idx}>
+                      <div key={idx} className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80 text-xs flex justify-between items-center">
                         <div>
                           <strong className="text-sky-300 font-mono block">{evt.event}</strong>
                           <span className="text-slate-400 text-[11px]">{JSON.stringify(evt.properties)}</span>
                         </div>
-                        <span className="mono text-[10px] text-slate-500">{new Date(evt.at).toLocaleTimeString()}</span>
+                        <span className="text-[10px] font-mono text-slate-500">{new Date(evt.at).toLocaleTimeString()}</span>
                       </div>
                     ))
                   )}
                 </div>
-              </>
+              </div>
             )}
 
             {/* BETA FEEDBACK TAB */}
             {tab === "beta" && (
-              <>
-                <div className="account-section-heading">
+              <div className="space-y-5 animate-fadeIn">
+                <div className="flex items-center justify-between pb-4 border-b border-sky-900/30">
                   <div>
-                    <span className="eyebrow">BETA TESTER PILOT</span>
-                    <h3>Explainable Decisions Pilot Program</h3>
-                    <p>Share direct feedback, test newly released models, and shape Northstar Ops.</p>
+                    <span className="text-[10px] font-mono uppercase text-sky-400 font-bold block mb-1">
+                      Early Access & Cohorts
+                    </span>
+                    <h3 className="text-xl font-bold text-white">Beta Tester Pilot Program</h3>
+                    <p className="text-xs text-slate-400">Help shape future release cycles with targeted observation notes.</p>
                   </div>
                   <button
-                    className="secondary-button"
+                    className="secondary-button text-xs px-3 py-1.5"
                     disabled={joinBetaMutation.isPending || betaStatus === "Active Pilot Participant"}
                     onClick={() => joinBetaMutation.mutate()}
                   >
-                    {betaStatus ? `✓ ${betaStatus}` : joinBetaMutation.isPending ? "Joining…" : "Join Pilot Cohort"}
+                    {betaStatus ? `✓ ${betaStatus}` : "Join Pilot Cohort"}
                   </button>
                 </div>
 
-                <div className="beta-form">
-                  <label className="field-label">
-                    Product Area
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-1">Target Product Area</label>
                     <select
                       value={betaForm.productArea}
-                      onChange={(event) => setBetaForm({ ...betaForm, productArea: event.target.value })}
+                      onChange={(e) => setBetaForm({ ...betaForm, productArea: e.target.value })}
+                      className="bg-slate-950 border border-sky-900 text-white text-xs rounded-lg px-3 py-2 w-full"
                     >
                       <option>Command Center</option>
                       <option>Approvals & Governance</option>
@@ -938,44 +1026,46 @@ export function AccountCenter({
                       <option>Voice Assistant Copilot</option>
                       <option>Cash Reporting</option>
                     </select>
-                  </label>
+                  </div>
 
-                  <fieldset>
-                    <legend className="field-label">Rating</legend>
-                    <div className="rating-row">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-1">Experience Rating</label>
+                    <div className="flex gap-2">
                       {[1, 2, 3, 4, 5].map((rating) => (
                         <button
                           type="button"
                           key={rating}
-                          className={betaForm.rating >= rating ? "rating selected" : "rating"}
                           onClick={() => setBetaForm({ ...betaForm, rating })}
-                          aria-label={`${rating} out of 5 stars`}
+                          className={`text-xl px-2 py-1 rounded transition-colors ${
+                            betaForm.rating >= rating ? "text-amber-400" : "text-slate-600"
+                          }`}
                         >
                           ★
                         </button>
                       ))}
                     </div>
-                  </fieldset>
+                  </div>
 
-                  <label className="field-label">
-                    Observations & Improvement Notes
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-1">Observation & Feedback Notes</label>
                     <textarea
                       value={betaForm.notes}
-                      onChange={(event) => setBetaForm({ ...betaForm, notes: event.target.value })}
-                      placeholder="What capability should we build next? Any feedback on the 5-second simulation?"
+                      onChange={(e) => setBetaForm({ ...betaForm, notes: e.target.value })}
+                      placeholder="What should we improve next? How was the 5-second simulation?"
                       maxLength={500}
+                      className="bg-slate-950 border border-sky-900 text-white text-xs rounded-lg p-3 w-full min-h-[90px]"
                     />
-                  </label>
+                  </div>
 
                   <button
-                    className="primary-button"
+                    className="primary-button text-xs px-4 py-2"
                     disabled={betaMutation.isPending}
                     onClick={() => betaMutation.mutate(betaForm)}
                   >
                     {betaMutation.isPending ? "Submitting…" : "Send Beta Feedback"}
                   </button>
                 </div>
-              </>
+              </div>
             )}
           </section>
         </div>
@@ -983,7 +1073,7 @@ export function AccountCenter({
         {/* Simulated Checkout Modal */}
         {simulatedCheckoutOpen && (
           <div className="modal-overlay" onClick={() => setSimulatedCheckoutOpen(false)}>
-            <div className="modal-box max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-box max-w-md p-6 bg-slate-950 border border-sky-400/40 rounded-2xl" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between pb-3 border-b border-sky-900/30 mb-4">
                 <div className="flex items-center gap-2">
                   <CreditCard className="text-sky-400" size={20} />
@@ -995,29 +1085,29 @@ export function AccountCenter({
               </div>
 
               <div className="space-y-3 text-xs">
-                <div className="p-3 rounded-lg bg-sky-950/40 border border-sky-900/50">
-                  <div className="flex justify-between text-slate-300 mb-1">
+                <div className="p-3.5 rounded-xl bg-sky-950/40 border border-sky-900/50 space-y-1.5">
+                  <div className="flex justify-between text-slate-300">
                     <span>Plan:</span>
                     <strong className="text-white">Resource Pulse Pro</strong>
                   </div>
-                  <div className="flex justify-between text-slate-300 mb-1">
+                  <div className="flex justify-between text-slate-300">
                     <span>Amount:</span>
                     <strong className="text-sky-400 font-mono">$49.00 USD / mo</strong>
                   </div>
                   <div className="flex justify-between text-slate-300">
-                    <span>Status:</span>
+                    <span>Payment Method:</span>
                     <strong className="text-emerald-400">Card ending in 4242 (Simulated)</strong>
                   </div>
                 </div>
 
                 <p className="text-slate-400 text-center">
-                  In live production, users are securely redirected to Stripe Checkout. For local and preview deployments, your Pro tier is automatically enabled.
+                  In production, users are redirected to Stripe. For local and preview deployments, your Pro tier is automatically simulated.
                 </p>
               </div>
 
               <div className="mt-5 flex justify-end gap-2">
                 <button
-                  className="primary-button text-xs"
+                  className="primary-button text-xs px-4 py-2"
                   onClick={() => {
                     toast.success("Pro Subscription Confirmed", { description: "Invoice #INV-2026-0924 generated." });
                     setSimulatedCheckoutOpen(false);
