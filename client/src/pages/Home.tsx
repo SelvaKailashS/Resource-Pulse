@@ -264,7 +264,6 @@ function Home() {
         </nav>
         <div className="sidebar-bottom">
           <div className="sidebar-health"><span><StatusDot color="blue" /> System nominal</span><span className="mono">99.98%</span></div>
-          <button className="user-row" onClick={() => setAccountOpen(true)} aria-label="Open account center"><div className="user-avatar">{user?.name?.slice(0, 2).toUpperCase() ?? "MC"}</div><div><strong>{user?.name ?? "Maya Chen"}</strong><span>{isAuthenticated ? `${user?.role ?? "user"} · Account settings` : "Demo mode · Sign in"}</span></div><MoreHorizontal size={16} className="muted-icon" /></button>
         </div>
       </aside>
 
@@ -299,6 +298,33 @@ function Home() {
               <span>Tour / Onboard</span>
             </button>
             <button className="command-button" onClick={() => toast("Command palette", { description: "Keyboard shortcut: ⌘ K" })}><Command size={15} /><span>Command</span><kbd>⌘ K</kbd></button>
+
+            {/* Top Right User Profile Button */}
+            <div className="topbar-divider" />
+            <button
+              className="topbar-user-pill"
+              onClick={() => setAccountOpen(true)}
+              aria-label="Open workspace account & settings"
+            >
+              <div className="topbar-user-avatar">
+                {user?.name
+                  ? user.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .toUpperCase()
+                      .slice(0, 2)
+                  : "MC"}
+              </div>
+              <div className="topbar-user-info">
+                <span className="topbar-user-name">{user?.name ?? "Maya Chen"}</span>
+                <span className="topbar-user-badge">
+                  <span className="topbar-role-tag">{user?.role ?? "admin"}</span>
+                  <span className="topbar-sub-tag">· Account settings</span>
+                </span>
+              </div>
+              <ChevronDown size={14} className="topbar-user-chevron" />
+            </button>
           </div>
         </header>
 
