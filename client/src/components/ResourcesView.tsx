@@ -152,8 +152,10 @@ const initialResources: ResourceItem[] = [
 
 export function ResourcesView({
   onAssignTask,
+  onSimulateAbsence,
 }: {
   onAssignTask?: (resourceName: string, taskName: string) => void;
+  onSimulateAbsence?: (resource: ResourceItem) => void;
 }) {
   const [resources, setResources] = useState<ResourceItem[]>(initialResources);
   const [search, setSearch] = useState("");
@@ -173,17 +175,32 @@ export function ResourcesView({
   }, [resources, search, selectedType]);
 
   const handleSimulateAbsence = (res: ResourceItem) => {
-    toast.warning(`Simulating absence for ${res.name}`, {
-      description: "Downstream impact analyzed: 3 tasks triggered potential delay.",
+    setSelectedResource(null);
+    if (onSimulateAbsence) {
+      onSimulateAbsence(res);
+    } else {
+      toast.warning(`Simulating absence for ${res.name}`, {
+        description: "Launching live cascading impact simulation.",
+      });
+    }
+  };
+
+  const handleSplitWork = (res: ResourceItem) => {
+    if (onAssignTask) {
+      onAssignTask(res.name, "Mobile Core E2E Testing (50% Split - 9h)");
+      onAssignTask("Priya Sharma", "Mobile Core E2E Testing (50% Split - 9h)");
+    }
+    toast.success(`AI Workload Split Applied!`, {
+      description: `18 hours testing load split equally: 9h to ${res.name} and 9h to Priya Sharma.`,
     });
     setSelectedResource(null);
   };
 
   const handleReallocate = (res: ResourceItem) => {
     if (onAssignTask) {
-      onAssignTask(res.name, "Mobile Release Train Test Cycle");
+      onAssignTask(res.name, "Mobile Release Train Test Cycle (100% Emergency)");
     } else {
-      toast.success(`Reallocation proposal generated for ${res.name}`, {
+      toast.success(`Full Reallocation applied for ${res.name}`, {
         description: "Added to Pending Approvals queue with 94% confidence.",
       });
     }
@@ -428,6 +445,38 @@ export function ResourcesView({
                 <p className="text-slate-300">{selectedResource.upcoming}</p>
               </div>
 
+              <div className="p-3.5 rounded-xl bg-gradient-to-r from-sky-950/70 to-blue-950/70 border border-sky-400/40">
+                <div className="flex items-center justify-between mb-1.5">
+                  <strong className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <Sparkles size={14} className="text-sky-400" /> AI Balanced Workload Split Recommendation
+                  </strong>
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                    50% / 50% Split
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed mb-3">
+                  Rather than pulling <strong>{selectedResource.name}</strong> 100% away from <strong>{selectedResource.project}</strong>, the AI suggests splitting the 18h QA burden equally to avoid bottlenecking either stream:
+                </p>
+                <div className="grid grid-cols-2 gap-2 text-[11px] mb-3">
+                  <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
+                    <span className="font-semibold text-white block">{selectedResource.name}</span>
+                    <span className="text-sky-300 font-mono">9.0h (50% capacity)</span>
+                    <span className="text-slate-400 block text-[10px] mt-0.5">Keeps {selectedResource.project} on track</span>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
+                    <span className="font-semibold text-white block">Priya Sharma (Backup)</span>
+                    <span className="text-sky-300 font-mono">9.0h (50% capacity)</span>
+                    <span className="text-slate-400 block text-[10px] mt-0.5">Co-tests E2E automation</span>
+                  </div>
+                </div>
+                <button
+                  className="w-full primary-button text-xs py-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 flex items-center justify-center gap-1.5 font-bold"
+                  onClick={() => handleSplitWork(selectedResource)}
+                >
+                  <Sparkles size={14} /> AI Suggest: Split Work Equally (50/50)
+                </button>
+              </div>
+
               <div className="p-3 rounded-lg bg-slate-900/40 border border-slate-800">
                 <strong className="block text-slate-300 font-semibold mb-1 flex items-center gap-1.5">
                   <AlertTriangle size={14} className="text-amber-400" /> Operational Constraints
@@ -436,18 +485,18 @@ export function ResourcesView({
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-sky-900/30">
+            <div className="flex items-center justify-between gap-3 mt-6 pt-4 border-t border-sky-900/30">
               <button
-                className="secondary-button"
+                className="secondary-button text-xs"
                 onClick={() => handleSimulateAbsence(selectedResource)}
               >
                 Simulate Absence
               </button>
               <button
-                className="primary-button"
+                className="text-slate-400 hover:text-white text-xs underline"
                 onClick={() => handleReallocate(selectedResource)}
               >
-                Reallocate to Release Train
+                Emergency 100% Reallocation
               </button>
             </div>
           </div>

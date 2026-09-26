@@ -23,6 +23,7 @@ import { recordSimulationRun } from "@/lib/supabase";
 interface Props {
   onClose: () => void;
   onApproveAndNavigate: () => void;
+  initialResourceName?: string;
 }
 
 const absentPersonnelOptions = [
@@ -56,8 +57,21 @@ const absentPersonnelOptions = [
   },
 ];
 
-export function LiveSimulationScreen({ onClose, onApproveAndNavigate }: Props) {
-  const [selectedPerson, setSelectedPerson] = useState(absentPersonnelOptions[0]);
+export function LiveSimulationScreen({ onClose, onApproveAndNavigate, initialResourceName }: Props) {
+  const [selectedPerson, setSelectedPerson] = useState(() => {
+    if (initialResourceName) {
+      const match = absentPersonnelOptions.find((p) => p.name.toLowerCase().includes(initialResourceName.toLowerCase()));
+      if (match) return match;
+    }
+    return absentPersonnelOptions[0];
+  });
+
+  useEffect(() => {
+    if (initialResourceName) {
+      const match = absentPersonnelOptions.find((p) => p.name.toLowerCase().includes(initialResourceName.toLowerCase()));
+      if (match) setSelectedPerson(match);
+    }
+  }, [initialResourceName]);
 
   // Query server AI simulation backed by OpenRouter
   const simulationQuery = trpc.simulation.runAI.useQuery(

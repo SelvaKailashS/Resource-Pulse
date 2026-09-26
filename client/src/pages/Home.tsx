@@ -9,6 +9,8 @@ import { ApprovalsView } from "@/components/ApprovalsView";
 import { LiveSimulationScreen } from "@/components/LiveSimulationScreen";
 import { VoiceAssistantCopilot } from "@/components/VoiceAssistantCopilot";
 import { OnboardingModal } from "@/components/OnboardingModal";
+import { LiveFeedModal } from "@/components/LiveFeedModal";
+import { IntegrationsModal } from "@/components/IntegrationsModal";
 import { track } from "@/lib/analytics";
 import { recordTaskAssignment, recordApprovalDecision } from "@/lib/supabase";
 import {
@@ -101,6 +103,9 @@ function Home() {
   const [selectedScenario, setSelectedScenario] = useState<Scenario>("balanced");
   const [simulating, setSimulating] = useState(false);
   const [isLiveSimulationOpen, setIsLiveSimulationOpen] = useState(false);
+  const [simulationPerson, setSimulationPerson] = useState<string>("Arjun Rao");
+  const [isLiveFeedOpen, setIsLiveFeedOpen] = useState(false);
+  const [isIntegrationsOpen, setIsIntegrationsOpen] = useState(false);
   const [approved, setApproved] = useState(false);
   const [showNotice, setShowNotice] = useState(true);
   const [activeNav, setActiveNav] = useState("Command center");
@@ -118,12 +123,15 @@ function Home() {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = 1.05;
       const voices = window.speechSynthesis.getVoices();
-      const naturalVoice = voices.find(
-        (v) =>
-          v.lang.startsWith("en") &&
-          (v.name.includes("Natural") || v.name.includes("Google") || v.name.includes("Samantha"))
-      );
-      if (naturalVoice) utterance.voice = naturalVoice;
+      const samantha =
+        voices.find(
+          (v) =>
+            v.name.toLowerCase().includes("samantha") ||
+            (v.name.toLowerCase().includes("zira") && v.lang.startsWith("en")) ||
+            (v.name.toLowerCase().includes("natural") && v.name.toLowerCase().includes("female")) ||
+            (v.lang.startsWith("en") && v.name.toLowerCase().includes("female"))
+        ) || voices.find((v) => v.lang.startsWith("en"));
+      if (samantha) utterance.voice = samantha;
       window.speechSynthesis.speak(utterance);
     }
   };
@@ -237,8 +245,22 @@ function Home() {
         </nav>
         <div className="sidebar-label sidebar-label-spaced">Monitor</div>
         <nav className="main-nav">
-          <button className="nav-item" onClick={() => toast("Live feed", { description: "All systems are reporting within normal latency." })}><Bell size={17} strokeWidth={1.7} /><span>Live feed</span><span className="live-ping" /></button>
-          <button className="nav-item" onClick={() => toast("Integrations", { description: "12 connected sources · last sync 34s ago." })}><Boxes size={17} strokeWidth={1.7} /><span>Integrations</span></button>
+          <button
+            className={`nav-item ${isLiveFeedOpen ? "active" : ""}`}
+            onClick={() => setIsLiveFeedOpen(true)}
+          >
+            <Activity size={17} strokeWidth={1.7} />
+            <span>Live feed</span>
+            <span className="live-ping" />
+          </button>
+          <button
+            className={`nav-item ${isIntegrationsOpen ? "active" : ""}`}
+            onClick={() => setIsIntegrationsOpen(true)}
+          >
+            <Boxes size={17} strokeWidth={1.7} />
+            <span>Integrations</span>
+            <span className="nav-badge" style={{ background: "rgba(14, 165, 233, 0.2)", color: "#38bdf8" }}>8</span>
+          </button>
         </nav>
         <div className="sidebar-bottom">
           <div className="sidebar-health"><span><StatusDot color="blue" /> System nominal</span><span className="mono">99.98%</span></div>
@@ -329,7 +351,16 @@ function Home() {
 
           {/* Conditionally render views based on activeNav */}
           {activeNav === "Resources" && (
-            <ResourcesView onAssignTask={handleAssignTask} />
+            <ResourcesView
+              onAssignTask={handleAssignTask}
+              onSimulateAbsence={(res) => {
+                setSimulationPerson(res.name);
+                setIsLiveSimulationOpen(true);
+                toast.info(`Simulating absence for ${res.name}`, {
+                  description: "Running 5-second dynamic impact forecast.",
+                });
+              }}
+            />
           )}
 
           {activeNav === "Impact graph" && (
@@ -535,6 +566,7 @@ function Home() {
 
       {isLiveSimulationOpen && (
         <LiveSimulationScreen
+          initialResourceName={simulationPerson}
           onClose={() => setIsLiveSimulationOpen(false)}
           onApproveAndNavigate={() => {
             setIsLiveSimulationOpen(false);
@@ -542,6 +574,16 @@ function Home() {
           }}
         />
       )}
+
+      <LiveFeedModal
+        open={isLiveFeedOpen}
+        onOpenChange={setIsLiveFeedOpen}
+      />
+
+      <IntegrationsModal
+        open={isIntegrationsOpen}
+        onOpenChange={setIsIntegrationsOpen}
+      />
 
       <VoiceAssistantCopilot
         activeNav={activeNav}

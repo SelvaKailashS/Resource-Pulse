@@ -527,6 +527,56 @@ function resolveFromLiveKnowledgeBase(q: string): {
   suggestedAction?: string;
   actionPayload?: any;
 } {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  // 0a. Date & Time
+  if (q.includes("date") || q.includes("today") || q.includes("day is it") || q.includes("time") || q.includes("current time")) {
+    return {
+      answer: `Today is ${dateStr}, and the current operational time is ${timeStr}. All 8 Northstar resources and services are synchronized.`,
+      suggestedAction: "open_home",
+    };
+  }
+
+  // 0b. Workers / Headcount
+  if (
+    q.includes("how many worker") ||
+    q.includes("how many people") ||
+    q.includes("workers are working") ||
+    q.includes("who is working") ||
+    q.includes("active workers") ||
+    q.includes("team members")
+  ) {
+    return {
+      answer:
+        "There are 4 core human engineers currently active: Arjun Rao (Senior QA, 96% load), Priya Sharma (Staff Backend, 88% load), Marcus Vance (Cloud DevOps, 64% load), and Elena Rostova (UI/UX, 70% load). In addition, 4 shared infrastructure pools (GPU Cluster, Test Lab, Contingency Reserve, Redis) are online.",
+      suggestedAction: "open_resources",
+    };
+  }
+
+  // 0c. Workload Split / Equal Split / Why Reallocate
+  if (
+    q.includes("split") ||
+    q.includes("divide") ||
+    q.includes("equal") ||
+    q.includes("share work") ||
+    q.includes("balance work") ||
+    q.includes("reallocate to release train") ||
+    q.includes("why reallocate")
+  ) {
+    return {
+      answer:
+        "Instead of overloading one engineer with 100% of the 18h emergency testing load, our AI recommends an Equal 50/50 Workload Split: 9.0h to the primary candidate (Arjun/Marcus) and 9.0h to peer backup (Priya Sharma). This prevents individual burnout while completely unblocking the Release Train.",
+      suggestedAction: "open_resources",
+    };
+  }
+
   // 1. Arjun Rao
   if (q.includes("arjun")) {
     const res = SITE_KNOWLEDGE_BASE.resources[0];

@@ -120,24 +120,23 @@ export function VoiceAssistantCopilot({
     const updateVoices = () => {
       if (!("speechSynthesis" in window)) return;
       const allVoices = window.speechSynthesis.getVoices();
-      // Prioritize English voices
-      const enVoices = allVoices.filter((v) => v.lang.startsWith("en"));
-      const list = enVoices.length > 0 ? enVoices : allVoices;
-      setAvailableVoices(list);
+      
+      // Specifically target Samantha as default AI voice
+      const samantha = allVoices.find((v) => v.name.toLowerCase().includes("samantha"));
+      const fallback = allVoices.find(
+        (v) =>
+          v.lang.startsWith("en") &&
+          (v.name.toLowerCase().includes("zira") ||
+           v.name.toLowerCase().includes("jenny") ||
+           v.name.toLowerCase().includes("female") ||
+           v.name.toLowerCase().includes("natural"))
+      );
 
-      // Set default if not set
-      if (!selectedVoiceURI && list.length > 0) {
-        const preferred = list.find(
-          (v) =>
-            v.name.includes("Natural") ||
-            v.name.includes("Google") ||
-            v.name.includes("Samantha") ||
-            v.name.includes("David") ||
-            v.name.includes("Zira")
-        );
-        const choice = preferred ? preferred.voiceURI : list[0].voiceURI;
-        setSelectedVoiceURI(choice);
-        localStorage.setItem("rp_voice_uri", choice);
+      const samanthaVoice = samantha || fallback || allVoices[0];
+      if (samanthaVoice) {
+        setAvailableVoices([samanthaVoice]);
+        setSelectedVoiceURI(samanthaVoice.voiceURI);
+        localStorage.setItem("rp_voice_uri", samanthaVoice.voiceURI);
       }
     };
 
@@ -368,11 +367,70 @@ export function VoiceAssistantCopilot({
       return;
     }
 
-    // 2. Direct simulation trigger
+    // 2. Today's date and time queries
+    if (lower.includes("today") || lower.includes("date") || lower.includes("time") || lower.includes("clock")) {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+      const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      handleAIResponse(`Today is ${dateStr}, and the current operational time is ${timeStr}. All 8 resources are active across Northstar Ops.`);
+      return;
+    }
+
+    // 3. Workers / Team headcount queries
+    if (
+      lower.includes("how many workers") ||
+      lower.includes("workers are working") ||
+      lower.includes("who is working") ||
+      lower.includes("how many people") ||
+      lower.includes("team members") ||
+      lower.includes("how many resources")
+    ) {
+      handleAIResponse(
+        "There are 4 core human engineers and 4 operational infrastructure nodes active across Northstar Ops: 1. Arjun Rao (Senior QA, 96% load), 2. Priya Sharma (Staff Backend, 88% load), 3. Marcus Vance (Cloud DevOps, 64% load), and 4. Elena Rostova (UI/UX, 70% load). Plus GPU Cluster Alpha, Test Lab, Redis Cache, and Sprint Reserve.",
+        "open_resources"
+      );
+      return;
+    }
+
+    // 4. Split work / Balanced workload queries
+    if (
+      lower.includes("split") ||
+      lower.includes("divide") ||
+      lower.includes("workload split") ||
+      lower.includes("equal") ||
+      lower.includes("share work")
+    ) {
+      handleAIResponse(
+        "I recommend an Intelligent 50/50 Workload Split! Rather than overloading Arjun Rao with 100% of the emergency QA burden (+18h) and causing delays on his primary Support Pod, the AI recommends splitting the 18 hours equally: 9.0 hours to Arjun Rao and 9.0 hours to Priya Sharma. This maintains Pod stability and prevents burnout.",
+        "split_work"
+      );
+      return;
+    }
+
+    // 5. Why reallocate to release train queries
+    if (lower.includes("why reallocate") || lower.includes("why is reallocate") || lower.includes("reallocate to release train")) {
+      handleAIResponse(
+        "The 'Reallocate to Release Train' option is designed to address emergency QA deficits on Mobile Core. However, pulling an engineer 100% can create donor project bottlenecks. That's why our AI now suggests splitting the workload equally (50/50) across qualified engineers!",
+        "open_resources"
+      );
+      return;
+    }
+
+    // 6. Marcus Vance specific queries
+    if (lower.includes("marcus") || lower.includes("marcus vance")) {
+      handleAIResponse(
+        "Marcus Vance is our Cloud DevOps Architect ($105/h, 64% load) assigned to Northstar Onboarding. He is on-call this Friday for EKS infrastructure. Reallocating Marcus away from DevOps is flagged as High Risk (42% match) due to potential cluster downtime.",
+        "open_resources"
+      );
+      return;
+    }
+
+    // 7. Direct simulation trigger
     if (
       lower === "run simulation" ||
       lower === "simulate" ||
       lower === "start simulation" ||
+      lower.includes("simulate absence") ||
       lower.startsWith("run simulation now")
     ) {
       onLaunchSimulation();
@@ -666,48 +724,20 @@ export function VoiceAssistantCopilot({
                 </button>
               </div>
 
-              {/* Voice Dropdown */}
-              <div>
-                <label className="text-[10.5px] text-slate-400 block mb-1">Select AI Voice:</label>
-                <select
-                  value={selectedVoiceURI}
-                  onChange={(e) => {
-                    setSelectedVoiceURI(e.target.value);
-                    localStorage.setItem("rp_voice_uri", e.target.value);
-                  }}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-sky-400"
-                >
-                  {availableVoices.map((v) => (
-                    <option key={v.voiceURI} value={v.voiceURI}>
-                      {v.name} ({v.lang})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Quick Presets */}
-              <div>
-                <label className="text-[10.5px] text-slate-400 block mb-1">Quick Presets:</label>
-                <div className="flex gap-1.5">
-                  <button
-                    onClick={() => applyVoicePreset("male")}
-                    className="flex-1 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[10px] text-sky-300 font-medium"
-                  >
-                    👨 Alex (Male)
-                  </button>
-                  <button
-                    onClick={() => applyVoicePreset("female")}
-                    className="flex-1 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[10px] text-pink-300 font-medium"
-                  >
-                    👩 Samantha (Female)
-                  </button>
-                  <button
-                    onClick={() => applyVoicePreset("executive")}
-                    className="flex-1 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[10px] text-emerald-300 font-medium"
-                  >
-                    ⚡ Crisp Fast
-                  </button>
+              {/* Samantha Dedicated Voice Display */}
+              <div className="p-3 rounded-xl bg-sky-950/40 border border-sky-400/30 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-white flex items-center gap-1.5">
+                    <Sparkles size={13} className="text-sky-400" /> Default AI Voice
+                  </span>
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                    Active
+                  </span>
                 </div>
+                <strong className="text-xs text-sky-300 block font-mono">Samantha (Default Voice)</strong>
+                <p className="text-[10.5px] text-slate-300 leading-relaxed">
+                  High-fidelity natural voice tuned for operations announcements and interactive briefing.
+                </p>
               </div>
 
               {/* Pitch & Speed Sliders */}
