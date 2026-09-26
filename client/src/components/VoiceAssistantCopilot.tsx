@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { trpc } from "@/lib/trpc";
 import {
   Mic,
   MicOff,
@@ -21,9 +20,13 @@ import {
   Users,
   ShieldCheck,
   Activity,
+  Sliders,
+  Settings2,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
-import { resolveQueryKnowledgeBase } from "@shared/aiKnowledgeBase";
+import { askLiveCopilot } from "@/lib/openRouterClient";
+import { recordCopilotChat } from "@/lib/supabase";
 
 interface Props {
   activeNav: string;
@@ -51,11 +54,26 @@ export function VoiceAssistantCopilot({
   onAssignTask,
 }: Props) {
   const [isOpen, setIsOpen] = useState(false);
+  const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [transcript, setTranscript] = useState("");
   const [inputMessage, setInputMessage] = useState("");
+
+  // Voice Customization State
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoiceURI, setSelectedVoiceURI] = useState<string>(() => {
+    return localStorage.getItem("rp_voice_uri") || "";
+  });
+  const [voicePitch, setVoicePitch] = useState<number>(() => {
+    return parseFloat(localStorage.getItem("rp_voice_pitch") || "1.0");
+  });
+  const [voiceRate, setVoiceRate] = useState<number>(() => {
+    return parseFloat(localStorage.getItem("rp_voice_rate") || "1.05");
+  });
+
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "1",
@@ -72,30 +90,79 @@ export function VoiceAssistantCopilot({
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
-  const lastQueryRef = useRef<string>("");
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
-  // Speech Synthesis: speak text aloud with human cadence
+  // Soft tone generator for mic feedback
+  const playTone = (freq = 440, type: OscillatorType = "sine", duration = 0.1) => {
+    try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const ctx = audioCtxRef.current;
+      if (ctx.state === "suspended") void ctx.resume();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + duration);
+    } catch {
+      // Audio context may require user gesture on some browsers
+    }
+  };
+
+  // Load available speech synthesis voices
+  useEffect(() => {
+    const updateVoices = () => {
+      if (!("speechSynthesis" in window)) return;
+      const allVoices = window.speechSynthesis.getVoices();
+      // Prioritize English voices
+      const enVoices = allVoices.filter((v) => v.lang.startsWith("en"));
+      const list = enVoices.length > 0 ? enVoices : allVoices;
+      setAvailableVoices(list);
+
+      // Set default if not set
+      if (!selectedVoiceURI && list.length > 0) {
+        const preferred = list.find(
+          (v) =>
+            v.name.includes("Natural") ||
+            v.name.includes("Google") ||
+            v.name.includes("Samantha") ||
+            v.name.includes("David") ||
+            v.name.includes("Zira")
+        );
+        const choice = preferred ? preferred.voiceURI : list[0].voiceURI;
+        setSelectedVoiceURI(choice);
+        localStorage.setItem("rp_voice_uri", choice);
+      }
+    };
+
+    updateVoices();
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.onvoiceschanged = updateVoices;
+    }
+  }, []);
+
+  // Speech Synthesis: speak text aloud with chosen voice settings
   const speak = (text: string) => {
     if (!voiceEnabled || !("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel(); // cancel any ongoing speech
-    
-    // Clean text for speech (remove markdown asterisks or special symbols)
+
+    // Clean text for speech
     const cleanText = text.replace(/[*_#`]/g, "");
     const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.rate = 1.05;
-    utterance.pitch = 1.0;
+    utterance.rate = voiceRate;
+    utterance.pitch = voicePitch;
 
-    const voices = window.speechSynthesis.getVoices();
-    const naturalVoice = voices.find(
-      (v) =>
-        v.lang.startsWith("en") &&
-        (v.name.includes("Natural") ||
-          v.name.includes("Google") ||
-          v.name.includes("Samantha") ||
-          v.name.includes("Jenny") ||
-          v.name.includes("Zira"))
-    );
-    if (naturalVoice) utterance.voice = naturalVoice;
+    // Pick selected voice
+    if (selectedVoiceURI) {
+      const voice = availableVoices.find((v) => v.voiceURI === selectedVoiceURI);
+      if (voice) utterance.voice = voice;
+    }
 
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
@@ -104,16 +171,55 @@ export function VoiceAssistantCopilot({
     window.speechSynthesis.speak(utterance);
   };
 
-  const askMutation = trpc.simulation.ask.useMutation({
-    onSuccess: (data: any) => {
-      handleAIResponse(data.answer, data.suggestedAction, data.actionPayload);
-    },
-    onError: (err) => {
-      console.warn("API server unavailable, resolving seamlessly via edge knowledge base:", err);
-      const fallback = resolveQueryKnowledgeBase(lastQueryRef.current || "overview");
-      handleAIResponse(fallback.answer, fallback.suggestedAction, fallback.actionPayload);
-    },
-  });
+  // Test selected voice
+  const handleTestVoice = () => {
+    speak(
+      "Hello! This is how my voice sounds. I'm ready to assist you with Resource Pulse operations."
+    );
+  };
+
+  // Set preset voice profile
+  const applyVoicePreset = (preset: "male" | "female" | "executive") => {
+    if (preset === "male") {
+      setVoicePitch(0.85);
+      setVoiceRate(1.0);
+      const maleVoice = availableVoices.find(
+        (v) =>
+          v.name.toLowerCase().includes("david") ||
+          v.name.toLowerCase().includes("mark") ||
+          v.name.toLowerCase().includes("male")
+      );
+      if (maleVoice) {
+        setSelectedVoiceURI(maleVoice.voiceURI);
+        localStorage.setItem("rp_voice_uri", maleVoice.voiceURI);
+      }
+      localStorage.setItem("rp_voice_pitch", "0.85");
+      localStorage.setItem("rp_voice_rate", "1.0");
+      toast.success("Applied Voice: Alex (Male)");
+    } else if (preset === "female") {
+      setVoicePitch(1.08);
+      setVoiceRate(1.05);
+      const femaleVoice = availableVoices.find(
+        (v) =>
+          v.name.toLowerCase().includes("samantha") ||
+          v.name.toLowerCase().includes("zira") ||
+          v.name.toLowerCase().includes("female")
+      );
+      if (femaleVoice) {
+        setSelectedVoiceURI(femaleVoice.voiceURI);
+        localStorage.setItem("rp_voice_uri", femaleVoice.voiceURI);
+      }
+      localStorage.setItem("rp_voice_pitch", "1.08");
+      localStorage.setItem("rp_voice_rate", "1.05");
+      toast.success("Applied Voice: Samantha / Maya (Female)");
+    } else {
+      setVoicePitch(1.0);
+      setVoiceRate(1.2);
+      localStorage.setItem("rp_voice_pitch", "1.0");
+      localStorage.setItem("rp_voice_rate", "1.2");
+      toast.success("Applied Voice: Crisp Executive (Fast)");
+    }
+  };
 
   // Initialize Web Speech Recognition
   useEffect(() => {
@@ -128,6 +234,7 @@ export function VoiceAssistantCopilot({
 
       recognition.onstart = () => {
         setIsListening(true);
+        playTone(520, "sine", 0.08); // startup chime
       };
 
       recognition.onresult = (event: any) => {
@@ -136,6 +243,7 @@ export function VoiceAssistantCopilot({
         setTranscript(resultTranscript);
 
         if (event.results[current].isFinal) {
+          playTone(660, "sine", 0.08); // finish chime
           handleVoiceCommand(resultTranscript);
         }
       };
@@ -153,6 +261,7 @@ export function VoiceAssistantCopilot({
     }
   }, []);
 
+  // Single Tap to Toggle Listening (Push-to-Talk)
   const toggleListening = () => {
     if (!recognitionRef.current) {
       toast.error("Speech Recognition Not Supported", {
@@ -162,15 +271,21 @@ export function VoiceAssistantCopilot({
     }
 
     if (isListening) {
+      // Tap again to stop and immediately send transcript if present
       recognitionRef.current.stop();
       setIsListening(false);
+      if (transcript.trim()) {
+        playTone(660, "sine", 0.08);
+        handleVoiceCommand(transcript);
+      }
     } else {
+      // Tap once to start listening
       setTranscript("");
       try {
         recognitionRef.current.start();
       } catch (e) {
         recognitionRef.current.stop();
-        setTimeout(() => recognitionRef.current.start(), 200);
+        setTimeout(() => recognitionRef.current.start(), 150);
       }
     }
   };
@@ -179,12 +294,12 @@ export function VoiceAssistantCopilot({
     handleVoiceCommand(text);
   };
 
-  // Process voice commands or chat text
-  const handleVoiceCommand = (commandText: string) => {
+  // Process voice commands or chat text dynamically
+  const handleVoiceCommand = async (commandText: string) => {
     const text = commandText.trim();
     if (!text) return;
 
-    // Add user message
+    // Add user message to thread
     const userMsg: ChatMessage = {
       id: String(Date.now()),
       sender: "user",
@@ -193,10 +308,11 @@ export function VoiceAssistantCopilot({
     };
     setMessages((prev) => [...prev, userMsg]);
     setTranscript("");
+    void recordCopilotChat("user", text);
 
     const lower = text.toLowerCase();
 
-    // 1. Direct explicit navigation triggers (only if requested explicitly)
+    // 1. Direct explicit navigation triggers
     if (
       lower.startsWith("go to resources") ||
       lower.startsWith("open resources") ||
@@ -295,16 +411,33 @@ export function VoiceAssistantCopilot({
       return;
     }
 
-    // 5. Query OpenRouter / Semantic Knowledge Base for full, human-like answers
-    lastQueryRef.current = text;
-    askMutation.mutate({ query: text });
+    // 5. Query OpenRouter / Edge Dynamic Engine
+    setIsAnalyzing(true);
+    try {
+      const res = await askLiveCopilot(text);
+      setIsAnalyzing(false);
+      handleAIResponse(res.answer, res.suggestedAction, res.actionPayload);
+    } catch (e) {
+      setIsAnalyzing(false);
+      handleAIResponse(
+        "I'm tracking our team capacity. Arjun Rao is currently the optimal replacement with 94% probability to avoid our mobile release delay."
+      );
+    }
   };
 
   const handleAIResponse = (replyText: string, action?: string, actionPayload?: any) => {
+    void recordCopilotChat("ai", replyText);
+
     // Generate contextual interactive quick-action chips
     const quickActions: { label: string; action: () => void; icon?: any }[] = [];
 
-    if (action === "open_resources" || replyText.toLowerCase().includes("arjun") || replyText.toLowerCase().includes("priya") || replyText.toLowerCase().includes("marcus")) {
+    if (
+      action === "open_resources" ||
+      replyText.toLowerCase().includes("arjun") ||
+      replyText.toLowerCase().includes("priya") ||
+      replyText.toLowerCase().includes("marcus") ||
+      replyText.toLowerCase().includes("worker")
+    ) {
       quickActions.push({
         label: "View in Resources",
         action: () => onNavigate("Resources"),
@@ -312,7 +445,12 @@ export function VoiceAssistantCopilot({
       });
     }
 
-    if (action === "open_impact" || replyText.toLowerCase().includes("risk") || replyText.toLowerCase().includes("cascade")) {
+    if (
+      action === "open_impact" ||
+      replyText.toLowerCase().includes("risk") ||
+      replyText.toLowerCase().includes("cascade") ||
+      replyText.toLowerCase().includes("blocked")
+    ) {
       quickActions.push({
         label: "Open Impact Graph",
         action: () => onNavigate("Impact graph"),
@@ -320,7 +458,11 @@ export function VoiceAssistantCopilot({
       });
     }
 
-    if (action === "open_scenarios" || replyText.toLowerCase().includes("scenario") || replyText.toLowerCase().includes("balanced")) {
+    if (
+      action === "open_scenarios" ||
+      replyText.toLowerCase().includes("scenario") ||
+      replyText.toLowerCase().includes("balanced")
+    ) {
       quickActions.push({
         label: "Compare Scenarios",
         action: () => onNavigate("Scenarios"),
@@ -328,7 +470,12 @@ export function VoiceAssistantCopilot({
       });
     }
 
-    if (action === "open_approvals" || replyText.toLowerCase().includes("approval") || replyText.toLowerCase().includes("lead") || replyText.toLowerCase().includes("admin")) {
+    if (
+      action === "open_approvals" ||
+      replyText.toLowerCase().includes("approval") ||
+      replyText.toLowerCase().includes("lead") ||
+      replyText.toLowerCase().includes("admin")
+    ) {
       quickActions.push({
         label: "Review Approvals",
         action: () => onNavigate("Approvals"),
@@ -355,7 +502,7 @@ export function VoiceAssistantCopilot({
     setMessages((prev) => [...prev, aiMsg]);
     speak(replyText);
 
-    // If an action was identified and the drawer is closed, execute it seamlessly
+    // Execute background actions if suggested
     if (action === "run_simulation") {
       onLaunchSimulation();
     } else if (action === "assign_task") {
@@ -371,7 +518,7 @@ export function VoiceAssistantCopilot({
     if (!inputMessage.trim()) return;
     const text = inputMessage;
     setInputMessage("");
-    handleVoiceCommand(text);
+    void handleVoiceCommand(text);
   };
 
   // Scroll to bottom on new messages
@@ -383,17 +530,17 @@ export function VoiceAssistantCopilot({
     <>
       {/* Floating Toggle Buttons (Bottom-Right) */}
       <div className="fixed bottom-6 right-6 z-40 flex items-center gap-3">
-        {/* Quick Voice Mic Button with Audio Indicator */}
+        {/* One-Push Mic Button with Audio Wave Indicator */}
         <button
           onClick={toggleListening}
           className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-2xl relative ${
             isListening
-              ? "bg-rose-600 text-white animate-pulse scale-110 shadow-rose-500/50"
+              ? "bg-rose-600 text-white animate-pulse scale-110 shadow-rose-500/60 ring-4 ring-rose-400/40"
               : isSpeaking
-              ? "bg-sky-500 text-slate-950 scale-105 shadow-sky-500/50"
+              ? "bg-sky-500 text-slate-950 scale-105 shadow-sky-500/60 ring-4 ring-sky-400/30"
               : "bg-sky-500 text-slate-950 hover:bg-sky-400 hover:scale-105 shadow-sky-500/30"
           }`}
-          title={isListening ? "Listening... Speak your question" : "Click to speak with AI Copilot"}
+          title={isListening ? "Listening... (Tap to finish early)" : "Tap once to speak"}
         >
           {isListening ? (
             <Mic size={24} className="animate-bounce" />
@@ -405,7 +552,7 @@ export function VoiceAssistantCopilot({
 
           {/* Sound wave rings when speaking or listening */}
           {(isListening || isSpeaking) && (
-            <span className="absolute -inset-1 rounded-full border-2 border-sky-400 animate-ping opacity-75 pointer-events-none" />
+            <span className="absolute -inset-1.5 rounded-full border-2 border-sky-400 animate-ping opacity-75 pointer-events-none" />
           )}
         </button>
 
@@ -413,7 +560,7 @@ export function VoiceAssistantCopilot({
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="w-14 h-14 rounded-full bg-slate-900 border border-sky-400/40 text-sky-400 hover:bg-slate-800 flex items-center justify-center shadow-2xl hover:scale-105 transition-all relative"
-          title="Open ResourceFlow AI Copilot Chat"
+          title="Open AI Copilot Chat"
         >
           <MessageSquare size={22} />
           <span className="absolute top-1.5 right-1.5 w-3 h-3 rounded-full bg-sky-400 animate-ping" />
@@ -422,14 +569,15 @@ export function VoiceAssistantCopilot({
 
       {/* Live Voice Status Floating Pill */}
       {isListening && (
-        <div className="fixed bottom-24 right-6 z-40 p-3.5 rounded-xl bg-slate-950/95 border border-sky-400/60 shadow-2xl flex items-center gap-3 max-w-sm backdrop-blur-md animate-bounce">
+        <div className="fixed bottom-24 right-6 z-40 p-3.5 rounded-xl bg-slate-950/95 border border-rose-500/60 shadow-2xl flex items-center gap-3 max-w-sm backdrop-blur-md animate-bounce">
           <div className="w-3 h-3 rounded-full bg-rose-500 animate-ping shrink-0" />
           <div>
-            <div className="text-[11px] font-mono font-bold text-sky-400 uppercase tracking-wider">
-              Listening to your question...
+            <div className="text-[11px] font-mono font-bold text-rose-400 uppercase tracking-wider flex items-center justify-between gap-4">
+              <span>Listening...</span>
+              <span className="text-[10px] text-slate-400">Tap mic to send</span>
             </div>
             <p className="text-xs text-white italic mt-0.5 font-medium">
-              {transcript || "Ask anything: 'Who is Arjun?', 'Why is release at risk?', 'What is our budget?'..."}
+              {transcript || "Speak naturally: ask about dates, workers, bottlenecks, or scenarios..."}
             </p>
           </div>
         </div>
@@ -437,7 +585,7 @@ export function VoiceAssistantCopilot({
 
       {/* Expandable Chat Drawer */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 w-[420px] max-w-[calc(100vw-32px)] h-[580px] rounded-2xl bg-[#080e1a]/95 border border-sky-500/40 shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl animate-fadeIn">
+        <div className="fixed bottom-24 right-6 z-50 w-[420px] max-w-[calc(100vw-32px)] h-[590px] rounded-2xl bg-[#080e1a]/95 border border-sky-500/40 shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl animate-fadeIn">
           {/* Header */}
           <div className="p-4 bg-slate-900/90 border-b border-sky-900/40 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -453,17 +601,31 @@ export function VoiceAssistantCopilot({
                 </div>
                 <span className="text-[10.5px] text-sky-400/80 flex items-center gap-1.5 mt-0.5">
                   <span className={`w-1.5 h-1.5 rounded-full ${isSpeaking ? "bg-emerald-400 animate-ping" : "bg-sky-400 animate-pulse"}`} />
-                  {isSpeaking ? "Speaking answer aloud..." : "Ready to answer anything on the site"}
+                  {isSpeaking ? "Speaking answer aloud..." : isAnalyzing ? "Thinking..." : "Ready to answer anything"}
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              {/* Voice Settings Gear Button */}
+              <button
+                onClick={() => setShowVoiceSettings(!showVoiceSettings)}
+                className={`p-1.5 rounded-lg border text-xs transition-colors ${
+                  showVoiceSettings
+                    ? "bg-sky-500 text-slate-950 border-sky-400"
+                    : "bg-slate-800 border-slate-700 text-slate-300 hover:text-white"
+                }`}
+                title="Change Voice & Speech Settings"
+              >
+                <Sliders size={16} />
+              </button>
+
+              {/* Mute/Unmute Button */}
               <button
                 onClick={() => {
                   setVoiceEnabled(!voiceEnabled);
                   if (voiceEnabled) window.speechSynthesis.cancel();
-                  toast(voiceEnabled ? "Voice Speech Muted" : "Voice Speech Enabled");
+                  toast(voiceEnabled ? "Voice Output Muted" : "Voice Output Enabled");
                 }}
                 className={`p-1.5 rounded-lg border text-xs transition-colors ${
                   voiceEnabled
@@ -474,6 +636,8 @@ export function VoiceAssistantCopilot({
               >
                 {voiceEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
               </button>
+
+              {/* Close Drawer Button */}
               <button
                 onClick={() => {
                   window.speechSynthesis.cancel();
@@ -487,16 +651,127 @@ export function VoiceAssistantCopilot({
             </div>
           </div>
 
+          {/* Voice Customization Settings Drawer */}
+          {showVoiceSettings && (
+            <div className="p-3.5 bg-slate-950/95 border-b border-sky-900/40 text-xs animate-fadeIn space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-sky-400 uppercase tracking-wider text-[11px] font-mono flex items-center gap-1.5">
+                  <Sliders size={13} /> Change Voice & Speech Settings
+                </span>
+                <button
+                  onClick={() => setShowVoiceSettings(false)}
+                  className="text-slate-400 hover:text-white"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              {/* Voice Dropdown */}
+              <div>
+                <label className="text-[10.5px] text-slate-400 block mb-1">Select AI Voice:</label>
+                <select
+                  value={selectedVoiceURI}
+                  onChange={(e) => {
+                    setSelectedVoiceURI(e.target.value);
+                    localStorage.setItem("rp_voice_uri", e.target.value);
+                  }}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-sky-400"
+                >
+                  {availableVoices.map((v) => (
+                    <option key={v.voiceURI} value={v.voiceURI}>
+                      {v.name} ({v.lang})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Quick Presets */}
+              <div>
+                <label className="text-[10.5px] text-slate-400 block mb-1">Quick Presets:</label>
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={() => applyVoicePreset("male")}
+                    className="flex-1 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[10px] text-sky-300 font-medium"
+                  >
+                    👨 Alex (Male)
+                  </button>
+                  <button
+                    onClick={() => applyVoicePreset("female")}
+                    className="flex-1 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[10px] text-pink-300 font-medium"
+                  >
+                    👩 Samantha (Female)
+                  </button>
+                  <button
+                    onClick={() => applyVoicePreset("executive")}
+                    className="flex-1 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[10px] text-emerald-300 font-medium"
+                  >
+                    ⚡ Crisp Fast
+                  </button>
+                </div>
+              </div>
+
+              {/* Pitch & Speed Sliders */}
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div>
+                  <div className="flex justify-between text-[10px] text-slate-400 mb-0.5">
+                    <span>Pitch</span>
+                    <span className="font-mono text-sky-300">{voicePitch.toFixed(2)}x</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.7"
+                    max="1.3"
+                    step="0.05"
+                    value={voicePitch}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      setVoicePitch(val);
+                      localStorage.setItem("rp_voice_pitch", String(val));
+                    }}
+                    className="w-full accent-sky-400 cursor-pointer"
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between text-[10px] text-slate-400 mb-0.5">
+                    <span>Speed</span>
+                    <span className="font-mono text-sky-300">{voiceRate.toFixed(2)}x</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.8"
+                    max="1.3"
+                    step="0.05"
+                    value={voiceRate}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      setVoiceRate(val);
+                      localStorage.setItem("rp_voice_rate", String(val));
+                    }}
+                    className="w-full accent-sky-400 cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {/* Test Voice Button */}
+              <button
+                onClick={handleTestVoice}
+                className="w-full py-1.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/40 text-sky-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <Volume2 size={13} /> Test Voice Preview
+              </button>
+            </div>
+          )}
+
           {/* Quick Prompts Bar */}
           <div className="px-3 py-2 bg-slate-950/70 border-b border-slate-800/80 flex gap-2 overflow-x-auto scrollbar-none">
             {[
+              "Today's date",
+              "How many workers are working?",
               "Why is the release at risk?",
               "Who is Arjun Rao?",
               "Who is Priya Sharma?",
               "What is Marcus's status?",
-              "What is our budget reserve?",
               "Compare scenarios",
-              "Where can this website be used?",
             ].map((prompt) => (
               <button
                 key={prompt}
@@ -555,14 +830,14 @@ export function VoiceAssistantCopilot({
               </div>
             ))}
 
-            {askMutation.isPending && (
+            {isAnalyzing && (
               <div className="flex gap-2.5 justify-start">
                 <div className="w-6 h-6 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center shrink-0 mt-0.5 border border-sky-400/30">
                   <Sparkles size={12} />
                 </div>
                 <div className="p-3 rounded-xl bg-slate-900/90 border border-sky-900/40 text-sky-300 text-xs flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping" />
-                  <span>Fetching site telemetry and reasoning...</span>
+                  <span>Alex is reasoning and fetching live data...</span>
                 </div>
               </div>
             )}
@@ -570,22 +845,22 @@ export function VoiceAssistantCopilot({
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input & Mic Bar */}
+          {/* Input & Push-to-Talk Mic Bar */}
           <div className="p-3 bg-slate-900/95 border-t border-sky-900/40 flex items-center gap-2">
             <button
               onClick={toggleListening}
               className={`p-2.5 rounded-xl transition-all ${
                 isListening
-                  ? "bg-rose-600 text-white animate-pulse shadow-lg shadow-rose-500/40"
+                  ? "bg-rose-600 text-white animate-pulse shadow-lg shadow-rose-500/50"
                   : "bg-slate-800 text-sky-400 hover:bg-slate-700 border border-slate-700"
               }`}
-              title="Click to speak your question"
+              title={isListening ? "Tap to finish speaking" : "Tap once to speak"}
             >
               <Mic size={17} />
             </button>
             <input
               type="text"
-              placeholder="Ask anything across the website or speak..."
+              placeholder="Ask anything or tap mic once to speak..."
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSendText()}

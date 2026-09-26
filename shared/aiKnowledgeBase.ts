@@ -355,7 +355,64 @@ export function resolveQueryKnowledgeBase(query: string): {
     };
   }
 
-  // 10. Overall Health / Metrics / KPIs
+  // 10. Date, Time & Today queries
+  if (
+    q.includes("date") ||
+    q.includes("today") ||
+    q.includes("time") ||
+    q.includes("day is it") ||
+    q.includes("what day")
+  ) {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return {
+      answer: `Today is ${dateStr}, and the current time is ${timeStr}. We are in the active cycle for Sprint 44, with the release candidate freeze approaching in 9 days.`,
+      suggestedAction: "open_home",
+    };
+  }
+
+  // 11. Workers, Headcount, Staff, Team Members queries
+  if (
+    q.includes("worker") ||
+    q.includes("workers") ||
+    q.includes("how many people") ||
+    q.includes("how many staff") ||
+    q.includes("how many working") ||
+    q.includes("headcount") ||
+    q.includes("team members") ||
+    q.includes("engineer") ||
+    q.includes("engineers") ||
+    q.includes("who is working")
+  ) {
+    return {
+      answer:
+        "We have 4 dedicated human engineers on the roster: Arjun Rao (Senior QA, 96% load), Priya Sharma (Staff Backend, 88% load), Marcus Vance (Cloud DevOps, 64% load), and Elena Rostova (Senior UI/UX, 70% load). Plus, we monitor 4 infrastructure pools: GPU Cluster Alpha, Test Lab Alpha, Sprint Contingency Reserve, and Redis Cache.",
+      suggestedAction: "open_resources",
+    };
+  }
+
+  // 12. Availability / Who is free queries
+  if (
+    q.includes("available") ||
+    q.includes("availability") ||
+    q.includes("who is free") ||
+    q.includes("free hours") ||
+    q.includes("open hours")
+  ) {
+    return {
+      answer:
+        "Here is tomorrow's open availability: Arjun Rao has 6.5 hours open (optimal for absorbing the QA testing backlog), Elena Rostova has 4.0 hours open, Priya Sharma has a 4.0-hour architecture buffer, and Marcus Vance has 2.0 hours open before his Friday on-call shift.",
+      suggestedAction: "open_resources",
+    };
+  }
+
+  // 13. Overall Health / Metrics / KPIs
   if (q.includes("health") || q.includes("metric") || q.includes("kpi") || q.includes("status") || q.includes("overall")) {
     const kpi = SITE_KNOWLEDGE_BASE.organization;
     return {
@@ -364,7 +421,7 @@ export function resolveQueryKnowledgeBase(query: string): {
     };
   }
 
-  // 11. Why is the release at risk / Cascading Impact Graph
+  // 14. Why is the release at risk / Cascading Impact Graph
   if (
     q.includes("why") ||
     q.includes("risk") ||
@@ -381,7 +438,7 @@ export function resolveQueryKnowledgeBase(query: string): {
     };
   }
 
-  // 12. Scenarios / Trade-offs
+  // 15. Scenarios / Trade-offs
   if (q.includes("scenario") || q.includes("tradeoff") || q.includes("compare") || q.includes("option") || q.includes("plan")) {
     return {
       answer:
@@ -390,7 +447,7 @@ export function resolveQueryKnowledgeBase(query: string): {
     };
   }
 
-  // 13. Approvals / Decisions / Governance / Audit Log
+  // 16. Approvals / Decisions / Governance / Audit Log
   if (
     q.includes("approval") ||
     q.includes("decision") ||
@@ -406,7 +463,7 @@ export function resolveQueryKnowledgeBase(query: string): {
     };
   }
 
-  // 14. Simulation / What If
+  // 17. Simulation / What If
   if (q.includes("simulation") || q.includes("simulate") || q.includes("what if") || q.includes("absent")) {
     return {
       answer:
@@ -415,7 +472,7 @@ export function resolveQueryKnowledgeBase(query: string): {
     };
   }
 
-  // 15. Task Assignment Voice Request
+  // 18. Task Assignment Voice Request
   if (q.includes("assign") || q.includes("allocate") || q.includes("task")) {
     return {
       answer:
@@ -425,7 +482,7 @@ export function resolveQueryKnowledgeBase(query: string): {
     };
   }
 
-  // 16. Approval Voice Request
+  // 19. Approval Voice Request
   if (q.includes("approve") || q.includes("sign off") || q.includes("confirm")) {
     return {
       answer:
@@ -434,8 +491,8 @@ export function resolveQueryKnowledgeBase(query: string): {
     };
   }
 
-  // 17. Greetings & General conversation
-  if (q.includes("hello") || q.includes("hi") || q.includes("hey") || q.includes("who are you")) {
+  // 20. Greetings & General conversation
+  if (q.includes("hello") || q.includes("hi") || q.includes("hey") || q.includes("who are you") || q.includes("what can you do")) {
     return {
       answer:
         "Hello! I'm Alex, your AI Operations Copilot for Resource Pulse. I track all 8 resources, live bottlenecks, cascading risks, and multi-scenario tradeoffs. Ask me anything, or speak a command like 'Show resources', 'Why is release at risk?', or 'Run simulation'!",
