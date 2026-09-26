@@ -15,10 +15,10 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
   if (typeof window === "undefined") return;
 
   const isUnauthorized = error.message === UNAUTHED_ERR_MSG;
-
   if (!isUnauthorized) return;
 
-  startLogin();
+  // Don't forcefully redirect in standalone preview or demo environments
+  console.info("[Auth] Unauthorized TRPC request encountered.");
 };
 
 queryClient.getQueryCache().subscribe(event => {
@@ -43,10 +43,6 @@ const trpcClient = trpc.createClient({
       url: "/api/trpc",
       transformer: superjson,
       headers() {
-        // Preview auto-login fallback: when the browser blocks iframe cookies
-        // (Safari ITP / private browsing / WebView), the runtime mirrors the
-        // session into sessionStorage so we can forward it as a Bearer token.
-        // The regular OAuth cookie flow keeps working and takes priority server-side.
         try {
           const raw = sessionStorage.getItem("manus-cookie");
           if (raw) {
@@ -57,8 +53,19 @@ const trpcClient = trpc.createClient({
               return { Authorization: `Bearer ${token}` };
             }
           }
+
+          // Demo session header fallback
+          const demoUserRaw = localStorage.getItem("resourcepulse_session_user");
+          if (demoUserRaw) {
+            const demoUser = JSON.parse(demoUserRaw);
+            return {
+              Authorization: "Bearer demo-token",
+              "x-demo-role": demoUser.role || "admin",
+              "x-demo-user": demoUser.email || "mc@northstar.ops",
+            };
+          }
         } catch {
-          // sessionStorage unavailable
+          // storage unavailable
         }
         return {};
       },

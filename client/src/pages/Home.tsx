@@ -8,6 +8,7 @@ import { ScenariosView } from "@/components/ScenariosView";
 import { ApprovalsView } from "@/components/ApprovalsView";
 import { LiveSimulationScreen } from "@/components/LiveSimulationScreen";
 import { VoiceAssistantCopilot } from "@/components/VoiceAssistantCopilot";
+import { OnboardingModal } from "@/components/OnboardingModal";
 import { track } from "@/lib/analytics";
 import { recordTaskAssignment, recordApprovalDecision } from "@/lib/supabase";
 import {
@@ -80,7 +81,7 @@ function StatusDot({ color = "blue" }: { color?: string }) {
 }
 
 function Home() {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, updateUser } = useAuth();
   const accountProfileQuery = trpc.account.profile.useQuery(undefined, { enabled: isAuthenticated, staleTime: 60_000, retry: false });
   const dashboardQuery = trpc.dashboard.snapshot.useQuery(undefined, {
     staleTime: 30_000,
@@ -104,6 +105,7 @@ function Home() {
   const [showNotice, setShowNotice] = useState(true);
   const [activeNav, setActiveNav] = useState("Command center");
   const [accountOpen, setAccountOpen] = useState(false);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [assignedTaskNotification, setAssignedTaskNotification] = useState<{
     person: string;
     task: string;
@@ -265,6 +267,14 @@ function Home() {
             >
               <Bell size={17} />
               <span className="notification-dot" />
+            </button>
+            <button
+              className="command-button"
+              style={{ color: "#38bdf8", borderColor: "rgba(56, 189, 248, 0.4)", background: "rgba(14, 165, 233, 0.1)" }}
+              onClick={() => setOnboardingOpen(true)}
+            >
+              <Sparkles size={14} />
+              <span>Tour / Onboard</span>
             </button>
             <button className="command-button" onClick={() => toast("Command palette", { description: "Keyboard shortcut: ⌘ K" })}><Command size={15} /><span>Command</span><kbd>⌘ K</kbd></button>
           </div>
@@ -500,7 +510,28 @@ function Home() {
         </footer>
       </main>
 
-      <AccountCenter open={accountOpen} onOpenChange={setAccountOpen} isAuthenticated={isAuthenticated} user={user} logout={logout} />
+      <AccountCenter
+        open={accountOpen}
+        onOpenChange={setAccountOpen}
+        isAuthenticated={isAuthenticated}
+        user={user}
+        logout={logout}
+        onOpenOnboardingTour={() => setOnboardingOpen(true)}
+        onUserUpdate={updateUser}
+      />
+
+      <OnboardingModal
+        open={onboardingOpen}
+        onOpenChange={setOnboardingOpen}
+        currentUserRole={user?.role}
+        currentUserName={user?.name}
+        onComplete={(data) => {
+          updateUser({
+            role: data.role as any,
+            onboardingCompleted: 1,
+          });
+        }}
+      />
 
       {isLiveSimulationOpen && (
         <LiveSimulationScreen

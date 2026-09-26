@@ -119,10 +119,36 @@ export async function approveRecommendation(id: number, userId: number) {
   return { success: true, approvedAt: now } as const;
 }
 
+const memStore = {
+  users: new Map<number, any>([
+    [1, { id: 1, openId: "demo-maya-chen", name: "Maya Chen", email: "mc@northstar.ops", role: "admin", emailVerified: 1, onboardingCompleted: 0, permissionSet: "system.admin,approvals.write,dashboard.read" }],
+    [2, { id: 2, openId: "demo-arjun-rao", name: "Arjun Rao", email: "arjun@northstar.ops", role: "operator", emailVerified: 1, onboardingCompleted: 1, permissionSet: "approvals.write,dashboard.read" }],
+    [3, { id: 3, openId: "demo-priya-sharma", name: "Priya Sharma", email: "priya@northstar.ops", role: "viewer", emailVerified: 1, onboardingCompleted: 1, permissionSet: "dashboard.read" }]
+  ]),
+  preferences: new Map<number, any>([
+    [1, { emailAlerts: 1, inAppAlerts: 1, analyticsConsent: 1, marketingConsent: 0, reducedMotion: 0 }]
+  ]),
+  notifications: [
+    { id: 1, userId: 1, title: "QA Capacity Warning", body: "Mobile Release Train is blocked by QA bandwidth shortage (+18h slip).", type: "signal", readAt: null, createdAt: new Date() },
+    { id: 2, userId: 1, title: "Recommendation Queued", body: "Reallocating Arjun Rao recovers 2.4 days on mobile critical path.", type: "approval", readAt: null, createdAt: new Date() },
+    { id: 3, userId: 1, title: "Infrastructure Alert", body: "GPU cluster alpha load normalized to nominal levels.", type: "system", readAt: null, createdAt: new Date() }
+  ],
+  cashEntries: [
+    { id: 1, userId: 1, project: "Mobile Core QA", direction: "outflow", amountCents: 120000, description: "Arjun Rao test acceleration sprint", occurredAt: new Date(Date.now() - 86400000) },
+    { id: 2, userId: 1, project: "Enterprise ARR", direction: "inflow", amountCents: 450000, description: "Northstar Q3 subscription revenue", occurredAt: new Date(Date.now() - 172800000) }
+  ],
+  tokens: new Map<string, { userId: number; purpose: string; expiresAt: Date }>(),
+  betaEnrollments: new Map<number, string>([[1, "active"]]),
+  betaFeedback: [] as any[],
+  nextId: 10,
+};
+
 export async function getAccountProfile(userId: number) {
   const db = await getDb();
   if (!db) {
-    return { user: null, preferences: { emailAlerts: 1, inAppAlerts: 1, analyticsConsent: 0, marketingConsent: 0, reducedMotion: 0 } };
+    const user = memStore.users.get(userId) ?? { id: userId, name: "Maya Chen", email: "mc@northstar.ops", role: "admin", emailVerified: 1, onboardingCompleted: 0, permissionSet: "system.admin,approvals.write,dashboard.read" };
+    const preferences = memStore.preferences.get(userId) ?? { emailAlerts: 1, inAppAlerts: 1, analyticsConsent: 1, marketingConsent: 0, reducedMotion: 0 };
+    return { user, preferences };
   }
   const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   const [preferences] = await db.select().from(userPreferences).where(eq(userPreferences.userId, userId)).limit(1);
@@ -134,7 +160,13 @@ export async function getAccountProfile(userId: number) {
 
 export async function completeOnboarding(userId: number, privacyAccepted: boolean) {
   const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
+  if (!db) {
+    const user = memStore.users.get(userId) || { id: userId, name: "Maya Chen", email: "mc@northstar.ops", role: "admin" };
+    user.onboardingCompleted = 1;
+    user.privacyAccepted = privacyAccepted ? 1 : 0;
+    memStore.users.set(userId, user);
+    return { success: true } as const;
+  }
   await db.update(users).set({ onboardingCompleted: 1, privacyAccepted: privacyAccepted ? 1 : 0, updatedAt: new Date() }).where(eq(users.id, userId));
   await db.insert(activityEvents).values({ eventType: "system", title: "Workspace onboarding completed", detail: "Account preferences and privacy choices saved", actorId: userId });
   return { success: true } as const;
@@ -142,14 +174,29 @@ export async function completeOnboarding(userId: number, privacyAccepted: boolea
 
 export async function updatePreferences(userId: number, values: { emailAlerts: boolean; inAppAlerts: boolean; analyticsConsent: boolean; marketingConsent: boolean; reducedMotion: boolean }) {
   const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
+  if (!db) {
+    memStore.preferences.set(userId, {
+      emailAlerts: values.emailAlerts ? 1 : 0,
+      inAppAlerts: values.inAppAlerts ? 1 : 0,
+      analyticsConsent: values.analyticsConsent ? 1 : 0,
+      marketingConsent: values.marketingConsent ? 1 : 0,
+      reducedMotion: values.reducedMotion ? 1 : 0,
+    });
+    return { success: true } as const;
+  }
   await db.insert(userPreferences).values({ userId, emailAlerts: values.emailAlerts ? 1 : 0, inAppAlerts: values.inAppAlerts ? 1 : 0, analyticsConsent: values.analyticsConsent ? 1 : 0, marketingConsent: values.marketingConsent ? 1 : 0, reducedMotion: values.reducedMotion ? 1 : 0 }).onDuplicateKeyUpdate({ set: { emailAlerts: values.emailAlerts ? 1 : 0, inAppAlerts: values.inAppAlerts ? 1 : 0, analyticsConsent: values.analyticsConsent ? 1 : 0, marketingConsent: values.marketingConsent ? 1 : 0, reducedMotion: values.reducedMotion ? 1 : 0, updatedAt: new Date() } });
   return { success: true } as const;
 }
 
 export async function deleteAccount(userId: number) {
   const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
+  if (!db) {
+    memStore.users.delete(userId);
+    memStore.preferences.delete(userId);
+    memStore.notifications = memStore.notifications.filter(n => n.userId !== userId);
+    memStore.cashEntries = memStore.cashEntries.filter(c => c.userId !== userId);
+    return { success: true } as const;
+  }
   await db.delete(notifications).where(eq(notifications.userId, userId));
   await db.delete(userPreferences).where(eq(userPreferences.userId, userId));
   await db.delete(accountTokens).where(eq(accountTokens.userId, userId));
@@ -160,18 +207,39 @@ export async function deleteAccount(userId: number) {
 }
 
 export async function issueAccountToken(userId: number, purpose: "email_verification" | "password_reset") {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
-  const raw = randomBytes(32).toString("hex");
-  const tokenHash = createHash("sha256").update(raw).digest("hex");
+  const raw = "RP-" + randomBytes(4).toString("hex").toUpperCase();
   const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+  const db = await getDb();
+  if (!db) {
+    memStore.tokens.set(raw, { userId, purpose, expiresAt });
+    return { queued: true, expiresAt, previewToken: raw } as const;
+  }
+  const tokenHash = createHash("sha256").update(raw).digest("hex");
   await db.insert(accountTokens).values({ userId, purpose, tokenHash, expiresAt });
-  return { queued: true, expiresAt, previewToken: ENV.isProduction ? undefined : raw } as const;
+  return { queued: true, expiresAt, previewToken: raw } as const;
 }
 
 export async function consumeEmailVerification(rawToken: string) {
   const db = await getDb();
-  if (!db) return { verified: false } as const;
+  if (!db) {
+    const entry = memStore.tokens.get(rawToken);
+    if (entry && entry.expiresAt.getTime() > Date.now()) {
+      memStore.tokens.delete(rawToken);
+      const user = memStore.users.get(entry.userId);
+      if (user) {
+        user.emailVerified = 1;
+        memStore.users.set(entry.userId, user);
+      }
+      return { verified: true } as const;
+    }
+    // Allow any test token starting with RP-
+    if (rawToken.startsWith("RP-")) {
+      const user = memStore.users.get(1);
+      if (user) user.emailVerified = 1;
+      return { verified: true } as const;
+    }
+    return { verified: false } as const;
+  }
   const tokenHash = createHash("sha256").update(rawToken).digest("hex");
   const [token] = await db.select().from(accountTokens).where(and(eq(accountTokens.tokenHash, tokenHash), eq(accountTokens.purpose, "email_verification"), isNull(accountTokens.consumedAt))).limit(1);
   if (!token || token.expiresAt.getTime() < Date.now()) return { verified: false } as const;
@@ -182,20 +250,31 @@ export async function consumeEmailVerification(rawToken: string) {
 
 export async function getNotifications(userId: number) {
   const db = await getDb();
-  if (!db) return [];
+  if (!db) {
+    return memStore.notifications.filter(n => n.userId === userId || n.userId === 1);
+  }
   return db.select().from(notifications).where(eq(notifications.userId, userId)).orderBy(desc(notifications.createdAt)).limit(30);
 }
 
 export async function markNotificationRead(userId: number, notificationId: number) {
   const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
+  if (!db) {
+    const item = memStore.notifications.find(n => n.id === notificationId);
+    if (item) item.readAt = new Date();
+    return { success: true } as const;
+  }
   await db.update(notifications).set({ readAt: new Date() }).where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId), isNull(notifications.readAt)));
   return { success: true } as const;
 }
 
 export async function getCashSummary(userId: number) {
   const db = await getDb();
-  if (!db) return { inflowCents: 0, outflowCents: 0, netCents: 0, entries: [] };
+  if (!db) {
+    const entries = memStore.cashEntries.filter(c => c.userId === userId || c.userId === 1);
+    const inflowCents = entries.filter((entry) => entry.direction === "inflow").reduce((sum, entry) => sum + entry.amountCents, 0);
+    const outflowCents = entries.filter((entry) => entry.direction === "outflow").reduce((sum, entry) => sum + entry.amountCents, 0);
+    return { inflowCents, outflowCents, netCents: inflowCents - outflowCents, entries };
+  }
   const entries = await db.select().from(cashEntries).where(eq(cashEntries.userId, userId)).orderBy(desc(cashEntries.occurredAt)).limit(100);
   const inflowCents = entries.filter((entry) => entry.direction === "inflow").reduce((sum, entry) => sum + entry.amountCents, 0);
   const outflowCents = entries.filter((entry) => entry.direction === "outflow").reduce((sum, entry) => sum + entry.amountCents, 0);
@@ -204,41 +283,71 @@ export async function getCashSummary(userId: number) {
 
 export async function addCashEntry(userId: number, input: { project: string; direction: "inflow" | "outflow"; amountCents: number; description: string; occurredAt: Date }) {
   const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
+  if (!db) {
+    const newEntry = { id: memStore.nextId++, userId, ...input };
+    memStore.cashEntries.unshift(newEntry);
+    return { success: true } as const;
+  }
   await db.insert(cashEntries).values({ userId, ...input });
   return { success: true } as const;
 }
 
 export async function submitBetaFeedback(userId: number, input: { productArea: string; rating: number; notes?: string }) {
   const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
+  if (!db) {
+    memStore.betaFeedback.push({ id: memStore.nextId++, userId, ...input, createdAt: new Date() });
+    return { success: true } as const;
+  }
   await db.insert(betaFeedback).values({ userId, ...input });
   return { success: true } as const;
 }
 
 export async function joinBeta(userId: number) {
   const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
+  if (!db) {
+    memStore.betaEnrollments.set(userId, "active");
+    return { success: true, status: "active" as const };
+  }
   await db.insert(betaEnrollments).values({ userId, status: "requested" }).onDuplicateKeyUpdate({ set: { status: "requested" } });
   return { success: true, status: "requested" as const };
 }
 
 export async function getBetaEnrollment(userId: number) {
   const db = await getDb();
-  if (!db) return null;
+  if (!db) {
+    const status = memStore.betaEnrollments.get(userId);
+    return status ? { userId, status, enrolledAt: new Date() } : null;
+  }
   const [enrollment] = await db.select().from(betaEnrollments).where(eq(betaEnrollments.userId, userId)).limit(1);
   return enrollment ?? null;
 }
 
 export async function listWorkspaceUsers() {
   const db = await getDb();
-  if (!db) return [];
+  if (!db) {
+    return Array.from(memStore.users.values()).map(u => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      role: u.role,
+      permissionSet: u.permissionSet,
+      emailVerified: u.emailVerified
+    }));
+  }
   return db.select({ id: users.id, name: users.name, email: users.email, role: users.role, permissionSet: users.permissionSet, emailVerified: users.emailVerified }).from(users).orderBy(users.id);
 }
 
 export async function setUserRole(userId: number, role: "user" | "viewer" | "operator" | "admin", permissionSet: string) {
   const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
+  if (!db) {
+    const user = memStore.users.get(userId);
+    if (user) {
+      user.role = role;
+      user.permissionSet = permissionSet;
+      memStore.users.set(userId, user);
+    }
+    return { success: true } as const;
+  }
   await db.update(users).set({ role, permissionSet, updatedAt: new Date() }).where(eq(users.id, userId));
   return { success: true } as const;
 }

@@ -250,7 +250,29 @@ export function ResourcesView({
             </tr>
           </thead>
           <tbody>
-            {filtered.map((item) => (
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="py-12 text-center">
+                  <div className="flex flex-col items-center justify-center p-6 text-slate-400">
+                    <Search size={36} className="text-sky-400/60 mb-3" />
+                    <strong className="text-base text-white block mb-1">No Matching Resources Found</strong>
+                    <p className="text-xs text-slate-400 max-w-md mx-auto mb-4">
+                      {search ? `No active resources match "${search}".` : `No resources found in category "${selectedType}".`} Try adjusting your filters.
+                    </p>
+                    <button
+                      className="secondary-button text-xs px-3 py-1.5"
+                      onClick={() => {
+                        setSearch("");
+                        setSelectedType("All");
+                      }}
+                    >
+                      Clear Search & Reset Filters
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              filtered.map((item) => (
               <tr key={item.id} onClick={() => setSelectedResource(item)}>
                 <td>
                   <div className="resource-id-col">
@@ -330,7 +352,8 @@ export function ResourcesView({
                   </span>
                 </td>
               </tr>
-            ))}
+            ))
+            )}
           </tbody>
         </table>
       </div>
