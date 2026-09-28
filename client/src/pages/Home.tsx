@@ -335,6 +335,97 @@ function Home() {
     [realTeammates, overloadedTeammates, avgWorkload]
   );
 
+  const liveScenarios = useMemo(() => {
+    const overloaded = overloadedTeammates[0] || realTeammates[0];
+    const helper = realTeammates.find((m: any) => m.id !== overloaded?.id) || realTeammates[1] || overloaded;
+    const ovName = overloaded?.name || "Teammate";
+    const hpName = helper?.name || "Partner";
+
+    return [
+      {
+        id: 1,
+        scenarioKey: "balanced" as const,
+        title: "50/50 Equal Workload Split",
+        subtitle: "Best sprint balance",
+        timeRecovered: "+2.0 days",
+        estimatedCost: "$0 (Student)",
+        riskReduction: "−42%",
+        blurb: `Rebalances ${ovName}’s module equally with ${hpName} to avoid bottlenecking submission.`,
+        feasible: 1,
+      },
+      {
+        id: 2,
+        scenarioKey: "deadline" as const,
+        title: "Accelerate Sprint Milestone",
+        subtitle: "Speed-first focus",
+        timeRecovered: "+3.5 days",
+        estimatedCost: "$0 (Student)",
+        riskReduction: "−58%",
+        blurb: "Pulls forward the critical path by parallelizing module integration.",
+        feasible: 1,
+      },
+      {
+        id: 3,
+        scenarioKey: "cost" as const,
+        title: "Strict Scope Prioritization",
+        subtitle: "Scope-lean MVP",
+        timeRecovered: "+1.2 days",
+        estimatedCost: "$0 (Student)",
+        riskReduction: "−22%",
+        blurb: "Focuses strictly on MVP grading rubric requirements and postpones optional polish.",
+        feasible: 1,
+      },
+    ];
+  }, [realTeammates, overloadedTeammates]);
+
+  const selected = useMemo(
+    () => liveScenarios.find((s) => s.scenarioKey === selectedScenario) ?? liveScenarios[0],
+    [liveScenarios, selectedScenario]
+  );
+
+  const liveActivity = useMemo(() => {
+    try {
+      const stored = localStorage.getItem("resourcepulse_audit_log");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((item: any, idx: number) => ({
+            id: idx + 1,
+            eventType: "signal" as const,
+            title: item.title,
+            detail: `${item.approver}: ${item.details || item.decision}`,
+          }));
+        }
+      }
+    } catch {}
+
+    if (realTeammates.length > 0) {
+      return [
+        {
+          id: 1,
+          eventType: "signal" as const,
+          title: "Team Roster Synchronized",
+          detail: `${realTeammates.length} active teammates loaded in local workspace.`,
+        },
+        {
+          id: 2,
+          eventType: "prediction" as const,
+          title: "Sprint Telemetry Active",
+          detail: "Workload distribution and deadline risk monitored.",
+        },
+      ];
+    }
+
+    return [
+      {
+        id: 1,
+        eventType: "signal" as const,
+        title: "Team Setup Phase",
+        detail: "Add your real student teammates in Resources to begin telemetry.",
+      },
+    ];
+  }, [realTeammates]);
+
   const handleSimulation = () => {
     setIsLiveSimulationOpen(true);
     track("simulation_started", { scenario: selectedScenario });
