@@ -98,58 +98,33 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         } catch {}
       }
 
+      // Add the registered user as the initial member of their student team roster
+      const userTeammate = {
+        id: `STU-${Date.now().toString().slice(-4)}`,
+        name: name.trim(),
+        role: studentRoleTitle,
+        type: studentRole === "lead" ? ("Student Lead" as const) : ("Core Student" as const),
+        status: "Available" as const,
+        utilization: 45,
+        weeklyHours: 20,
+        project: `${teamName.trim()} Tasks`,
+        skills: [studentRoleTitle, "Git"],
+        costRate: "Academic Credit",
+        risk: "Low" as const,
+        avatarText: name.trim().split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "ME",
+        avatarBg: studentRole === "lead" ? "from-blue-600 to-cyan-500" : "from-purple-600 to-pink-500",
+        upcoming: "Sprint setup & task allocation",
+        constraints: "Active student",
+      };
+      try {
+        localStorage.setItem("resourcepulse_student_resources", JSON.stringify([userTeammate]));
+      } catch {}
+
       toast.success(`Account created for ${user.name}!`, {
         description: `Registered as ${studentRoleTitle} for ${teamName}.`,
       });
       onLoginSuccess(user);
     }, 600);
-  };
-
-  const handleQuickDemo = (demoType: "lead" | "dev" | "ai") => {
-    let demoUser: AuthUser;
-    let projName = "Student Capstone Team";
-
-    if (demoType === "lead") {
-      demoUser = {
-        id: 1,
-        name: "Alex Rivera",
-        email: "alex.rivera@university.edu",
-        role: "admin",
-        emailVerified: 1,
-        onboardingCompleted: 1,
-        permissionSet: "system.admin,approvals.write,dashboard.read,cash.write",
-      };
-      projName = "Smart IoT Capstone Pod";
-    } else if (demoType === "dev") {
-      demoUser = {
-        id: 2,
-        name: "Sam Chen",
-        email: "sam.chen@university.edu",
-        role: "operator",
-        emailVerified: 1,
-        onboardingCompleted: 1,
-        permissionSet: "simulation.execute,approvals.write,dashboard.read",
-      };
-      projName = "Mobile Health App Team";
-    } else {
-      demoUser = {
-        id: 3,
-        name: "Jordan Patel",
-        email: "jordan.patel@university.edu",
-        role: "admin",
-        emailVerified: 1,
-        onboardingCompleted: 1,
-        permissionSet: "system.admin,approvals.write,dashboard.read",
-      };
-      projName = "Autonomous Drone AI Pod";
-    }
-
-    try {
-      localStorage.setItem("resourcepulse_team_name", projName);
-    } catch {}
-
-    toast.success(`Signed in as ${demoUser.name}`, { description: `Loaded ${projName} workspace.` });
-    onLoginSuccess(demoUser);
   };
 
   return (
@@ -401,56 +376,6 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
               </button>
             </form>
           )}
-
-          {/* Quick Demo Student Profiles */}
-          <div className="mt-6 pt-5 border-t border-slate-800/80">
-            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block mb-2 text-center">
-              Quick Test Profiles
-            </span>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickDemo("lead")}
-                className="p-2 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-sky-500/50 hover:bg-slate-950 text-left transition-all group"
-              >
-                <div className="flex items-center gap-1.5">
-                  <div className="w-5 h-5 rounded-full bg-sky-500/20 text-sky-400 font-bold text-[9px] flex items-center justify-center">
-                    AL
-                  </div>
-                  <strong className="text-[11px] text-white block truncate">Alex R.</strong>
-                </div>
-                <span className="text-[9px] text-sky-400 font-mono block mt-0.5">Team Lead</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickDemo("dev")}
-                className="p-2 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-sky-500/50 hover:bg-slate-950 text-left transition-all group"
-              >
-                <div className="flex items-center gap-1.5">
-                  <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold text-[9px] flex items-center justify-center">
-                    SC
-                  </div>
-                  <strong className="text-[11px] text-white block truncate">Sam C.</strong>
-                </div>
-                <span className="text-[9px] text-emerald-400 font-mono block mt-0.5">Frontend</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickDemo("ai")}
-                className="p-2 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-sky-500/50 hover:bg-slate-950 text-left transition-all group"
-              >
-                <div className="flex items-center gap-1.5">
-                  <div className="w-5 h-5 rounded-full bg-purple-500/20 text-purple-400 font-bold text-[9px] flex items-center justify-center">
-                    JP
-                  </div>
-                  <strong className="text-[11px] text-white block truncate">Jordan P.</strong>
-                </div>
-                <span className="text-[9px] text-purple-400 font-mono block mt-0.5">AI Lead</span>
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Footer info */}

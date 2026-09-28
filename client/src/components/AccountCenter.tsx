@@ -81,66 +81,35 @@ export function AccountCenter({
   const [tab, setTab] = useState<Tab>("overview");
   const [preferences, setPreferences] = useState(defaultPreferences);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
-  const [resetEmail, setResetEmail] = useState(user?.email ?? "mc@northstar.ops");
+  const [resetEmail, setResetEmail] = useState(user?.email ?? "");
 
-  // Local fallback cash entries for offline & demo resilience
-  const [localCashEntries, setLocalCashEntries] = useState(() => {
+  const studentTeamMembers = useMemo(() => {
+    try {
+      const stored = localStorage.getItem("resourcepulse_student_resources");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {}
+    return [];
+  }, [open]);
+
+  // Local cash entries for student project budgeting
+  const [localCashEntries, setLocalCashEntries] = useState<any[]>(() => {
     try {
       const stored = localStorage.getItem("resourcepulse_cash_entries");
       if (stored) return JSON.parse(stored);
     } catch {}
-    return [
-      {
-        id: 1,
-        project: "Mobile Core QA",
-        direction: "outflow",
-        amountCents: 120000,
-        description: "Arjun Rao test acceleration sprint",
-        occurredAt: new Date(Date.now() - 86400000).toISOString(),
-      },
-      {
-        id: 2,
-        project: "Enterprise ARR",
-        direction: "inflow",
-        amountCents: 450000,
-        description: "Northstar Q3 subscription revenue",
-        occurredAt: new Date(Date.now() - 172800000).toISOString(),
-      },
-    ];
+    return [];
   });
 
-  // Local fallback notifications
-  const [localNotifications, setLocalNotifications] = useState(() => {
+  // Local notifications
+  const [localNotifications, setLocalNotifications] = useState<any[]>(() => {
     try {
       const stored = localStorage.getItem("resourcepulse_notifications");
       if (stored) return JSON.parse(stored);
     } catch {}
-    return [
-      {
-        id: 1,
-        title: "QA Capacity Warning",
-        body: "Mobile Release Train is blocked by QA bandwidth shortage (+18h slip).",
-        type: "signal",
-        readAt: null,
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 2,
-        title: "Recommendation Queued",
-        body: "Reallocating Arjun Rao recovers 2.4 days on mobile critical path.",
-        type: "approval",
-        readAt: null,
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 3,
-        title: "System Health Alert",
-        body: "GPU cluster alpha load normalized to nominal levels.",
-        type: "system",
-        readAt: null,
-        createdAt: new Date().toISOString(),
-      },
-    ];
+    return [];
   });
 
   const [cashForm, setCashForm] = useState({
@@ -718,7 +687,9 @@ export function AccountCenter({
                   <div className="flex justify-between items-center">
                     <div>
                       <strong className="text-sm font-bold text-white block">Team Access & Member Governance</strong>
-                      <span className="text-xs text-slate-400">3 verified operators active in Northstar Ops</span>
+                      <span className="text-xs text-slate-400">
+                        {studentTeamMembers.length} verified team members in {localStorage.getItem("resourcepulse_team_name") || "Student Workspace"}
+                      </span>
                     </div>
                     <span className="text-xs font-mono uppercase text-sky-400 font-semibold px-2.5 py-1 rounded-full bg-sky-500/10 border border-sky-500/20">
                       RBAC Active
@@ -726,70 +697,51 @@ export function AccountCenter({
                   </div>
 
                   <div className="space-y-2.5">
-                    {[
-                      {
-                        id: 1,
-                        name: "Maya Chen",
-                        email: "mc@northstar.ops",
-                        role: "admin",
-                        perms: ["system.admin", "approvals.write", "cash.write"],
-                      },
-                      {
-                        id: 2,
-                        name: "Arjun Rao",
-                        email: "arjun@northstar.ops",
-                        role: "operator",
-                        perms: ["simulation.execute", "allocations.write"],
-                      },
-                      {
-                        id: 3,
-                        name: "Priya Sharma",
-                        email: "priya@northstar.ops",
-                        role: "viewer",
-                        perms: ["dashboard.read", "audit.read"],
-                      },
-                    ].map((m) => (
-                      <div
-                        key={m.id}
-                        className="p-4 rounded-xl bg-slate-950/70 border border-slate-800/80 hover:border-sky-500/30 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
-                      >
-                        <div className="flex items-center gap-3.5">
-                          <div className="w-10 h-10 rounded-full bg-sky-900/40 border border-sky-500/30 text-sky-300 font-bold text-xs flex items-center justify-center shrink-0">
-                            {m.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2.5">
-                              <strong className="text-sm font-bold text-white">{m.name}</strong>
-                              <span
-                                className={`text-[10px] font-mono uppercase font-bold px-2.5 py-0.5 rounded-full ${
-                                  m.role === "admin"
-                                    ? "bg-sky-500/20 text-sky-300 border border-sky-500/30"
-                                    : m.role === "operator"
-                                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                                    : "bg-slate-800 text-slate-300 border border-slate-700"
-                                }`}
-                              >
-                                {m.role}
-                              </span>
-                            </div>
-                            <p className="text-xs text-slate-400 mt-0.5 font-mono">{m.email}</p>
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap gap-2 md:justify-end">
-                          {m.perms.map((p, idx) => (
-                            <span
-                              key={idx}
-                              className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-800"
-                            >
-                              {p}
-                            </span>
-                          ))}
-                        </div>
+                    {studentTeamMembers.length === 0 ? (
+                      <div className="p-4 rounded-xl bg-slate-950/40 border border-slate-800 text-center text-xs text-slate-400">
+                        No team members registered yet. Add teammates in the Resources tab.
                       </div>
-                    ))}
+                    ) : (
+                      studentTeamMembers.map((m: any) => (
+                        <div
+                          key={m.id || m.name}
+                          className="p-4 rounded-xl bg-slate-950/70 border border-slate-800/80 hover:border-sky-500/30 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
+                        >
+                          <div className="flex items-center gap-3.5">
+                            <div className="w-10 h-10 rounded-full bg-sky-900/40 border border-sky-500/30 text-sky-300 font-bold text-xs flex items-center justify-center shrink-0">
+                              {m.name
+                                ? m.name
+                                    .split(" ")
+                                    .map((n: string) => n[0])
+                                    .join("")
+                                    .slice(0, 2)
+                                : "ST"}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2.5">
+                                <strong className="text-sm font-bold text-white">{m.name}</strong>
+                                <span
+                                  className="text-[10px] font-mono uppercase font-bold px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30"
+                                >
+                                  {m.type || m.role}
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-400 mt-0.5 font-mono">{m.project || "Sprint Tasks"}</p>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-2 md:justify-end">
+                            {(m.skills || ["Full-Stack", "Git"]).map((p: string, idx: number) => (
+                              <span
+                                key={idx}
+                                className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-800"
+                              >
+                                {p}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               </div>
@@ -804,39 +756,8 @@ export function AccountCenter({
                   </span>
                   <h3 className="text-lg font-bold text-white">Sign-in & Password Recovery</h3>
                   <p className="text-xs text-slate-400">
-                    Switch between active operator profiles or request password reset instructions.
+                    Active student user security, session details, and password reset instructions.
                   </p>
-                </div>
-
-                <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3">
-                  <strong className="text-xs font-bold text-sky-400 uppercase tracking-wider block">
-                    Fast 1-Click Profile Sign-In
-                  </strong>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <button
-                      className="p-4 rounded-xl bg-slate-950 border border-sky-900/50 hover:border-sky-400 text-left transition-all"
-                      onClick={() => handleDirectLogin("admin")}
-                    >
-                      <strong className="text-sm text-white block">Maya Chen</strong>
-                      <span className="text-xs text-sky-400 font-mono">Administrator</span>
-                    </button>
-
-                    <button
-                      className="p-4 rounded-xl bg-slate-950 border border-sky-900/50 hover:border-sky-400 text-left transition-all"
-                      onClick={() => handleDirectLogin("operator")}
-                    >
-                      <strong className="text-sm text-white block">Arjun Rao</strong>
-                      <span className="text-xs text-sky-400 font-mono">Operator</span>
-                    </button>
-
-                    <button
-                      className="p-4 rounded-xl bg-slate-950 border border-sky-900/50 hover:border-sky-400 text-left transition-all"
-                      onClick={() => handleDirectLogin("viewer")}
-                    >
-                      <strong className="text-sm text-white block">Priya Sharma</strong>
-                      <span className="text-xs text-sky-400 font-mono">Viewer</span>
-                    </button>
-                  </div>
                 </div>
 
                 {/* 2-Column Grid for Verification & Reset */}

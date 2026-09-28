@@ -26,38 +26,36 @@ interface Props {
   initialResourceName?: string;
 }
 
-const absentPersonnelOptions = [
-  {
-    id: "RES-01",
-    name: "Arjun Rao",
-    role: "Senior QA Automation Engineer",
-    project: "Support Pod",
-    avatarBg: "from-blue-600 to-cyan-500",
-  },
-  {
-    id: "RES-02",
-    name: "Priya Sharma",
-    role: "Staff Backend Engineer",
-    project: "Northstar Core API",
-    avatarBg: "from-indigo-600 to-blue-500",
-  },
-  {
-    id: "RES-03",
-    name: "Marcus Vance",
-    role: "Cloud DevOps Architect",
-    project: "Northstar Onboarding",
-    avatarBg: "from-sky-600 to-blue-600",
-  },
-  {
-    id: "RES-04",
-    name: "Elena Rostova",
-    role: "Senior UI/UX Specialist",
-    project: "Design System 2.0",
-    avatarBg: "from-purple-600 to-indigo-500",
-  },
-];
+const getRealTeammates = () => {
+  try {
+    const raw = localStorage.getItem("resourcepulse_student_resources");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((m: any) => ({
+          id: m.id || `STU-${m.name}`,
+          name: m.name,
+          role: m.role || "Developer",
+          project: m.project || "Sprint Tasks",
+          avatarBg: m.avatarBg || "from-blue-600 to-cyan-500",
+        }));
+      }
+    }
+  } catch {}
+  return [
+    {
+      id: "STU-01",
+      name: "Student Teammate",
+      role: "Project Developer",
+      project: "Sprint Module",
+      avatarBg: "from-blue-600 to-cyan-500",
+    },
+  ];
+};
 
 export function LiveSimulationScreen({ onClose, onApproveAndNavigate, initialResourceName }: Props) {
+  const absentPersonnelOptions = useMemo(() => getRealTeammates(), []);
+
   const [selectedPerson, setSelectedPerson] = useState(() => {
     if (initialResourceName) {
       const match = absentPersonnelOptions.find((p) => p.name.toLowerCase().includes(initialResourceName.toLowerCase()));
@@ -71,7 +69,7 @@ export function LiveSimulationScreen({ onClose, onApproveAndNavigate, initialRes
       const match = absentPersonnelOptions.find((p) => p.name.toLowerCase().includes(initialResourceName.toLowerCase()));
       if (match) setSelectedPerson(match);
     }
-  }, [initialResourceName]);
+  }, [initialResourceName, absentPersonnelOptions]);
 
   // Query server AI simulation backed by OpenRouter
   const simulationQuery = trpc.simulation.runAI.useQuery(

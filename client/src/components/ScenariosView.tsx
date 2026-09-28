@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Layers3, Check, Sliders, ShieldCheck, ArrowUpRight, DollarSign, Clock, AlertTriangle, Sparkles, Send } from "lucide-react";
 import { toast } from "sonner";
 
@@ -17,64 +17,63 @@ interface ScenarioOption {
   blurb: string;
 }
 
-const scenarioOptions: ScenarioOption[] = [
-  {
-    key: "balanced",
-    title: "Balanced Recovery",
-    tag: "Recommended",
-    timeGain: "+2.4 days",
-    costDelta: "$1,200",
-    riskReduction: "-38%",
-    overtimeHours: "6.5h",
-    feasibility: "94% High",
-    affectedResources: ["Arjun Rao", "Priya Sharma"],
-    affectedTasks: ["Mobile Core E2E Tests", "Support Triage"],
-    assumptions: "Support pod can absorb 10% queue deferral for 48 hours without breaching SLAs.",
-    blurb: "Rebalances Arjun Rao from Support to the Release Train for 1 cycle. Preserves launch deadline with minimal cost.",
-  },
-  {
-    key: "deadline",
-    title: "Protect Deadline at All Costs",
-    tag: "Aggressive",
-    timeGain: "+4.1 days",
-    costDelta: "$3,800",
-    riskReduction: "-61%",
-    overtimeHours: "24.0h",
-    feasibility: "86% Feasible",
-    affectedResources: ["Arjun Rao", "Contract QA Specialist", "Marcus Vance"],
-    affectedTasks: ["Mobile Core E2E", "Payment Gateway v2.4", "Staging Validation"],
-    assumptions: "External contractor capacity can onboard within 4 hours; overtime budget authorized.",
-    blurb: "Adds external contractor capacity and pulls forward the critical path. Maximum speed with elevated cost.",
-  },
-  {
-    key: "cost",
-    title: "Minimize Budget & Overtime",
-    tag: "Cost-Lean",
-    timeGain: "+1.2 days",
-    costDelta: "$400",
-    riskReduction: "-19%",
-    overtimeHours: "0.0h",
-    feasibility: "98% High",
-    affectedResources: ["Priya Sharma"],
-    affectedTasks: ["Payment Gateway v2.4", "Analytics Reporting"],
-    assumptions: "Product team accepts delaying low-priority analytics dashboard release to next sprint.",
-    blurb: "Uses existing internal capacity only. Delays two non-critical tasks without adding any contractor spend.",
-  },
-  {
-    key: "utilization",
-    title: "Utilization Leveling",
-    tag: "Balanced Load",
-    timeGain: "+2.0 days",
-    costDelta: "$950",
-    riskReduction: "-30%",
-    overtimeHours: "3.0h",
-    feasibility: "91% Feasible",
-    affectedResources: ["Marcus Vance", "Elena Rostova", "Arjun Rao"],
-    affectedTasks: ["Device Farm Validation", "Design System Freeze"],
-    assumptions: "UI polish sprint can be segmented to free up Marcus for deployment automation.",
-    blurb: "Smooths workload spikes across the engineering organization, maintaining all individuals below 85% capacity.",
-  },
-];
+const getDynamicScenarioOptions = (): ScenarioOption[] => {
+  try {
+    const raw = localStorage.getItem("resourcepulse_student_resources");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const overloaded = parsed.find((m: any) => (m.utilization || 0) > 80) || parsed[0];
+        const helper = parsed.find((m: any) => m.id !== overloaded.id) || parsed[0];
+        return [
+          {
+            key: "balanced",
+            title: "50/50 Equal Workload Split",
+            tag: "Recommended",
+            timeGain: "+2.0 days",
+            costDelta: "$0 (Student)",
+            riskReduction: "-42%",
+            overtimeHours: "0.0h",
+            feasibility: "95% High",
+            affectedResources: [overloaded.name, helper.name],
+            affectedTasks: [overloaded.project || "Sprint Deliverable", `${helper.project || "Core"} Co-development`],
+            assumptions: `${helper.name} can absorb 50% of the deliverable tasks to avoid bottle-necking sprint submission.`,
+            blurb: `Rebalances ${overloaded.name}’s workload equally with ${helper.name}. Preserves final deadline without overtime burnout.`,
+          },
+          {
+            key: "deadline",
+            title: "Accelerate Sprint Milestone",
+            tag: "Speed-First",
+            timeGain: "+3.5 days",
+            costDelta: "$0 (Student)",
+            riskReduction: "-58%",
+            overtimeHours: "8.0h",
+            feasibility: "88% Feasible",
+            affectedResources: parsed.slice(0, 3).map((m: any) => m.name),
+            affectedTasks: parsed.slice(0, 3).map((m: any) => m.project || "Sprint Task"),
+            assumptions: "All team members commit focused sprint hours for milestone freeze.",
+            blurb: "Pulls forward the critical path by parallelizing module integration. Maximum delivery speed.",
+          },
+          {
+            key: "cost",
+            title: "Strict Scope Prioritization",
+            tag: "Scope-Lean",
+            timeGain: "+1.2 days",
+            costDelta: "$0 (Student)",
+            riskReduction: "-22%",
+            overtimeHours: "0.0h",
+            feasibility: "98% High",
+            affectedResources: [overloaded.name],
+            affectedTasks: [overloaded.project || "Sprint Module"],
+            assumptions: "Postpone optional polish items to focus strictly on MVP grading rubric requirements.",
+            blurb: "Uses existing member capacity only. Defers low-priority nice-to-have features.",
+          },
+        ];
+      }
+    }
+  } catch {}
+  return [];
+};
 
 export function ScenariosView({
   onNavigateToApprovals,
@@ -83,6 +82,7 @@ export function ScenariosView({
   onNavigateToApprovals?: () => void;
   onOpenLiveSimulation?: () => void;
 }) {
+  const scenarioOptions = useMemo(() => getDynamicScenarioOptions(), []);
   const [selectedScenarioKey, setSelectedScenarioKey] = useState("balanced");
   const [whatIfUnavailable, setWhatIfUnavailable] = useState(2);
   const [whatIfDelayDays, setWhatIfDelayDays] = useState(3);

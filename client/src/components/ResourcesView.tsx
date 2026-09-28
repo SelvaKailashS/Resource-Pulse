@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useAuth } from "@/_core/hooks/useAuth";
 import {
   Search,
   Users,
@@ -9,10 +10,9 @@ import {
   Trash2,
   Edit3,
   Sparkles,
-  Clock,
   GraduationCap,
-  RefreshCw,
   CheckCircle2,
+  UserCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -34,94 +34,6 @@ export interface ResourceItem {
   constraints: string;
 }
 
-const DEFAULT_STUDENT_TEAM: ResourceItem[] = [
-  {
-    id: "STU-01",
-    name: "Alex Rivera",
-    role: "Team Lead & Full-Stack Architect",
-    type: "Student Lead",
-    status: "High Load",
-    utilization: 85,
-    weeklyHours: 35,
-    project: "Core App & API Integration",
-    skills: ["React", "TypeScript", "Node.js", "Git", "System Design"],
-    costRate: "Academic Credit",
-    risk: "Medium",
-    avatarText: "AR",
-    avatarBg: "from-blue-600 to-cyan-500",
-    upcoming: "Sprint 2 Final Submission & Pitch Prep",
-    constraints: "Available weekdays 4-9 PM; Capstone meeting Fridays",
-  },
-  {
-    id: "STU-02",
-    name: "Sam Chen",
-    role: "Frontend & UI/UX Developer",
-    type: "Core Student",
-    status: "Available",
-    utilization: 70,
-    weeklyHours: 25,
-    project: "Interactive Telemetry & Charts",
-    skills: ["React", "Tailwind CSS", "Figma", "Framer Motion", "UI Design"],
-    costRate: "Academic Credit",
-    risk: "Low",
-    avatarText: "SC",
-    avatarBg: "from-purple-600 to-pink-500",
-    upcoming: "Responsive Mobile Polish & Dark Theme Tokens",
-    constraints: "Midterm exam on Thursday 2-4 PM",
-  },
-  {
-    id: "STU-03",
-    name: "Jordan Patel",
-    role: "Backend & AI/ML Specialist",
-    type: "Core Student",
-    status: "Overallocated",
-    utilization: 92,
-    weeklyHours: 38,
-    project: "Predictive Forecasting & Realtime DB",
-    skills: ["Python", "FastAPI", "Supabase", "PyTorch", "Data Science"],
-    costRate: "Academic Credit",
-    risk: "High",
-    avatarText: "JP",
-    avatarBg: "from-amber-600 to-rose-600",
-    upcoming: "Workload Split Algorithm Tuning & Load Testing",
-    constraints: "Max 30h/week recommended by advisor; needs helper on DB scripts",
-  },
-  {
-    id: "STU-04",
-    name: "Taylor Kim",
-    role: "QA, E2E Testing & Documentation Lead",
-    type: "Core Student",
-    status: "Available",
-    utilization: 60,
-    weeklyHours: 20,
-    project: "Automated Test Matrix & Docs",
-    skills: ["Jest", "Playwright", "Technical Writing", "CI/CD", "Markdown"],
-    costRate: "Academic Credit",
-    risk: "Low",
-    avatarText: "TK",
-    avatarBg: "from-emerald-600 to-teal-500",
-    upcoming: "Project README, Hackathon Submission Deck & Demo Script",
-    constraints: "Available afternoons; Lab assignment due Wednesday",
-  },
-  {
-    id: "STU-05",
-    name: "Morgan Lee",
-    role: "DevOps & Cloud Deployment",
-    type: "Collaborator",
-    status: "Available",
-    utilization: 50,
-    weeklyHours: 18,
-    project: "Vercel Hosting & Environment Config",
-    skills: ["Vercel", "Docker", "GitHub Actions", "Domain DNS", "Vite"],
-    costRate: "Academic Credit",
-    risk: "Low",
-    avatarText: "ML",
-    avatarBg: "from-sky-600 to-indigo-600",
-    upcoming: "Production Vercel Deployment & SSL Verification",
-    constraints: "Flexible hours; On-call during hackathon judging",
-  },
-];
-
 const STORAGE_KEY = "resourcepulse_student_resources";
 
 export function ResourcesView({
@@ -133,21 +45,23 @@ export function ResourcesView({
   onSimulateAbsence?: (resource: ResourceItem) => void;
   customResources?: ResourceItem[];
 }) {
+  const { user } = useAuth();
+
   const [resources, setResources] = useState<ResourceItem[]>(() => {
     if (customResources && customResources.length > 0) return customResources;
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       } catch (e) {
         console.error("Failed to parse stored student resources:", e);
       }
     }
-    return DEFAULT_STUDENT_TEAM;
+    return [];
   });
 
-  // Save changes to localStorage
+  // Save changes to localStorage whenever resources array changes
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(resources));
   }, [resources]);
@@ -163,8 +77,8 @@ export function ResourcesView({
   const [formRole, setFormRole] = useState("Frontend Developer");
   const [formType, setFormType] = useState<ResourceItem["type"]>("Core Student");
   const [formStatus, setFormStatus] = useState<ResourceItem["status"]>("Available");
-  const [formUtilization, setFormUtilization] = useState(70);
-  const [formWeeklyHours, setFormWeeklyHours] = useState(25);
+  const [formUtilization, setFormUtilization] = useState(65);
+  const [formWeeklyHours, setFormWeeklyHours] = useState(20);
   const [formProject, setFormProject] = useState("");
   const [formSkills, setFormSkills] = useState("");
   const [formConstraints, setFormConstraints] = useState("");
@@ -181,17 +95,52 @@ export function ResourcesView({
     });
   }, [resources, search, selectedType]);
 
+  const addMyself = () => {
+    if (!user) return;
+    const roleTitle = localStorage.getItem("resourcepulse_student_role_title") || "Team Lead";
+    const team = localStorage.getItem("resourcepulse_team_name") || "Student Project";
+    const initials = user.name
+      ? user.name
+          .split(" ")
+          .map((n) => n[0])
+          .join("")
+          .toUpperCase()
+          .slice(0, 2)
+      : "ME";
+
+    const newMember: ResourceItem = {
+      id: `STU-${Date.now().toString().slice(-4)}`,
+      name: user.name || "Student Member",
+      role: roleTitle,
+      type: "Student Lead",
+      status: "Available",
+      utilization: 50,
+      weeklyHours: 25,
+      project: `${team} Core Sprint Deliverables`,
+      skills: [roleTitle, "System Architecture", "Git"],
+      costRate: "Academic Credit",
+      risk: "Low",
+      avatarText: initials || "ST",
+      avatarBg: "from-blue-600 to-cyan-500",
+      upcoming: "Project architecture & sprint kickoff",
+      constraints: "Available weekdays & weekends",
+    };
+
+    setResources((prev) => [newMember, ...prev.filter((r) => r.name !== newMember.name)]);
+    toast.success(`Added ${newMember.name} to Roster!`);
+  };
+
   const openAddModal = () => {
     setEditingId(null);
     setFormName("");
     setFormRole("Frontend Developer");
     setFormType("Core Student");
     setFormStatus("Available");
-    setFormUtilization(65);
+    setFormUtilization(60);
     setFormWeeklyHours(20);
-    setFormProject("Project Sprint Tasks");
+    setFormProject("Sprint Deliverable");
     setFormSkills("React, TypeScript, CSS");
-    setFormConstraints("Available after classes (after 3 PM)");
+    setFormConstraints("Available after classes");
     setIsFormOpen(true);
   };
 
@@ -203,7 +152,7 @@ export function ResourcesView({
     setFormType(res.type);
     setFormStatus(res.status);
     setFormUtilization(res.utilization);
-    setFormWeeklyHours(res.weeklyHours || 25);
+    setFormWeeklyHours(res.weeklyHours || 20);
     setFormProject(res.project);
     setFormSkills(res.skills.join(", "));
     setFormConstraints(res.constraints);
@@ -234,7 +183,6 @@ export function ResourcesView({
       formUtilization > 85 ? "High" : formUtilization > 70 ? "Medium" : "Low";
 
     if (editingId) {
-      // Update existing
       setResources((prev) =>
         prev.map((item) =>
           item.id === editingId
@@ -248,7 +196,7 @@ export function ResourcesView({
                 weeklyHours: formWeeklyHours,
                 project: formProject.trim() || "Project Task",
                 skills: skillsArray.length > 0 ? skillsArray : ["Full-Stack"],
-                constraints: formConstraints.trim() || "Standard student schedule",
+                constraints: formConstraints.trim() || "Standard availability",
                 risk: riskVal,
                 avatarText: initials || "ST",
               }
@@ -256,10 +204,9 @@ export function ResourcesView({
         )
       );
       toast.success("Teammate Updated", {
-        description: `${formName}’s workload and assignment details saved.`,
+        description: `${formName}’s workload details saved.`,
       });
     } else {
-      // Add new
       const newTeammate: ResourceItem = {
         id: `STU-${Date.now().toString().slice(-4)}`,
         name: formName.trim(),
@@ -268,8 +215,8 @@ export function ResourcesView({
         status: formStatus,
         utilization: formUtilization,
         weeklyHours: formWeeklyHours,
-        project: formProject.trim() || "Project Sprint Task",
-        skills: skillsArray.length > 0 ? skillsArray : ["Frontend", "Git"],
+        project: formProject.trim() || "Project Task",
+        skills: skillsArray.length > 0 ? skillsArray : ["Developer", "Git"],
         costRate: "Academic Credit",
         risk: riskVal,
         avatarText: initials || "ST",
@@ -300,17 +247,7 @@ export function ResourcesView({
         setSelectedResource(null);
       }
       toast.info(`Removed ${name}`, {
-        description: "Roster and workload statistics updated.",
-      });
-    }
-  };
-
-  const handleResetToDefault = () => {
-    if (confirm("Reset roster to default sample student team? Your real data edits will be replaced.")) {
-      setResources(DEFAULT_STUDENT_TEAM);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_STUDENT_TEAM));
-      toast.success("Reset to Default Student Team", {
-        description: "5 student member profiles loaded.",
+        description: "Team roster updated.",
       });
     }
   };
@@ -327,10 +264,10 @@ export function ResourcesView({
   };
 
   const handleSplitWork = (res: ResourceItem) => {
-    // Find candidate teammate with lowest utilization to share load
-    const candidate = resources.find(
-      (r) => r.id !== res.id && r.status !== "Unavailable" && r.utilization < 80
-    ) || resources.find((r) => r.id !== res.id) || res;
+    const candidate =
+      resources.find((r) => r.id !== res.id && r.status !== "Unavailable" && r.utilization < 80) ||
+      resources.find((r) => r.id !== res.id) ||
+      res;
 
     if (onAssignTask) {
       onAssignTask(res.name, `${res.project} (50% Split)`);
@@ -352,8 +289,29 @@ export function ResourcesView({
       })
     );
 
+    // Save pending approval
+    try {
+      const existingApprovals = JSON.parse(localStorage.getItem("resourcepulse_approvals") || "[]");
+      const newApproval = {
+        id: `APR-${Date.now().toString().slice(-4)}`,
+        title: `Workload Split: ${res.name} & ${candidate.name}`,
+        sourceEvent: "High Workload Detected",
+        confidence: 95,
+        priority: "High",
+        recommendationText: `Equal 50/50 split of ${res.project} between ${res.name} and ${candidate.name}.`,
+        targetResource: res.name,
+        fromProject: res.project,
+        toProject: `${res.project} (Shared)`,
+        timeGain: "+2.0 days recovered",
+        costImpact: "$0 (Student)",
+        status: "pending",
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      };
+      localStorage.setItem("resourcepulse_approvals", JSON.stringify([newApproval, ...existingApprovals]));
+    } catch {}
+
     toast.success(`AI Workload Split Applied!`, {
-      description: `Task workload rebalanced equally between ${res.name} and ${candidate.name}.`,
+      description: `Task workload rebalanced equally between ${res.name} and ${candidate.name}. Sent to Approvals.`,
     });
     setSelectedResource(null);
   };
@@ -364,7 +322,7 @@ export function ResourcesView({
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-sky-500/20 text-sky-400 border border-sky-400/30 flex items-center gap-1">
-              <GraduationCap size={13} /> Student Team Roster
+              <GraduationCap size={13} /> Real Student Team Roster
             </span>
             <span className="text-xs text-slate-400">· {resources.length} active members</span>
           </div>
@@ -374,14 +332,15 @@ export function ResourcesView({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            className="secondary-button text-xs flex items-center gap-1.5"
-            onClick={handleResetToDefault}
-            title="Reset to sample student team"
-          >
-            <RefreshCw size={13} />
-            <span>Reset Template</span>
-          </button>
+          {resources.length === 0 && user && (
+            <button
+              className="secondary-button text-xs flex items-center gap-1.5"
+              onClick={addMyself}
+            >
+              <UserCheck size={14} className="text-sky-400" />
+              <span>Add Myself</span>
+            </button>
+          )}
           <button
             className="primary-button text-xs flex items-center gap-1.5"
             onClick={openAddModal}
@@ -434,20 +393,36 @@ export function ResourcesView({
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan={8} className="py-12 text-center">
-                  <div className="flex flex-col items-center justify-center p-6 text-slate-400">
-                    <Users size={36} className="text-sky-400/60 mb-3" />
-                    <strong className="text-base text-white block mb-1">No Teammates Found</strong>
-                    <p className="text-xs text-slate-400 max-w-md mx-auto mb-4">
-                      {search
-                        ? `No teammates match "${search}".`
-                        : `No members found under filter "${selectedType}".`}
+                  <div className="flex flex-col items-center justify-center p-8 text-slate-400">
+                    <div className="w-14 h-14 rounded-2xl bg-sky-500/10 border border-sky-400/25 flex items-center justify-center text-sky-400 mb-4 shadow-sm shadow-sky-950">
+                      <Users size={28} />
+                    </div>
+                    <strong className="text-lg text-white block mb-1">
+                      {resources.length === 0 ? "Your Team Roster is Empty" : "No Matching Teammates Found"}
+                    </strong>
+                    <p className="text-xs text-slate-400 max-w-md mx-auto mb-6 text-center leading-relaxed">
+                      {resources.length === 0
+                        ? "Add your real student team members and their sprint work to begin tracking capacity, workload splits, and deadline risks."
+                        : `No members matched your search "${search}".`}
                     </p>
-                    <button
-                      className="primary-button text-xs px-4 py-2"
-                      onClick={openAddModal}
-                    >
-                      <Plus size={14} /> Add First Teammate
-                    </button>
+                    <div className="flex items-center gap-3">
+                      {resources.length === 0 && user && (
+                        <button
+                          className="secondary-button text-xs px-4 py-2 flex items-center gap-1.5"
+                          onClick={addMyself}
+                        >
+                          <UserCheck size={14} className="text-sky-400" />
+                          <span>Add Myself ({user.name})</span>
+                        </button>
+                      )}
+                      <button
+                        className="primary-button text-xs px-5 py-2 flex items-center gap-1.5 font-bold"
+                        onClick={openAddModal}
+                      >
+                        <Plus size={14} />
+                        <span>+ Add Real Teammate</span>
+                      </button>
+                    </div>
                   </div>
                 </td>
               </tr>
@@ -573,7 +548,7 @@ export function ResourcesView({
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-white">
-                    {editingId ? "Edit Student Teammate" : "Add Student Teammate"}
+                    {editingId ? "Edit Student Teammate" : "Add Real Student Teammate"}
                   </h3>
                   <p className="text-xs text-slate-400">
                     Real teammate credentials and workload allocation
@@ -809,7 +784,7 @@ export function ResourcesView({
                   {selectedResource.project}
                 </div>
                 <span className="text-xs text-sky-300 font-mono mt-1 block">
-                  Capacity: {selectedResource.weeklyHours || 25} hrs/week
+                  Capacity: {selectedResource.weeklyHours || 20} hrs/week
                 </span>
               </div>
             </div>

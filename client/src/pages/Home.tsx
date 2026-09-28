@@ -11,8 +11,6 @@ import { VoiceAssistantCopilot } from "@/components/VoiceAssistantCopilot";
 import { OnboardingModal } from "@/components/OnboardingModal";
 import { LiveFeedModal } from "@/components/LiveFeedModal";
 import { IntegrationsModal } from "@/components/IntegrationsModal";
-import { SectorModal } from "@/components/SectorModal";
-import { SECTORS, SectorDefinition } from "@shared/sectorsData";
 import { track } from "@/lib/analytics";
 import { recordTaskAssignment, recordApprovalDecision } from "@/lib/supabase";
 import {
@@ -103,11 +101,9 @@ function Home() {
     },
   });
   const [selectedScenario, setSelectedScenario] = useState<Scenario>("balanced");
-  const [activeSector, setActiveSector] = useState<SectorDefinition>(SECTORS[0]);
-  const [isSectorModalOpen, setIsSectorModalOpen] = useState(false);
   const [simulating, setSimulating] = useState(false);
   const [isLiveSimulationOpen, setIsLiveSimulationOpen] = useState(false);
-  const [simulationPerson, setSimulationPerson] = useState<string>("Arjun Rao");
+  const [simulationPerson, setSimulationPerson] = useState<string>("Student");
   const [isLiveFeedOpen, setIsLiveFeedOpen] = useState(false);
   const [isIntegrationsOpen, setIsIntegrationsOpen] = useState(false);
   const [approved, setApproved] = useState(false);
@@ -120,6 +116,28 @@ function Home() {
     task: string;
     time: string;
   } | null>(null);
+
+  // Load real student teammates from localStorage
+  const [realTeammates, setRealTeammates] = useState<any[]>(() => {
+    try {
+      const stored = localStorage.getItem("resourcepulse_student_resources");
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return [];
+  });
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("resourcepulse_student_resources");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setRealTeammates(Array.isArray(parsed) ? parsed : []);
+        if (parsed[0]?.name) setSimulationPerson(parsed[0].name);
+      } else {
+        setRealTeammates([]);
+      }
+    } catch {}
+  }, [activeNav]);
 
   const speakAnnouncement = (text: string) => {
     if ("speechSynthesis" in window) {
@@ -144,18 +162,15 @@ function Home() {
     setAssignedTaskNotification({ person, task, time: "Just now" });
     void recordTaskAssignment(person, task);
     toast.success(`Task Assigned to ${person}`, {
-      description: `Allocated to ${task}. Notification sent to Admin and Team Lead for review.`,
+      description: `Allocated to ${task}. Notification logged for team review.`,
     });
     speakAnnouncement(
-      `New task assigned! ${person} has been allocated to ${task}. The recovery plan has been sent to the Admin and Team Lead for approval.`
+      `New task assigned! ${person} has been allocated to ${task}.`
     );
   };
   const [time, setTime] = useState("09:42:18");
   const isLoading = dashboardQuery.isLoading || dashboardQuery.isFetching;
   const dataError = Boolean(dashboardQuery.error);
-  const lastUpdated = dashboardQuery.data?.fetchedAt
-    ? new Date(dashboardQuery.data.fetchedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-    : "—";
 
   const loadDashboard = async (showToast = false) => {
     const result = await dashboardQuery.refetch();
@@ -177,37 +192,147 @@ function Home() {
     if (isAuthenticated && accountProfileQuery.data?.user && !accountProfileQuery.data.user.onboardingCompleted) setAccountOpen(true);
   }, [accountProfileQuery.data?.user, isAuthenticated]);
 
-  const liveMetrics = useMemo(() => {
+  const overloadedTeammates = useMemo(
+    () => realTeammates.filter((m: any) => (m.utilization || 0) > 80 || m.status === "High Load" || m.status === "Overallocated"),
+    [realTeammates]
+  );
+
+  const avgWorkload = useMemo(
+    () => (realTeammates.length > 0 ? Math.round(realTeammates.reduce((acc: number, m: any) => acc + (m.utilization || 0), 0) / realTeammates.length) : 0),
+    [realTeammates]
+  );
+
+  const liveSignals = useMemo(() => {
+    if (realTeammates.length === 0) {
+      return [
+        {
+          id: 1,
+          title: "Team Roster Ready For Setup",
+          detail: "No teammates added yet. Go to Resources to add real teammates and track capacity.",
+          severity: "watch" as const,
+          horizon: "Setup phase",
+          status: "active",
+          ownersNotified: 1,
+        },
+      ];
+    }
+    if (overloadedTeammates.length === 0) {
+      return [
+        {
+          id: 1,
+          title: "Team Workload Equilibrium",
+          detail: `All ${realTeammates.length} active student members are operating within healthy capacity.`,
+          severity: "watch" as const,
+          horizon: "Nominal",
+          status: "active",
+          ownersNotified: realTeammates.length,
+        },
+      ];
+    }
+    return overloadedTeammates.map((m: any, idx: number) => ({
+      id: idx + 1,
+      title: `${m.name} (${m.role})`,
+      detail: `Assigned to "${m.project}" at ${m.utilization}% load. ${m.constraints || "High burnout risk before milestone"}`,
+      severity: m.utilization > 85 ? ("high" as const) : ("medium" as const),
+      horizon: "Active Sprint",
+      status: "active",
+      ownersNotified: 2,
+    }));
+  }, [realTeammates, overloadedTeammates]);
+
+  const liveRecommendation = useMemo(() => {
+    if (realTeammates.length === 0) {
+      return {
+        id: 1,
+        title: "Initialize Team Roster",
+        recommendation: "Add real teammates in the Resources tab to enable AI equal workload split and bottleneck protection.",
+        confidence: 99,
+        expectedOutcome: "Team ready",
+        expectedOutcomeLabel: "readiness",
+        riskChange: "0%",
+        riskChangeLabel: "status",
+        status: "pending",
+        recommendedResource: user?.name || "Student",
+        skillMatch: "Lead",
+        availability: "Flexible",
+        sourceProjectImpact: "none",
+      };
+    }
+
+    const overloaded = overloadedTeammates[0];
+    const helper = realTeammates.find((m: any) => m.id !== overloaded?.id && (m.utilization || 0) < 75) || realTeammates[1];
+
+    if (overloaded && helper) {
+      return {
+        id: 1,
+        title: `Rebalance ${overloaded.name}’s Deliverable`,
+        recommendation: `Split ${overloaded.project} 50/50 with ${helper.name}. This is the highest-confidence recovery path to protect milestone delivery without adding overtime stress.`,
+        confidence: 95,
+        expectedOutcome: "−2.0 days",
+        expectedOutcomeLabel: "milestone slip avoided",
+        riskChange: "−42%",
+        riskChangeLabel: "burnout risk reduced",
+        status: "pending",
+        recommendedResource: helper.name,
+        skillMatch: helper.role,
+        availability: `${helper.weeklyHours || 20}h capacity`,
+        sourceProjectImpact: "low",
+      };
+    }
+
     return {
-      resourceHealth: activeSector.systemHealth,
-      resourceHealthDelta: "+4.8%",
-      atRiskCapacity: activeSector.atRiskCapacity,
-      atRiskCapacityDelta: "-18.2%",
-      forecastConfidence: activeSector.forecastConfidence,
-      forecastConfidenceDelta: "+2.1%",
-      openDecisions: 4,
-      urgentDecisions: 2,
+      id: 1,
+      title: "Sprint Capacity Balanced",
+      recommendation: "All teammates currently have manageable workloads. Monitor sprint submissions and upcoming exam schedules.",
+      confidence: 96,
+      expectedOutcome: "On track",
+      expectedOutcomeLabel: "milestone confidence",
+      riskChange: "Nominal",
+      riskChangeLabel: "risk factor",
+      status: "pending",
+      recommendedResource: realTeammates[0]?.name || "Team Lead",
+      skillMatch: realTeammates[0]?.role || "Core",
+      availability: "Optimal",
+      sourceProjectImpact: "none",
     };
-  }, [activeSector]);
-  const liveSignals = dashboardQuery.data?.signals ?? riskItems.map((item, index) => ({
-    id: index + 1, title: item.title, detail: item.detail, severity: item.level === "High" ? "high" : item.level === "Medium" ? "medium" : "watch", horizon: item.time, status: "active", ownersNotified: 3,
-  }));
-  const liveScenarios = dashboardQuery.data?.scenarios ?? Object.entries(scenarioData).map(([scenarioKey, value], index) => ({
-    id: index + 1, scenarioKey, title: value.title, subtitle: value.sub, timeRecovered: value.gain, estimatedCost: value.cost, riskReduction: value.risk, blurb: value.blurb, feasible: 1,
-  }));
-  const liveRecommendation = dashboardQuery.data?.recommendation ?? {
-    id: 1, title: "Give QA a safe landing", recommendation: "Move Arjun Rao from Support pod to the release train for one test cycle. This is the highest-confidence recovery path that protects the milestone without adding external capacity.", confidence: 94, expectedOutcome: "−2.4 days", expectedOutcomeLabel: "milestone slip avoided", riskChange: "−38%", riskChangeLabel: "deadline risk reduced", status: "pending", recommendedResource: "Arjun Rao", skillMatch: "mobile QA", availability: "6.5h tomorrow", sourceProjectImpact: "low",
-  };
-  const liveActivity = dashboardQuery.data?.activity ?? [];
-  const selected = useMemo(() => liveScenarios.find((scenario) => scenario.scenarioKey === selectedScenario) ?? liveScenarios[0], [liveScenarios, selectedScenario]);
+  }, [realTeammates, overloadedTeammates, user]);
+
   const metricCards = useMemo(
     () => [
-      { label: "Resource health", value: liveMetrics.resourceHealth, delta: liveMetrics.resourceHealthDelta, trend: "up", icon: Activity, color: "blue" },
-      { label: "At-risk capacity", value: activeSector.atRiskCapacity.split(" ")[0], delta: liveMetrics.atRiskCapacityDelta, trend: "down", icon: CircleAlert, color: "amber" },
-      { label: "Forecast confidence", value: liveMetrics.forecastConfidence, delta: liveMetrics.forecastConfidenceDelta, trend: "up", icon: Target, color: "violet" },
-      { label: "Open decisions", value: String(liveMetrics.openDecisions).padStart(2, "0"), delta: `${liveMetrics.urgentDecisions} urgent`, trend: "neutral", icon: ShieldCheck, color: "coral" },
+      {
+        label: "Team Health",
+        value: realTeammates.length === 0 ? "Setup" : `${Math.max(50, 100 - overloadedTeammates.length * 20)}%`,
+        delta: realTeammates.length === 0 ? "0 members" : `${realTeammates.length} active`,
+        trend: "up" as const,
+        icon: Activity,
+        color: "blue" as const,
+      },
+      {
+        label: "At-Risk Capacity",
+        value: overloadedTeammates.length > 0 ? `${overloadedTeammates.length} Members` : "0 at-risk",
+        delta: overloadedTeammates.length > 0 ? "Action recommended" : "Nominal",
+        trend: (overloadedTeammates.length > 0 ? "down" : "up") as "up" | "down",
+        icon: CircleAlert,
+        color: "amber" as const,
+      },
+      {
+        label: "Avg Workload",
+        value: `${avgWorkload}%`,
+        delta: avgWorkload > 75 ? "High load" : "Balanced",
+        trend: "up" as const,
+        icon: Target,
+        color: "violet" as const,
+      },
+      {
+        label: "Sprint Modules",
+        value: String(realTeammates.filter((m: any) => m.project).length).padStart(2, "0"),
+        delta: "Active tasks",
+        trend: "neutral" as const,
+        icon: ShieldCheck,
+        color: "coral" as const,
+      },
     ],
-    [liveMetrics, activeSector]
+    [realTeammates, overloadedTeammates, avgWorkload]
   );
 
   const handleSimulation = () => {
@@ -219,10 +344,10 @@ function Home() {
     approvalMutation.mutate({ id: liveRecommendation.id });
     void recordApprovalDecision(
       String(liveRecommendation.id),
-      "Maya Chen",
-      "Reallocation of " + (liveRecommendation.recommendedResource || "Arjun Rao") + " to Mobile Release Train"
+      user?.name || "Student Lead",
+      "Reallocation of " + (liveRecommendation.recommendedResource || "Teammate") + " for balanced sprint delivery"
     );
-    speakAnnouncement("Plan approved by Maya Chen. Allocations updated and logged in the audit trail.");
+    speakAnnouncement(`Plan approved by ${user?.name || "Student Lead"}. Workload updated in the audit trail.`);
   };
 
   return (
@@ -667,20 +792,6 @@ function Home() {
         onOpenChange={setIsIntegrationsOpen}
       />
 
-      <SectorModal
-        open={isSectorModalOpen}
-        onOpenChange={setIsSectorModalOpen}
-        activeSectorId={activeSector.id}
-        onSelectSector={(sector) => {
-          setActiveSector(sector);
-          toast.success(`Switched to ${sector.name}`, {
-            description: `Active organization: ${sector.organization}. Loaded ${sector.resources.length} sector resources.`,
-          });
-          speakAnnouncement(
-            `Sector switched to ${sector.name} for ${sector.organization}. All resource models and real-time risk telemetry updated.`
-          );
-        }}
-      />
 
       <VoiceAssistantCopilot
         activeNav={activeNav}

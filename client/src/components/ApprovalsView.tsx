@@ -33,137 +33,84 @@ interface AuditRecord {
   details: string;
 }
 
-const initialApprovals: ApprovalItem[] = [
-  {
-    id: "APR-101",
-    title: "Reallocate Arjun Rao to Mobile Release Train",
-    sourceEvent: "QA Automated Testing Deficit (9h horizon)",
-    confidence: 94,
-    priority: "Urgent",
-    recommendationText:
-      "Move Arjun Rao from Support pod to the mobile release train for one test cycle. This is the highest-confidence recovery path that protects the milestone without adding external capacity.",
-    targetResource: "Arjun Rao",
-    fromProject: "Support Pod",
-    toProject: "Mobile Release Train",
-    timeGain: "+2.4 days recovered",
-    costImpact: "$1,200",
-    policyChecks: {
-      skillMatch: true,
-      overtimeAllowed: true,
-      milestoneTolerance: true,
-    },
-    whySelected: "Arjun possesses exact matching skills (Appium, Jest, CI/CD) and has 6.5h available tomorrow.",
-    whyExcluded: "Priya Sharma excluded because database migration requires her direct commit access.",
-    status: "pending",
-  },
-  {
-    id: "APR-102",
-    title: "Temporary DevOps Support for Northstar Onboarding",
-    sourceEvent: "Infrastructure Cluster Utilization above 82%",
-    confidence: 89,
-    priority: "High",
-    recommendationText:
-      "Grant Marcus Vance access to configure automated scaling group thresholds on EKS staging cluster to absorb anticipated onboarding spike.",
-    targetResource: "Marcus Vance",
-    fromProject: "Cloud Architecture",
-    toProject: "Northstar Onboarding",
-    timeGain: "+1.5 days recovered",
-    costImpact: "$650",
-    policyChecks: {
-      skillMatch: true,
-      overtimeAllowed: true,
-      milestoneTolerance: true,
-    },
-    whySelected: "Marcus holds primary AWS cloud permissions and is familiar with the onboarding Helm charts.",
-    whyExcluded: "External cloud contractor excluded due to security clearance requirements.",
-    status: "pending",
-  },
-  {
-    id: "APR-103",
-    title: "Device Lab Alpha Burst Allocation",
-    sourceEvent: "Regression Benchmark Queue Congestion",
-    confidence: 91,
-    priority: "Medium",
-    recommendationText:
-      "Shift 12 Android test devices from Nightly Sandbox to Mobile Release Train for parallel test execution.",
-    targetResource: "Device Lab Alpha",
-    fromProject: "Nightly Sandbox",
-    toProject: "Mobile Release Train",
-    timeGain: "+0.8 days recovered",
-    costImpact: "$150",
-    policyChecks: {
-      skillMatch: true,
-      overtimeAllowed: true,
-      milestoneTolerance: true,
-    },
-    whySelected: "Device firmware matches production target matrix.",
-    whyExcluded: "Cloud emulator grid excluded due to biometric sensor simulation limitation.",
-    status: "pending",
-  },
-];
-
-const initialAuditLog: AuditRecord[] = [
-  {
-    id: "AUD-801",
-    title: "Backend API Migration Overtime Authorization",
-    approver: "Maya Chen (Lead)",
-    timestamp: "Today at 08:30 AM",
-    decision: "Approved",
-    details: "Authorized 4.0h contingency overtime for Kafka schema validation.",
-  },
-  {
-    id: "AUD-800",
-    title: "External Contractor Sourcing Proposal",
-    approver: "Maya Chen (Lead)",
-    timestamp: "Yesterday at 04:15 PM",
-    decision: "Rejected",
-    details: "Rejected in favor of internal balanced reallocation.",
-  },
-];
+import { useAuth } from "@/_core/hooks/useAuth";
 
 export function ApprovalsView() {
-  const [approvals, setApprovals] = useState<ApprovalItem[]>(initialApprovals);
-  const [auditLog, setAuditLog] = useState<AuditRecord[]>(initialAuditLog);
+  const { user } = useAuth();
+
+  const [approvals, setApprovals] = useState<ApprovalItem[]>(() => {
+    try {
+      const stored = localStorage.getItem("resourcepulse_approvals");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {}
+    return [];
+  });
+
+  const [auditLog, setAuditLog] = useState<AuditRecord[]>(() => {
+    try {
+      const stored = localStorage.getItem("resourcepulse_audit_log");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {}
+    return [];
+  });
 
   const pendingApprovals = approvals.filter((a) => a.status === "pending");
 
   const handleApprove = (item: ApprovalItem) => {
-    setApprovals((prev) =>
-      prev.map((a) => (a.id === item.id ? { ...a, status: "approved" } : a))
-    );
+    const updated = approvals.map((a) => (a.id === item.id ? { ...a, status: "approved" as const } : a));
+    setApprovals(updated);
+    try {
+      localStorage.setItem("resourcepulse_approvals", JSON.stringify(updated));
+    } catch {}
 
     const newRecord: AuditRecord = {
       id: `AUD-${Math.floor(100 + Math.random() * 900)}`,
       title: item.title,
-      approver: "Maya Chen (Operations Lead)",
+      approver: `${user?.name || "Student Lead"} (Project Lead)`,
       timestamp: "Just now",
       decision: "Approved",
-      details: `Reallocated ${item.targetResource} from ${item.fromProject} to ${item.toProject}.`,
+      details: `Authorized workload rebalancing of ${item.targetResource || "teammate"}.`,
     };
-    setAuditLog((prev) => [newRecord, ...prev]);
+    const updatedLog = [newRecord, ...auditLog];
+    setAuditLog(updatedLog);
+    try {
+      localStorage.setItem("resourcepulse_audit_log", JSON.stringify(updatedLog));
+    } catch {}
 
-    toast.success("Decision Approved & Queued", {
-      description: `${item.targetResource} is now scheduled for ${item.toProject}. Audit record logged.`,
+    toast.success("Decision Approved & Executed", {
+      description: `${item.targetResource || "Teammate"} schedule updated. Audit log recorded.`,
     });
   };
 
   const handleReject = (item: ApprovalItem) => {
-    setApprovals((prev) =>
-      prev.map((a) => (a.id === item.id ? { ...a, status: "rejected" } : a))
-    );
+    const updated = approvals.map((a) => (a.id === item.id ? { ...a, status: "rejected" as const } : a));
+    setApprovals(updated);
+    try {
+      localStorage.setItem("resourcepulse_approvals", JSON.stringify(updated));
+    } catch {}
 
     const newRecord: AuditRecord = {
       id: `AUD-${Math.floor(100 + Math.random() * 900)}`,
       title: item.title,
-      approver: "Maya Chen (Operations Lead)",
+      approver: `${user?.name || "Student Lead"} (Project Lead)`,
       timestamp: "Just now",
       decision: "Rejected",
-      details: "Recommendation rejected by operator.",
+      details: "Recommendation rejected by team lead.",
     };
-    setAuditLog((prev) => [newRecord, ...prev]);
+    const updatedLog = [newRecord, ...auditLog];
+    setAuditLog(updatedLog);
+    try {
+      localStorage.setItem("resourcepulse_audit_log", JSON.stringify(updatedLog));
+    } catch {}
 
     toast.error("Recommendation Rejected", {
-      description: "Alternative mitigation scenarios will be synthesized by the AI agent.",
+      description: "Alternative mitigation options can be created in Resources.",
     });
   };
 

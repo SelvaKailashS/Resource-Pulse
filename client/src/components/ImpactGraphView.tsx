@@ -15,71 +15,85 @@ interface CascadeNode {
   downstream: string[];
 }
 
-const cascadeNodes: CascadeNode[] = [
-  {
-    id: "NODE-1",
-    stage: "1. Trigger Event",
-    title: "QA Capacity Deficit (Arjun Rao PTO & Support Pod Lock)",
-    type: "Root Cause",
-    severity: "high",
-    impactDetails: "Available testing capacity for Mobile Core drops by 60% across the next 48h.",
-    timeline: "Immediate (T+0h)",
-    costDelta: "$0",
-    upstream: "PeopleOps availability feed",
-    downstream: ["Mobile Core E2E Tests Slipped", "Regression harness stall"],
-  },
-  {
-    id: "NODE-2",
-    stage: "2. Immediate Task Delay",
-    title: "Mobile Core E2E Automated Tests Slipped",
-    type: "Direct Impact",
-    severity: "high",
-    impactDetails: "Critical test pass suite cannot run to completion. 14 blocking test cases queued.",
-    timeline: "+18h delay",
-    costDelta: "+$650 idle wait",
-    upstream: "QA Capacity Deficit",
-    downstream: ["Payment Gateway Integration blocked"],
-  },
-  {
-    id: "NODE-3",
-    stage: "3. Dependent Task Cascade",
-    title: "Payment Gateway v2.4 Integration Blocked",
-    type: "Dependent Block",
-    severity: "high",
-    impactDetails: "Requires signed test coverage report from Mobile Core before security tokens can be validated.",
-    timeline: "+32h delay",
-    costDelta: "+$1,400 team wait",
-    upstream: "Mobile Core E2E Automated Tests",
-    downstream: ["Sprint 44 Release Candidate freeze"],
-  },
-  {
-    id: "NODE-4",
-    stage: "4. Milestone Compression",
-    title: "Sprint 44 Release Candidate Pushed",
-    type: "Milestone Slip",
-    severity: "medium",
-    impactDetails: "Target freeze date compromised. Milestone slip projected at 2.4 calendar days.",
-    timeline: "+2.4 days slip",
-    costDelta: "+$2,800 overtime",
-    upstream: "Payment Gateway Integration",
-    downstream: ["Northstar Q3 Launch Event"],
-  },
-  {
-    id: "NODE-5",
-    stage: "5. Organizational Risk",
-    title: "Northstar Mobile Q3 App Store Submission at Risk",
-    type: "Financial/Deadline Risk",
-    severity: "high",
-    impactDetails: "Missed review window incurs Apple App Store expedited review fee + risk of public launch delay.",
-    timeline: "+3.8 days total risk",
-    costDelta: "+$4,200 estimated",
-    upstream: "Sprint 44 Release Candidate",
-    downstream: ["Public PR marketing campaign reschedule"],
-  },
-];
+const getDynamicCascadeNodes = (): CascadeNode[] => {
+  try {
+    const raw = localStorage.getItem("resourcepulse_student_resources");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const teamName = localStorage.getItem("resourcepulse_team_name") || "Student Project";
+        const focal = parsed.find((m: any) => (m.utilization || 0) > 80) || parsed[0];
+        return [
+          {
+            id: "NODE-1",
+            stage: "1. Trigger Event",
+            title: `${focal.name} (${focal.role}) Bandwidth Deficit`,
+            type: "Root Cause",
+            severity: (focal.utilization || 0) > 85 ? "high" : "medium",
+            impactDetails: `Workload reached ${focal.utilization || 65}%. ${focal.constraints || "Academic commitments limit available sprint hours."}`,
+            timeline: "Immediate (T+0h)",
+            costDelta: "$0",
+            upstream: "Team availability signal",
+            downstream: [`${focal.project || "Sprint module"} deliverable compressed`],
+          },
+          {
+            id: "NODE-2",
+            stage: "2. Immediate Task Delay",
+            title: `${focal.project || "Sprint Task"} Milestone Delayed`,
+            type: "Direct Impact",
+            severity: "high",
+            impactDetails: `Critical module "${focal.project || "Sprint deliverable"}" delayed without workload rebalancing.`,
+            timeline: "+18h delay",
+            costDelta: "Sprint slip",
+            upstream: `${focal.name} Bandwidth Deficit`,
+            downstream: ["Cross-Module Integration Blocked"],
+          },
+          {
+            id: "NODE-3",
+            stage: "3. Dependent Task Cascade",
+            title: "Cross-Module Integration Blocked",
+            type: "Dependent Block",
+            severity: "high",
+            impactDetails: `Teammates waiting on output from "${focal.project || "module"}" before merging features.`,
+            timeline: "+32h delay",
+            costDelta: "Idle dependency",
+            upstream: `${focal.project || "Sprint Task"} Milestone Delayed`,
+            downstream: [`${teamName} Sprint Submission Compressed`],
+          },
+          {
+            id: "NODE-4",
+            stage: "4. Milestone Compression",
+            title: `${teamName} Sprint Submission Compressed`,
+            type: "Milestone Slip",
+            severity: "medium",
+            impactDetails: "Submission deadline window compromised by 2.0 calendar days.",
+            timeline: "+2.0 days slip",
+            costDelta: "Grade penalty risk",
+            upstream: "Cross-Module Integration Blocked",
+            downstream: ["Demo Day & Presentation review"],
+          },
+          {
+            id: "NODE-5",
+            stage: "5. Final Project Risk",
+            title: "Capstone Demo Day & Evaluation Slip",
+            type: "Financial/Deadline Risk",
+            severity: "high",
+            impactDetails: "Evaluation penalties if final repository and live demo are delivered late.",
+            timeline: "+3.5 days total risk",
+            costDelta: "Milestone deadline risk",
+            upstream: `${teamName} Sprint Submission Compressed`,
+            downstream: ["Final evaluation"],
+          },
+        ];
+      }
+    }
+  } catch {}
+  return [];
+};
 
 export function ImpactGraphView({ onNavigateToScenarios }: { onNavigateToScenarios?: () => void }) {
-  const [selectedNode, setSelectedNode] = useState<CascadeNode>(cascadeNodes[0]);
+  const cascadeNodes = useMemo(() => getDynamicCascadeNodes(), []);
+  const [selectedNode, setSelectedNode] = useState<CascadeNode | null>(cascadeNodes[0] || null);
   const [impactFilter, setImpactFilter] = useState<"All" | "Direct" | "Indirect">("All");
 
   const filteredNodes = cascadeNodes.filter((node) => {
