@@ -29,11 +29,9 @@ export function useAuth() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) return JSON.parse(stored);
-      // Default to demo session so all 18 features can be tested immediately
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultDemoUser));
-      return defaultDemoUser;
+      return null;
     } catch {
-      return defaultDemoUser;
+      return null;
     }
   });
 

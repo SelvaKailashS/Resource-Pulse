@@ -1,14 +1,29 @@
 import { useState, useMemo, useEffect } from "react";
-import { Search, Filter, Users, Cpu, Box, DollarSign, Layers, ShieldAlert, CheckCircle2, AlertTriangle, ExternalLink, X, Calendar, Briefcase, Award } from "lucide-react";
+import {
+  Search,
+  Users,
+  AlertTriangle,
+  X,
+  Briefcase,
+  Plus,
+  Trash2,
+  Edit3,
+  Sparkles,
+  Clock,
+  GraduationCap,
+  RefreshCw,
+  CheckCircle2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export interface ResourceItem {
   id: string;
   name: string;
   role: string;
-  type: "People" | "Equipment" | "Materials" | "Budget" | "Shared";
+  type: "Core Student" | "Student Lead" | "Collaborator" | "Lab Resource";
   status: "Available" | "High Load" | "Overallocated" | "Unavailable";
   utilization: number;
+  weeklyHours: number;
   project: string;
   skills: string[];
   costRate: string;
@@ -19,136 +34,95 @@ export interface ResourceItem {
   constraints: string;
 }
 
-const initialResources: ResourceItem[] = [
+const DEFAULT_STUDENT_TEAM: ResourceItem[] = [
   {
-    id: "RES-01",
-    name: "Arjun Rao",
-    role: "Senior QA Automation Engineer",
-    type: "People",
-    status: "Unavailable",
-    utilization: 96,
-    project: "Support Pod",
-    skills: ["Mobile QA", "Appium", "Jest", "CI/CD"],
-    costRate: "$85/h",
-    risk: "High",
+    id: "STU-01",
+    name: "Alex Rivera",
+    role: "Team Lead & Full-Stack Architect",
+    type: "Student Lead",
+    status: "High Load",
+    utilization: 85,
+    weeklyHours: 35,
+    project: "Core App & API Integration",
+    skills: ["React", "TypeScript", "Node.js", "Git", "System Design"],
+    costRate: "Academic Credit",
+    risk: "Medium",
     avatarText: "AR",
     avatarBg: "from-blue-600 to-cyan-500",
-    upcoming: "Mobile Release Train Test Cycle (Proposed)",
-    constraints: "Max 40h/week, PTO scheduled next Thursday",
+    upcoming: "Sprint 2 Final Submission & Pitch Prep",
+    constraints: "Available weekdays 4-9 PM; Capstone meeting Fridays",
   },
   {
-    id: "RES-02",
-    name: "Priya Sharma",
-    role: "Staff Backend Engineer",
-    type: "People",
-    status: "High Load",
-    utilization: 88,
-    project: "Northstar Core API",
-    skills: ["Go", "gRPC", "PostgreSQL", "Kafka"],
-    costRate: "$110/h",
-    risk: "Medium",
-    avatarText: "PS",
-    avatarBg: "from-indigo-600 to-blue-500",
-    upcoming: "Payment Gateway Refactor",
-    constraints: "Core database lock-in until Sprint 44 freeze",
-  },
-  {
-    id: "RES-03",
-    name: "Marcus Vance",
-    role: "Cloud DevOps Architect",
-    type: "People",
-    status: "Available",
-    utilization: 64,
-    project: "Northstar Onboarding",
-    skills: ["Kubernetes", "AWS EKS", "Terraform", "ArgoCD"],
-    costRate: "$105/h",
-    risk: "Low",
-    avatarText: "MV",
-    avatarBg: "from-sky-600 to-blue-600",
-    upcoming: "Production Cluster Autoscaling Tuning",
-    constraints: "On-call primary rotation starts Friday",
-  },
-  {
-    id: "RES-04",
-    name: "Elena Rostova",
-    role: "Senior UI/UX Specialist",
-    type: "People",
+    id: "STU-02",
+    name: "Sam Chen",
+    role: "Frontend & UI/UX Developer",
+    type: "Core Student",
     status: "Available",
     utilization: 70,
-    project: "Design System 2.0",
-    skills: ["Figma", "React", "Tailwind CSS", "Design Tokens"],
-    costRate: "$90/h",
+    weeklyHours: 25,
+    project: "Interactive Telemetry & Charts",
+    skills: ["React", "Tailwind CSS", "Figma", "Framer Motion", "UI Design"],
+    costRate: "Academic Credit",
     risk: "Low",
-    avatarText: "ER",
-    avatarBg: "from-purple-600 to-indigo-500",
-    upcoming: "Command Center Accessibility Audit",
-    constraints: "Split 50% between Design Systems and Web App",
+    avatarText: "SC",
+    avatarBg: "from-purple-600 to-pink-500",
+    upcoming: "Responsive Mobile Polish & Dark Theme Tokens",
+    constraints: "Midterm exam on Thursday 2-4 PM",
   },
   {
-    id: "RES-05",
-    name: "GPU Cluster Alpha (4x H100)",
-    role: "High-Performance ML Training Pool",
-    type: "Equipment",
+    id: "STU-03",
+    name: "Jordan Patel",
+    role: "Backend & AI/ML Specialist",
+    type: "Core Student",
     status: "Overallocated",
-    utilization: 98,
-    project: "Forecasting AI Engine",
-    skills: ["PyTorch", "vLLM", "CUDA 12", "Distributed Training"],
-    costRate: "$24/h",
+    utilization: 92,
+    weeklyHours: 38,
+    project: "Predictive Forecasting & Realtime DB",
+    skills: ["Python", "FastAPI", "Supabase", "PyTorch", "Data Science"],
+    costRate: "Academic Credit",
     risk: "High",
-    avatarText: "GPU",
+    avatarText: "JP",
     avatarBg: "from-amber-600 to-rose-600",
-    upcoming: "Nightly Predictive Weight Retraining",
-    constraints: "Requires thermal maintenance window every 72h",
+    upcoming: "Workload Split Algorithm Tuning & Load Testing",
+    constraints: "Max 30h/week recommended by advisor; needs helper on DB scripts",
   },
   {
-    id: "RES-06",
-    name: "Test Lab Alpha (Device Farm)",
-    role: "Automated Device Matrix",
-    type: "Equipment",
+    id: "STU-04",
+    name: "Taylor Kim",
+    role: "QA, E2E Testing & Documentation Lead",
+    type: "Core Student",
     status: "Available",
-    utilization: 52,
-    project: "Mobile Release Train",
-    skills: ["iOS 18", "Android 15", "Real-Device Harness"],
-    costRate: "$15/h",
+    utilization: 60,
+    weeklyHours: 20,
+    project: "Automated Test Matrix & Docs",
+    skills: ["Jest", "Playwright", "Technical Writing", "CI/CD", "Markdown"],
+    costRate: "Academic Credit",
     risk: "Low",
-    avatarText: "LAB",
-    avatarBg: "from-cyan-600 to-blue-500",
-    upcoming: "Regression Benchmark Run",
-    constraints: "Max concurrent sessions: 32 devices",
-  },
-  {
-    id: "RES-07",
-    name: "Sprint Contingency Reserve",
-    role: "Discretionary Overtime / Cloud Pool",
-    type: "Budget",
-    status: "Available",
-    utilization: 42,
-    project: "Q3 Release Buffer",
-    skills: ["Overtime Budget", "SaaS Burst Capacity"],
-    costRate: "$1,200 total",
-    risk: "Low",
-    avatarText: "RES",
+    avatarText: "TK",
     avatarBg: "from-emerald-600 to-teal-500",
-    upcoming: "Allocation for QA recovery plan ($1.2k)",
-    constraints: "Requires VP approval if total exceeds $5,000",
+    upcoming: "Project README, Hackathon Submission Deck & Demo Script",
+    constraints: "Available afternoons; Lab assignment due Wednesday",
   },
   {
-    id: "RES-08",
-    name: "Shared Redis Cache Cluster",
-    role: "In-Memory Session & Telemetry Layer",
-    type: "Shared",
-    status: "High Load",
-    utilization: 84,
-    project: "Platform Infra Pool",
-    skills: ["Redis 7", "Memory Clustering", "Eviction Monitoring"],
-    costRate: "$8/h",
-    risk: "Medium",
-    avatarText: "RED",
-    avatarBg: "from-blue-600 to-sky-400",
-    upcoming: "Cache TTL optimization rollout",
-    constraints: "Memory usage ceiling alert triggered at 85%",
+    id: "STU-05",
+    name: "Morgan Lee",
+    role: "DevOps & Cloud Deployment",
+    type: "Collaborator",
+    status: "Available",
+    utilization: 50,
+    weeklyHours: 18,
+    project: "Vercel Hosting & Environment Config",
+    skills: ["Vercel", "Docker", "GitHub Actions", "Domain DNS", "Vite"],
+    costRate: "Academic Credit",
+    risk: "Low",
+    avatarText: "ML",
+    avatarBg: "from-sky-600 to-indigo-600",
+    upcoming: "Production Vercel Deployment & SSL Verification",
+    constraints: "Flexible hours; On-call during hackathon judging",
   },
 ];
+
+const STORAGE_KEY = "resourcepulse_student_resources";
 
 export function ResourcesView({
   onAssignTask,
@@ -159,16 +133,41 @@ export function ResourcesView({
   onSimulateAbsence?: (resource: ResourceItem) => void;
   customResources?: ResourceItem[];
 }) {
-  const [resources, setResources] = useState<ResourceItem[]>(customResources || initialResources);
-
-  useEffect(() => {
-    if (customResources && customResources.length > 0) {
-      setResources(customResources);
+  const [resources, setResources] = useState<ResourceItem[]>(() => {
+    if (customResources && customResources.length > 0) return customResources;
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {
+        console.error("Failed to parse stored student resources:", e);
+      }
     }
-  }, [customResources]);
+    return DEFAULT_STUDENT_TEAM;
+  });
+
+  // Save changes to localStorage
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(resources));
+  }, [resources]);
+
   const [search, setSearch] = useState("");
   const [selectedType, setSelectedType] = useState<string>("All");
   const [selectedResource, setSelectedResource] = useState<ResourceItem | null>(null);
+
+  // Add / Edit Modal state
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formName, setFormName] = useState("");
+  const [formRole, setFormRole] = useState("Frontend Developer");
+  const [formType, setFormType] = useState<ResourceItem["type"]>("Core Student");
+  const [formStatus, setFormStatus] = useState<ResourceItem["status"]>("Available");
+  const [formUtilization, setFormUtilization] = useState(70);
+  const [formWeeklyHours, setFormWeeklyHours] = useState(25);
+  const [formProject, setFormProject] = useState("");
+  const [formSkills, setFormSkills] = useState("");
+  const [formConstraints, setFormConstraints] = useState("");
 
   const filtered = useMemo(() => {
     return resources.filter((res) => {
@@ -182,6 +181,140 @@ export function ResourcesView({
     });
   }, [resources, search, selectedType]);
 
+  const openAddModal = () => {
+    setEditingId(null);
+    setFormName("");
+    setFormRole("Frontend Developer");
+    setFormType("Core Student");
+    setFormStatus("Available");
+    setFormUtilization(65);
+    setFormWeeklyHours(20);
+    setFormProject("Project Sprint Tasks");
+    setFormSkills("React, TypeScript, CSS");
+    setFormConstraints("Available after classes (after 3 PM)");
+    setIsFormOpen(true);
+  };
+
+  const openEditModal = (res: ResourceItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setEditingId(res.id);
+    setFormName(res.name);
+    setFormRole(res.role);
+    setFormType(res.type);
+    setFormStatus(res.status);
+    setFormUtilization(res.utilization);
+    setFormWeeklyHours(res.weeklyHours || 25);
+    setFormProject(res.project);
+    setFormSkills(res.skills.join(", "));
+    setFormConstraints(res.constraints);
+    setIsFormOpen(true);
+  };
+
+  const handleSaveTeammate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formName.trim()) {
+      toast.error("Please enter teammate name");
+      return;
+    }
+
+    const initials = formName
+      .trim()
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+
+    const skillsArray = formSkills
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const riskVal: "Low" | "Medium" | "High" =
+      formUtilization > 85 ? "High" : formUtilization > 70 ? "Medium" : "Low";
+
+    if (editingId) {
+      // Update existing
+      setResources((prev) =>
+        prev.map((item) =>
+          item.id === editingId
+            ? {
+                ...item,
+                name: formName.trim(),
+                role: formRole.trim(),
+                type: formType,
+                status: formStatus,
+                utilization: formUtilization,
+                weeklyHours: formWeeklyHours,
+                project: formProject.trim() || "Project Task",
+                skills: skillsArray.length > 0 ? skillsArray : ["Full-Stack"],
+                constraints: formConstraints.trim() || "Standard student schedule",
+                risk: riskVal,
+                avatarText: initials || "ST",
+              }
+            : item
+        )
+      );
+      toast.success("Teammate Updated", {
+        description: `${formName}’s workload and assignment details saved.`,
+      });
+    } else {
+      // Add new
+      const newTeammate: ResourceItem = {
+        id: `STU-${Date.now().toString().slice(-4)}`,
+        name: formName.trim(),
+        role: formRole.trim(),
+        type: formType,
+        status: formStatus,
+        utilization: formUtilization,
+        weeklyHours: formWeeklyHours,
+        project: formProject.trim() || "Project Sprint Task",
+        skills: skillsArray.length > 0 ? skillsArray : ["Frontend", "Git"],
+        costRate: "Academic Credit",
+        risk: riskVal,
+        avatarText: initials || "ST",
+        avatarBg:
+          formType === "Student Lead"
+            ? "from-blue-600 to-cyan-500"
+            : formUtilization > 80
+            ? "from-amber-600 to-rose-600"
+            : "from-sky-600 to-indigo-600",
+        upcoming: `${formProject.trim() || "Assigned task"} milestone deliverable`,
+        constraints: formConstraints.trim() || "Standard availability",
+      };
+
+      setResources((prev) => [newTeammate, ...prev]);
+      toast.success("New Teammate Added!", {
+        description: `${newTeammate.name} joined the project roster.`,
+      });
+    }
+
+    setIsFormOpen(false);
+  };
+
+  const handleDeleteTeammate = (id: string, name: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (confirm(`Remove ${name} from your team roster?`)) {
+      setResources((prev) => prev.filter((item) => item.id !== id));
+      if (selectedResource?.id === id) {
+        setSelectedResource(null);
+      }
+      toast.info(`Removed ${name}`, {
+        description: "Roster and workload statistics updated.",
+      });
+    }
+  };
+
+  const handleResetToDefault = () => {
+    if (confirm("Reset roster to default sample student team? Your real data edits will be replaced.")) {
+      setResources(DEFAULT_STUDENT_TEAM);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_STUDENT_TEAM));
+      toast.success("Reset to Default Student Team", {
+        description: "5 student member profiles loaded.",
+      });
+    }
+  };
+
   const handleSimulateAbsence = (res: ResourceItem) => {
     setSelectedResource(null);
     if (onSimulateAbsence) {
@@ -194,24 +327,34 @@ export function ResourcesView({
   };
 
   const handleSplitWork = (res: ResourceItem) => {
-    if (onAssignTask) {
-      onAssignTask(res.name, "Mobile Core E2E Testing (50% Split - 9h)");
-      onAssignTask("Priya Sharma", "Mobile Core E2E Testing (50% Split - 9h)");
-    }
-    toast.success(`AI Workload Split Applied!`, {
-      description: `18 hours testing load split equally: 9h to ${res.name} and 9h to Priya Sharma.`,
-    });
-    setSelectedResource(null);
-  };
+    // Find candidate teammate with lowest utilization to share load
+    const candidate = resources.find(
+      (r) => r.id !== res.id && r.status !== "Unavailable" && r.utilization < 80
+    ) || resources.find((r) => r.id !== res.id) || res;
 
-  const handleReallocate = (res: ResourceItem) => {
     if (onAssignTask) {
-      onAssignTask(res.name, "Mobile Release Train Test Cycle (100% Emergency)");
-    } else {
-      toast.success(`Full Reallocation applied for ${res.name}`, {
-        description: "Added to Pending Approvals queue with 94% confidence.",
-      });
+      onAssignTask(res.name, `${res.project} (50% Split)`);
+      if (candidate.id !== res.id) {
+        onAssignTask(candidate.name, `${res.project} (50% Co-ownership)`);
+      }
     }
+
+    // Rebalance workloads in local state
+    setResources((prev) =>
+      prev.map((r) => {
+        if (r.id === res.id) {
+          return { ...r, utilization: Math.max(35, Math.round(r.utilization * 0.65)) };
+        }
+        if (r.id === candidate.id && candidate.id !== res.id) {
+          return { ...r, utilization: Math.min(90, Math.round(r.utilization + 20)) };
+        }
+        return r;
+      })
+    );
+
+    toast.success(`AI Workload Split Applied!`, {
+      description: `Task workload rebalanced equally between ${res.name} and ${candidate.name}.`,
+    });
     setSelectedResource(null);
   };
 
@@ -219,21 +362,34 @@ export function ResourcesView({
     <div className="resources-container">
       <div className="module-header">
         <div>
-          <h1>Enterprise Resource Management</h1>
-          <p>
-            Track real-time capacity, skill profiles, and allocation constraints across {resources.length} active assets.
+          <div className="flex items-center gap-2 mb-1">
+            <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-sky-500/20 text-sky-400 border border-sky-400/30 flex items-center gap-1">
+              <GraduationCap size={13} /> Student Team Roster
+            </span>
+            <span className="text-xs text-slate-400">· {resources.length} active members</span>
+          </div>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Student Team & Workload Management</h1>
+          <p className="text-sm text-slate-400 max-w-2xl">
+            Input real teammates, track assigned project tasks, monitor weekly available hours, and prevent student burnout before deadlines.
           </p>
         </div>
-        <button
-          className="primary-button"
-          onClick={() =>
-            toast.info("Add Resource", {
-              description: "Resource onboarding form will connect to enterprise directory.",
-            })
-          }
-        >
-          Add New Resource
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            className="secondary-button text-xs flex items-center gap-1.5"
+            onClick={handleResetToDefault}
+            title="Reset to sample student team"
+          >
+            <RefreshCw size={13} />
+            <span>Reset Template</span>
+          </button>
+          <button
+            className="primary-button text-xs flex items-center gap-1.5"
+            onClick={openAddModal}
+          >
+            <Plus size={14} />
+            <span>+ Add Student Teammate</span>
+          </button>
+        </div>
       </div>
 
       <div className="resources-controls">
@@ -241,14 +397,14 @@ export function ResourcesView({
           <Search size={16} className="text-sky-400" />
           <input
             type="text"
-            placeholder="Search by name, role, skill, or project..."
+            placeholder="Search teammate by name, role, skill, or assigned task..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
 
         <div className="filter-tabs">
-          {["All", "People", "Equipment", "Budget", "Shared"].map((type) => (
+          {["All", "Student Lead", "Core Student", "Collaborator"].map((type) => (
             <button
               key={type}
               className={`filter-tab ${selectedType === type ? "active" : ""}`}
@@ -264,14 +420,14 @@ export function ResourcesView({
         <table className="resource-table">
           <thead>
             <tr>
-              <th>Resource & Role</th>
-              <th>Type</th>
+              <th>Teammate & Role</th>
+              <th>Category</th>
               <th>Status</th>
-              <th style={{ width: "160px" }}>Capacity / Load</th>
-              <th>Current Project</th>
-              <th>Key Skills & Capabilities</th>
-              <th>Rate / Cost</th>
-              <th>Risk</th>
+              <th style={{ width: "160px" }}>Workload & Hours</th>
+              <th>Assigned Project Task</th>
+              <th>Verified Skills</th>
+              <th>Weekly Cap</th>
+              <th className="text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -279,109 +435,314 @@ export function ResourcesView({
               <tr>
                 <td colSpan={8} className="py-12 text-center">
                   <div className="flex flex-col items-center justify-center p-6 text-slate-400">
-                    <Search size={36} className="text-sky-400/60 mb-3" />
-                    <strong className="text-base text-white block mb-1">No Matching Resources Found</strong>
+                    <Users size={36} className="text-sky-400/60 mb-3" />
+                    <strong className="text-base text-white block mb-1">No Teammates Found</strong>
                     <p className="text-xs text-slate-400 max-w-md mx-auto mb-4">
-                      {search ? `No active resources match "${search}".` : `No resources found in category "${selectedType}".`} Try adjusting your filters.
+                      {search
+                        ? `No teammates match "${search}".`
+                        : `No members found under filter "${selectedType}".`}
                     </p>
                     <button
-                      className="secondary-button text-xs px-3 py-1.5"
-                      onClick={() => {
-                        setSearch("");
-                        setSelectedType("All");
-                      }}
+                      className="primary-button text-xs px-4 py-2"
+                      onClick={openAddModal}
                     >
-                      Clear Search & Reset Filters
+                      <Plus size={14} /> Add First Teammate
                     </button>
                   </div>
                 </td>
               </tr>
             ) : (
               filtered.map((item) => (
-              <tr key={item.id} onClick={() => setSelectedResource(item)}>
-                <td>
-                  <div className="resource-id-col">
-                    <div className={`res-avatar bg-gradient-to-br ${item.avatarBg} text-white`}>
-                      {item.avatarText}
+                <tr
+                  key={item.id}
+                  onClick={() => setSelectedResource(item)}
+                  className="cursor-pointer hover:bg-slate-800/40 transition-colors"
+                >
+                  <td>
+                    <div className="resource-id-col">
+                      <div className={`res-avatar bg-gradient-to-br ${item.avatarBg} text-white font-bold`}>
+                        {item.avatarText}
+                      </div>
+                      <div className="res-info">
+                        <strong className="text-white flex items-center gap-1.5">
+                          {item.name}
+                          {item.type === "Student Lead" && (
+                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono">
+                              Lead
+                            </span>
+                          )}
+                        </strong>
+                        <span className="text-xs text-slate-400">{item.role}</span>
+                      </div>
                     </div>
-                    <div className="res-info">
-                      <strong>{item.name}</strong>
-                      <span>{item.role}</span>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <span className="mono text-slate-400">{item.type}</span>
-                </td>
-                <td>
-                  <span
-                    className={`status-pill ${
-                      item.status === "Available"
-                        ? "chip-blue"
-                        : item.status === "High Load"
-                        ? "chip-amber"
-                        : "chip-coral"
-                    }`}
-                  >
-                    {item.status}
-                  </span>
-                </td>
-                <td>
-                  <div className="capacity-bar">
-                    <div className="capacity-track">
-                      <div
-                        className={`capacity-fill ${
-                          item.utilization > 90
-                            ? "fill-critical"
-                            : item.utilization > 75
-                            ? "fill-warning"
-                            : "fill-normal"
-                        }`}
-                        style={{ width: `${item.utilization}%` }}
-                      />
-                    </div>
-                    <span className="mono text-[10px] font-semibold text-slate-300">
-                      {item.utilization}%
+                  </td>
+                  <td>
+                    <span className="mono text-xs text-slate-400">{item.type}</span>
+                  </td>
+                  <td>
+                    <span
+                      className={`status-pill ${
+                        item.status === "Available"
+                          ? "chip-blue"
+                          : item.status === "High Load"
+                          ? "chip-amber"
+                          : "chip-coral"
+                      }`}
+                    >
+                      {item.status}
                     </span>
-                  </div>
-                </td>
-                <td>
-                  <span className="font-semibold text-slate-200">{item.project}</span>
-                </td>
-                <td>
-                  <div className="flex flex-wrap gap-1">
-                    {item.skills.slice(0, 3).map((skill) => (
-                      <span key={skill} className="skill-badge">
-                        {skill}
-                      </span>
-                    ))}
-                    {item.skills.length > 3 && (
-                      <span className="skill-badge">+{item.skills.length - 3}</span>
-                    )}
-                  </div>
-                </td>
-                <td>
-                  <span className="mono text-sky-400 font-semibold">{item.costRate}</span>
-                </td>
-                <td>
-                  <span
-                    className={`mono text-[10px] font-bold ${
-                      item.risk === "High"
-                        ? "text-rose-400"
-                        : item.risk === "Medium"
-                        ? "text-amber-400"
-                        : "text-sky-400"
-                    }`}
-                  >
-                    {item.risk}
-                  </span>
-                </td>
-              </tr>
-            ))
+                  </td>
+                  <td>
+                    <div className="capacity-bar">
+                      <div className="capacity-track">
+                        <div
+                          className={`capacity-fill ${
+                            item.utilization > 85
+                              ? "fill-critical"
+                              : item.utilization > 70
+                              ? "fill-warning"
+                              : "fill-normal"
+                          }`}
+                          style={{ width: `${Math.min(100, item.utilization)}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1">
+                        <span className="font-mono font-semibold text-slate-300">{item.utilization}% load</span>
+                        <span className="font-mono">{item.weeklyHours || 20}h/wk</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span className="font-medium text-slate-200 block text-xs truncate max-w-xs" title={item.project}>
+                      {item.project}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="flex flex-wrap gap-1">
+                      {item.skills.slice(0, 3).map((skill) => (
+                        <span key={skill} className="skill-badge text-[10px]">
+                          {skill}
+                        </span>
+                      ))}
+                      {item.skills.length > 3 && (
+                        <span className="skill-badge text-[10px]">+{item.skills.length - 3}</span>
+                      )}
+                    </div>
+                  </td>
+                  <td>
+                    <span className="mono text-xs text-sky-400 font-medium">
+                      {item.weeklyHours ? `${item.weeklyHours} hrs` : "Flexible"}
+                    </span>
+                  </td>
+                  <td className="text-right" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-sky-300 hover:bg-slate-800 transition-colors"
+                        title="Edit Teammate"
+                        onClick={(e) => openEditModal(item, e)}
+                      >
+                        <Edit3 size={14} />
+                      </button>
+                      <button
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors"
+                        title="Remove Teammate"
+                        onClick={(e) => handleDeleteTeammate(item.id, item.name, e)}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Add / Edit Teammate Modal */}
+      {isFormOpen && (
+        <div className="modal-overlay" onClick={() => setIsFormOpen(false)}>
+          <div
+            className="modal-box max-w-lg w-full bg-slate-900 border border-sky-900/40 rounded-2xl p-6 shadow-2xl animate-fadeIn"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-4 border-b border-sky-900/30 mb-5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-lg bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-sky-400">
+                  {editingId ? <Edit3 size={18} /> : <Plus size={18} />}
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">
+                    {editingId ? "Edit Student Teammate" : "Add Student Teammate"}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Real teammate credentials and workload allocation
+                  </p>
+                </div>
+              </div>
+              <button
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                onClick={() => setIsFormOpen(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveTeammate} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    Teammate Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Kavya Sharma"
+                    className="w-full bg-slate-950/80 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
+                    value={formName}
+                    onChange={(e) => setFormName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    Role in Project
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. AI / ML Engineer"
+                    className="w-full bg-slate-950/80 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
+                    value={formRole}
+                    onChange={(e) => setFormRole(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    Team Membership
+                  </label>
+                  <select
+                    className="w-full bg-slate-950/80 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                    value={formType}
+                    onChange={(e) => setFormType(e.target.value as ResourceItem["type"])}
+                  >
+                    <option value="Student Lead">Student Lead</option>
+                    <option value="Core Student">Core Student</option>
+                    <option value="Collaborator">Collaborator</option>
+                    <option value="Lab Resource">Lab Resource</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    Current Status
+                  </label>
+                  <select
+                    className="w-full bg-slate-950/80 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                    value={formStatus}
+                    onChange={(e) => setFormStatus(e.target.value as ResourceItem["status"])}
+                  >
+                    <option value="Available">Available</option>
+                    <option value="High Load">High Load</option>
+                    <option value="Overallocated">Overallocated</option>
+                    <option value="Unavailable">Unavailable</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-semibold text-slate-300">
+                      Workload Load (%)
+                    </label>
+                    <span className="mono text-xs font-bold text-sky-400">{formUtilization}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="10"
+                    max="100"
+                    step="5"
+                    className="w-full accent-sky-400"
+                    value={formUtilization}
+                    onChange={(e) => setFormUtilization(Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    Available Weekly Hours
+                  </label>
+                  <input
+                    type="number"
+                    min="5"
+                    max="60"
+                    className="w-full bg-slate-950/80 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500 font-mono"
+                    value={formWeeklyHours}
+                    onChange={(e) => setFormWeeklyHours(Number(e.target.value))}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Assigned Project Task / Module *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Supabase Database Schema & Realtime Listeners"
+                  className="w-full bg-slate-950/80 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
+                  value={formProject}
+                  onChange={(e) => setFormProject(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Verified Skills (comma separated)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Python, PyTorch, Supabase, Git"
+                  className="w-full bg-slate-950/80 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
+                  value={formSkills}
+                  onChange={(e) => setFormSkills(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Academic Constraints / Availability Notes
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Midterm exam on Thursday 2 PM; free Friday all day"
+                  className="w-full bg-slate-950/80 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
+                  value={formConstraints}
+                  onChange={(e) => setFormConstraints(e.target.value)}
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-sky-900/30">
+                <button
+                  type="button"
+                  className="secondary-button text-xs px-4 py-2"
+                  onClick={() => setIsFormOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="primary-button text-xs px-5 py-2 font-bold"
+                >
+                  {editingId ? "Save Changes" : "Add Teammate"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Resource Detail Drawer Modal */}
       {selectedResource && (
@@ -395,16 +756,34 @@ export function ResourcesView({
                   {selectedResource.avatarText}
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">{selectedResource.name}</h3>
-                  <p className="text-xs text-slate-400">{selectedResource.role} • {selectedResource.type}</p>
+                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    {selectedResource.name}
+                    {selectedResource.type === "Student Lead" && (
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono">
+                        Team Lead
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    {selectedResource.role} • {selectedResource.type}
+                  </p>
                 </div>
               </div>
-              <button
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
-                onClick={() => setSelectedResource(null)}
-              >
-                <X size={18} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-sky-300 hover:bg-slate-800"
+                  title="Edit details"
+                  onClick={() => openEditModal(selectedResource)}
+                >
+                  <Edit3 size={16} />
+                </button>
+                <button
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                  onClick={() => setSelectedResource(null)}
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4 my-5">
@@ -417,7 +796,7 @@ export function ResourcesView({
                 <div className="w-full bg-slate-800 h-2 rounded-full mt-2 overflow-hidden">
                   <div
                     className={`h-full ${
-                      selectedResource.utilization > 90 ? "bg-rose-500" : "bg-sky-400"
+                      selectedResource.utilization > 85 ? "bg-rose-500" : "bg-sky-400"
                     }`}
                     style={{ width: `${selectedResource.utilization}%` }}
                   />
@@ -425,15 +804,19 @@ export function ResourcesView({
               </div>
 
               <div className="p-3 rounded-lg bg-slate-900/60 border border-sky-900/20">
-                <span className="text-[10px] uppercase font-mono text-slate-400">Assigned Project</span>
-                <div className="text-sm font-bold text-white mt-1">{selectedResource.project}</div>
-                <span className="text-xs text-slate-400">Standard rate: {selectedResource.costRate}</span>
+                <span className="text-[10px] uppercase font-mono text-slate-400">Assigned Project Task</span>
+                <div className="text-sm font-bold text-white mt-1 truncate" title={selectedResource.project}>
+                  {selectedResource.project}
+                </div>
+                <span className="text-xs text-sky-300 font-mono mt-1 block">
+                  Capacity: {selectedResource.weeklyHours || 25} hrs/week
+                </span>
               </div>
             </div>
 
             <div className="space-y-4 text-xs">
               <div>
-                <strong className="block text-slate-300 font-semibold mb-2">Verified Skills & Capabilities</strong>
+                <strong className="block text-slate-300 font-semibold mb-2">Verified Skills & Technical Strengths</strong>
                 <div className="flex flex-wrap gap-1.5">
                   {selectedResource.skills.map((skill) => (
                     <span
@@ -448,37 +831,26 @@ export function ResourcesView({
 
               <div className="p-3 rounded-lg bg-blue-950/20 border border-blue-900/30">
                 <strong className="block text-sky-300 font-semibold mb-1 flex items-center gap-1.5">
-                  <Briefcase size={14} /> Upcoming / Proposed Task Allocation
+                  <Briefcase size={14} /> Current Project Sprint Responsibility
                 </strong>
-                <p className="text-slate-300">{selectedResource.upcoming}</p>
+                <p className="text-slate-300">{selectedResource.upcoming || selectedResource.project}</p>
               </div>
 
+              {/* AI Workload Split Card */}
               <div className="p-3.5 rounded-xl bg-gradient-to-r from-sky-950/70 to-blue-950/70 border border-sky-400/40">
                 <div className="flex items-center justify-between mb-1.5">
                   <strong className="text-xs font-bold text-white flex items-center gap-1.5">
-                    <Sparkles size={14} className="text-sky-400" /> AI Balanced Workload Split Recommendation
+                    <Sparkles size={14} className="text-sky-400" /> AI Equal Workload Split (50 / 50)
                   </strong>
                   <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">
-                    50% / 50% Split
+                    Balanced Rebalance
                   </span>
                 </div>
                 <p className="text-xs text-slate-300 leading-relaxed mb-3">
-                  Rather than pulling <strong>{selectedResource.name}</strong> 100% away from <strong>{selectedResource.project}</strong>, the AI suggests splitting the 18h QA burden equally to avoid bottlenecking either stream:
+                  Protect <strong>{selectedResource.name}</strong> from burnout and missed deadlines by automatically reallocating half of their task to a free teammate:
                 </p>
-                <div className="grid grid-cols-2 gap-2 text-[11px] mb-3">
-                  <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
-                    <span className="font-semibold text-white block">{selectedResource.name}</span>
-                    <span className="text-sky-300 font-mono">9.0h (50% capacity)</span>
-                    <span className="text-slate-400 block text-[10px] mt-0.5">Keeps {selectedResource.project} on track</span>
-                  </div>
-                  <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
-                    <span className="font-semibold text-white block">Priya Sharma (Backup)</span>
-                    <span className="text-sky-300 font-mono">9.0h (50% capacity)</span>
-                    <span className="text-slate-400 block text-[10px] mt-0.5">Co-tests E2E automation</span>
-                  </div>
-                </div>
                 <button
-                  className="w-full primary-button text-xs py-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 flex items-center justify-center gap-1.5 font-bold"
+                  className="w-full primary-button text-xs py-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 flex items-center justify-center gap-1.5 font-bold shadow-lg"
                   onClick={() => handleSplitWork(selectedResource)}
                 >
                   <Sparkles size={14} /> AI Suggest: Split Work Equally (50/50)
@@ -487,7 +859,7 @@ export function ResourcesView({
 
               <div className="p-3 rounded-lg bg-slate-900/40 border border-slate-800">
                 <strong className="block text-slate-300 font-semibold mb-1 flex items-center gap-1.5">
-                  <AlertTriangle size={14} className="text-amber-400" /> Operational Constraints
+                  <AlertTriangle size={14} className="text-amber-400" /> Academic & Schedule Constraints
                 </strong>
                 <p className="text-slate-400">{selectedResource.constraints}</p>
               </div>
@@ -495,16 +867,16 @@ export function ResourcesView({
 
             <div className="flex items-center justify-between gap-3 mt-6 pt-4 border-t border-sky-900/30">
               <button
-                className="secondary-button text-xs"
+                className="secondary-button text-xs flex items-center gap-1.5"
                 onClick={() => handleSimulateAbsence(selectedResource)}
               >
-                Simulate Absence
+                Simulate Teammate Absence
               </button>
               <button
-                className="text-slate-400 hover:text-white text-xs underline"
-                onClick={() => handleReallocate(selectedResource)}
+                className="text-rose-400 hover:text-rose-300 text-xs flex items-center gap-1"
+                onClick={(e) => handleDeleteTeammate(selectedResource.id, selectedResource.name, e)}
               >
-                Emergency 100% Reallocation
+                <Trash2 size={13} /> Remove from Team
               </button>
             </div>
           </div>

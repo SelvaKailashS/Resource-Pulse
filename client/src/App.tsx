@@ -3,6 +3,18 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
+import LoginPage from "./pages/LoginPage";
+import { useAuth } from "./_core/hooks/useAuth";
+
+function AppContent() {
+  const { isAuthenticated, login } = useAuth();
+
+  if (!isAuthenticated) {
+    return <LoginPage onLoginSuccess={login} />;
+  }
+
+  return <Home />;
+}
 
 function App() {
   return (
@@ -10,7 +22,7 @@ function App() {
       <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
           <Toaster position="bottom-right" theme="dark" />
-          <Home />
+          <AppContent />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
@@ -18,3 +30,4 @@ function App() {
 }
 
 export default App;
+

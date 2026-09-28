@@ -234,25 +234,25 @@ function Home() {
         </div>
         <button
           className="workspace-switcher"
-          onClick={() => setIsSectorModalOpen(true)}
-          title="Click to switch industry sector template"
+          onClick={() => setAccountOpen(true)}
+          title="Team Workspace & Settings"
           style={{ cursor: "pointer", width: "calc(100% - 6px)", textAlign: "left" }}
         >
           <div
             className="workspace-avatar text-sm"
             style={{
-              background: `${activeSector.accentColor}25`,
-              color: activeSector.accentColor,
-              border: `1px solid ${activeSector.accentColor}40`,
+              background: "rgba(56, 189, 248, 0.2)",
+              color: "#38bdf8",
+              border: "1px solid rgba(56, 189, 248, 0.4)",
             }}
           >
-            {activeSector.icon}
+            🎓
           </div>
           <div className="workspace-copy">
-            <span className="eyebrow" style={{ color: activeSector.accentColor }}>
-              Sector · {activeSector.category.split("&")[0]}
+            <span className="eyebrow" style={{ color: "#38bdf8" }}>
+              Student Workspace
             </span>
-            <strong>{activeSector.organization}</strong>
+            <strong>{localStorage.getItem("resourcepulse_team_name") || "Student Project Team"}</strong>
           </div>
           <ChevronDown size={15} className="muted-icon" />
         </button>
@@ -304,31 +304,26 @@ function Home() {
       <main className="main-content">
         <header className="topbar">
           <div className="breadcrumb">
-            <button
-              onClick={() => setIsSectorModalOpen(true)}
-              className="hover:text-sky-300 transition-colors flex items-center gap-1.5 cursor-pointer"
-              title="Click to switch sector template"
-            >
-              <span>{activeSector.icon}</span>
-              <span>{activeSector.organization}</span>
-            </button>
+            <span className="flex items-center gap-1.5 text-slate-300 font-medium">
+              <span>🎓</span>
+              <span>{localStorage.getItem("resourcepulse_team_name") || "Student Project Team"}</span>
+            </span>
             <span className="slash">/</span>
             <strong>{activeNav}</strong>
           </div>
           <div className="topbar-actions">
-            <button
+            <div
               className="command-button"
               style={{
-                color: activeSector.accentColor,
-                borderColor: `${activeSector.accentColor}50`,
-                background: `${activeSector.accentColor}15`,
+                color: "#38bdf8",
+                borderColor: "rgba(56, 189, 248, 0.35)",
+                background: "rgba(14, 165, 233, 0.1)",
               }}
-              onClick={() => setIsSectorModalOpen(true)}
-              title="Switch Industry Sector Demo"
+              title="Active Student Project Workspace"
             >
-              <span>{activeSector.icon}</span>
-              <span>Sector: {activeSector.name.split("&")[0]}</span>
-            </button>
+              <span>🎓</span>
+              <span>{localStorage.getItem("resourcepulse_team_name") || "Student Team"}</span>
+            </div>
             <button className="sync-status" onClick={() => loadDashboard(true)}>
               <StatusDot color={dataError ? "coral" : "blue"} />
               <span>{isLoading ? "Syncing…" : dataError ? "Sync paused" : "Live sync"}</span>
@@ -432,7 +427,6 @@ function Home() {
           {/* Conditionally render views based on activeNav */}
           {activeNav === "Resources" && (
             <ResourcesView
-              customResources={activeSector.resources}
               onAssignTask={handleAssignTask}
               onSimulateAbsence={(res) => {
                 setSimulationPerson(res.name);
@@ -463,11 +457,11 @@ function Home() {
                 <div className="incident-banner">
                   <div className="incident-icon"><CircleAlert size={16} /></div>
                   <div>
-                    <strong>{activeSector.incidentTitle}</strong>
-                    <span>{activeSector.incidentDetail}</span>
+                    <strong>Student Sprint Deadline Risk</strong>
+                    <span>Capstone project milestone due in 48h · Workload distribution needs review.</span>
                   </div>
-                  <button className="banner-action" onClick={() => setActiveNav("Impact graph")}>
-                    Review impact <ArrowUpRight size={14} />
+                  <button className="banner-action" onClick={() => setActiveNav("Resources")}>
+                    Manage Teammates <ArrowUpRight size={14} />
                   </button>
                   <button className="close-banner" onClick={() => setShowNotice(false)} aria-label="Dismiss alert">
                     <X size={15} />
@@ -494,11 +488,11 @@ function Home() {
               <section className="hero-row">
                 <div>
                   <div className="eyebrow hero-eyebrow"><span className="pulse-ring" /> Live Operations Telemetry</div>
-                  <h1>Good morning, Maya<span className="heading-dot">.</span></h1>
-                  <p className="hero-copy">Your operation is <strong>stable</strong>, but one signal needs a closer look.</p>
+                  <h1>Good morning, {user?.name ? user.name.split(" ")[0] : "Team"}<span className="heading-dot">.</span></h1>
+                  <p className="hero-copy">Your student team operation is <strong>monitored</strong>. Workloads and upcoming deadlines are synchronized.</p>
                 </div>
                 <div className="hero-actions">
-                  <button className="secondary-button" onClick={() => setActiveNav("Resources")}><Filter size={15} /> Manage Resources</button>
+                  <button className="secondary-button" onClick={() => setActiveNav("Resources")}><Filter size={15} /> Manage Teammates</button>
                   <button className="primary-button" onClick={handleSimulation} disabled={simulating}><Play size={14} fill="currentColor" /> {simulating ? "Simulating..." : "Run simulation"}</button>
                 </div>
               </section>
