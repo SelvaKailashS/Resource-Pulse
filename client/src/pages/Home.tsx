@@ -169,6 +169,9 @@ function Home() {
     );
   };
   const [time, setTime] = useState("09:42:18");
+  const lastUpdated = dashboardQuery.data?.fetchedAt
+    ? new Date(dashboardQuery.data.fetchedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    : time;
   const isLoading = dashboardQuery.isLoading || dashboardQuery.isFetching;
   const dataError = Boolean(dashboardQuery.error);
 
@@ -846,7 +849,7 @@ function Home() {
         user={user}
         logout={logout}
         onOpenOnboardingTour={() => setOnboardingOpen(true)}
-        onUserUpdate={updateUser}
+        onUserUpdate={(u: any) => updateUser(u)}
       />
 
       <OnboardingModal

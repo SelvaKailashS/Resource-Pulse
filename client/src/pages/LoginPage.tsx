@@ -103,7 +103,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         id: `STU-${Date.now().toString().slice(-4)}`,
         name: name.trim(),
         role: studentRoleTitle,
-        type: studentRole === "lead" ? ("Student Lead" as const) : ("Core Student" as const),
+        type: role === "admin" ? ("Student Lead" as const) : ("Core Student" as const),
         status: "Available" as const,
         utilization: 45,
         weeklyHours: 20,
@@ -112,7 +112,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         costRate: "Academic Credit",
         risk: "Low" as const,
         avatarText: name.trim().split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "ME",
-        avatarBg: studentRole === "lead" ? "from-blue-600 to-cyan-500" : "from-purple-600 to-pink-500",
+        avatarBg: role === "admin" ? "from-blue-600 to-cyan-500" : "from-purple-600 to-pink-500",
         upcoming: "Sprint setup & task allocation",
         constraints: "Active student",
       };

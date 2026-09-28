@@ -193,7 +193,7 @@ export function AccountCenter({
     },
   });
 
-  const savePreferences = trpc.account.savePreferences.useMutation({
+  const savePreferences = trpc.account.updatePreferences.useMutation({
     onSuccess: () => {
       setAnalyticsConsent(preferences.analyticsConsent);
       toast.success("Preferences updated", {
@@ -210,7 +210,7 @@ export function AccountCenter({
     },
   });
 
-  const verifyMutation = trpc.account.requestEmailVerification.useMutation({
+  const verifyMutation = trpc.account.requestVerification.useMutation({
     onSuccess: () => {
       toast.success("Verification Email Sent", {
         description: "A secure verification link was dispatched to your inbox.",
@@ -237,7 +237,7 @@ export function AccountCenter({
     },
   });
 
-  const deleteMutation = trpc.account.deleteAccount.useMutation({
+  const deleteMutation = trpc.account.delete.useMutation({
     onSuccess: async () => {
       toast.success("Account deleted", {
         description: "Your profile, preferences, and data have been removed.",
@@ -261,7 +261,7 @@ export function AccountCenter({
     },
   });
 
-  const cashMutation = trpc.cash.addEntry.useMutation({
+  const cashMutation = trpc.cash.add.useMutation({
     onSuccess: () => {
       void cashQuery.refetch();
       void utils.cash.summary.invalidate();
@@ -493,13 +493,13 @@ export function AccountCenter({
                   {accountUser?.name
                     ? accountUser.name
                         .split(" ")
-                        .map((n) => n[0])
+                        .map((n: string) => n[0])
                         .join("")
                         .toUpperCase()
                         .slice(0, 2)
-                    : "MC"}
+                    : "ST"}
                 </div>
-                <span className="text-xs font-semibold text-slate-200">{accountUser?.name ?? "Maya Chen"}</span>
+                <span className="text-xs font-semibold text-slate-200">{accountUser?.name ?? "Student Teammate"}</span>
                 <span className="text-[10px] font-mono uppercase font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30">
                   {roleLabel}
                 </span>
@@ -560,21 +560,21 @@ export function AccountCenter({
                         {accountUser?.name
                           ? accountUser.name
                               .split(" ")
-                              .map((n) => n[0])
+                              .map((n: string) => n[0])
                               .join("")
                               .toUpperCase()
                               .slice(0, 2)
-                          : "MC"}
+                          : "ST"}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="text-lg font-bold text-white">{accountUser?.name ?? "Maya Chen"}</h3>
+                          <h3 className="text-lg font-bold text-white">{accountUser?.name ?? "Student Teammate"}</h3>
                           <span className="text-[10px] font-mono uppercase font-bold px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30">
                             {currentRole}
                           </span>
                         </div>
                         <p className="text-xs text-slate-400 mt-1 font-mono">
-                          {accountUser?.email ?? "mc@northstar.ops"} · Northstar Command Pod
+                          {accountUser?.email ?? "student@university.edu"} · {localStorage.getItem("resourcepulse_team_name") || "Student Project Team"}
                         </p>
                       </div>
                     </div>
@@ -804,7 +804,7 @@ export function AccountCenter({
                       <button
                         className="inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white transition-colors shrink-0"
                         disabled={resetMutation.isPending || !resetEmail}
-                        onClick={() => resetMutation.mutate({ email: resetEmail })}
+                        onClick={() => resetMutation.mutate()}
                       >
                         {resetMutation.isPending ? "Sending…" : "Request Reset"}
                       </button>

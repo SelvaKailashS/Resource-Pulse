@@ -20,10 +20,10 @@ export interface ResourceItem {
   id: string;
   name: string;
   role: string;
-  type: "Core Student" | "Student Lead" | "Collaborator" | "Lab Resource";
+  type: "Core Student" | "Student Lead" | "Collaborator" | "Lab Resource" | "People" | "Equipment" | "Budget" | "Shared" | string;
   status: "Available" | "High Load" | "Overallocated" | "Unavailable";
   utilization: number;
-  weeklyHours: number;
+  weeklyHours?: number;
   project: string;
   skills: string[];
   costRate: string;

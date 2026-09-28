@@ -260,7 +260,7 @@ export async function markNotificationRead(userId: number, notificationId: numbe
   const db = await getDb();
   if (!db) {
     const item = memStore.notifications.find(n => n.id === notificationId);
-    if (item) item.readAt = new Date();
+    if (item) (item as any).readAt = new Date();
     return { success: true } as const;
   }
   await db.update(notifications).set({ readAt: new Date() }).where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId), isNull(notifications.readAt)));
