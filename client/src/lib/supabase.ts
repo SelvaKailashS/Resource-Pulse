@@ -106,3 +106,72 @@ export async function recordCopilotChat(sender: "user" | "ai", message: string) 
     // Ignore
   }
 }
+
+/**
+ * Record or sync a user account to Supabase
+ */
+export async function recordUserAccount(user: {
+  name: string;
+  email: string;
+  teamName?: string;
+  field?: string;
+  role?: string;
+}) {
+  try {
+    const { data, error } = await supabase.from("users").upsert(
+      [
+        {
+          name: user.name,
+          email: user.email,
+          team_name: user.teamName || "Operations Team",
+          field: user.field || "General Operations",
+          role: user.role || "admin",
+          created_at: new Date().toISOString(),
+        },
+      ],
+      { onConflict: "email" }
+    );
+    if (error) {
+      console.info("[Supabase] users table not initialized or write error:", error.message);
+    } else {
+      console.log("[Supabase] Successfully saved user to Supabase:", data);
+    }
+  } catch (err) {
+    console.warn("[Supabase] Error saving user account:", err);
+  }
+}
+
+/**
+ * Record a team member to Supabase
+ */
+export async function recordTeamMember(member: {
+  id: string;
+  name: string;
+  role: string;
+  project: string;
+  weeklyHours?: number;
+  utilization?: number;
+  status?: string;
+}) {
+  try {
+    const { data, error } = await supabase.from("team_members").upsert([
+      {
+        id: member.id,
+        name: member.name,
+        role: member.role,
+        project: member.project,
+        weekly_hours: member.weeklyHours || 40,
+        utilization: member.utilization || 50,
+        status: member.status || "Available",
+        created_at: new Date().toISOString(),
+      },
+    ]);
+    if (error) {
+      console.info("[Supabase] team_members table not initialized or write error:", error.message);
+    } else {
+      console.log("[Supabase] Successfully saved team member to Supabase:", data);
+    }
+  } catch (err) {
+    console.warn("[Supabase] Error saving team member:", err);
+  }
+}

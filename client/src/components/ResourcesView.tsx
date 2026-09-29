@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { recordTeamMember } from "@/lib/supabase";
 import {
   Search,
   Users,
@@ -210,6 +211,15 @@ export function ResourcesView({
             : item
         )
       );
+      void recordTeamMember({
+        id: editingId,
+        name: formName.trim(),
+        role: formRole.trim(),
+        project: formProject.trim() || "Project Deliverable",
+        weeklyHours: formWeeklyHours,
+        utilization: formUtilization,
+        status: formStatus,
+      });
       toast.success("Teammate Updated", {
         description: `${formName}’s workload details saved.`,
       });
@@ -238,6 +248,15 @@ export function ResourcesView({
       };
 
       setResources((prev) => [newTeammate, ...prev]);
+      void recordTeamMember({
+        id: newTeammate.id,
+        name: newTeammate.name,
+        role: newTeammate.role,
+        project: newTeammate.project,
+        weeklyHours: newTeammate.weeklyHours,
+        utilization: newTeammate.utilization,
+        status: newTeammate.status,
+      });
       toast.success("New Teammate Added!", {
         description: `${newTeammate.name} joined the project roster.`,
       });

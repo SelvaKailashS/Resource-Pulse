@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { AuthUser } from "@/_core/hooks/useAuth";
+import { recordUserAccount, recordTeamMember } from "@/lib/supabase";
 import {
   Zap,
   Lock,
@@ -105,6 +106,15 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         localStorage.setItem("resourcepulse_selected_field", user.field || field);
       } catch {}
 
+      // Persist to connected Supabase database
+      void recordUserAccount({
+        name: user.name || "",
+        email: user.email || "",
+        teamName: user.teamName || teamName.trim(),
+        field: user.field || field,
+        role: user.role || "admin",
+      });
+
       toast.success(`Welcome back, ${user.name}!`, {
         description: `Signed in to ${user.teamName || "Operations Team"}.`,
       });
@@ -169,6 +179,24 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         localStorage.setItem("resourcepulse_cash_entries", JSON.stringify([]));
         localStorage.setItem("resourcepulse_notifications", JSON.stringify([]));
       } catch {}
+
+      // Persist user account and initial teammate to Supabase
+      void recordUserAccount({
+        name: user.name || "",
+        email: user.email || "",
+        teamName: user.teamName || teamName.trim(),
+        field: user.field || field,
+        role: user.role || "admin",
+      });
+      void recordTeamMember({
+        id: initialTeammate.id,
+        name: initialTeammate.name,
+        role: initialTeammate.role,
+        project: initialTeammate.project,
+        weeklyHours: initialTeammate.weeklyHours,
+        utilization: initialTeammate.utilization,
+        status: initialTeammate.status,
+      });
 
       toast.success(`Account created for ${user.name}!`, {
         description: `Registered as ${roleTitle} in ${field} for "${teamName}".`,
