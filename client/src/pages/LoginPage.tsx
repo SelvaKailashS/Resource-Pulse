@@ -10,7 +10,6 @@ import {
   EyeOff,
   Sparkles,
   ArrowRight,
-  GraduationCap,
   Users,
   CheckCircle2,
   Briefcase,
@@ -206,36 +205,37 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 bg-[#070b14] relative overflow-hidden font-sans">
+    <div className="h-screen max-h-screen w-full flex flex-col justify-center items-center px-4 py-2 bg-[#060a13] relative overflow-hidden font-sans login-grid-bg select-none">
       {/* Background ambient lighting */}
-      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-sky-500/10 blur-[130px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-blue-600/10 blur-[140px] pointer-events-none" />
+      <div className="absolute top-[-10%] left-[-8%] w-[520px] h-[520px] rounded-full bg-sky-500/15 blur-[140px] pointer-events-none animate-ambient-glow" />
+      <div className="absolute bottom-[-10%] right-[-8%] w-[520px] h-[520px] rounded-full bg-blue-600/15 blur-[150px] pointer-events-none animate-ambient-glow" />
 
-      <div className="w-full max-w-lg z-10 animate-fadeIn my-8">
+      <div className="w-full max-w-xl z-10 animate-opening-card flex flex-col my-auto">
         {/* Brand Header */}
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/10 border border-sky-400/25 mb-3 shadow-sm shadow-sky-950">
-            <Zap size={14} className="text-sky-400" />
-            <span className="text-xs font-mono font-bold tracking-wider uppercase text-sky-300">
+        <div className="text-center mb-3">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-400/25 mb-1.5 shadow-sm shadow-sky-950">
+            <Zap size={13} className="text-sky-400 animate-pulse" />
+            <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-sky-300">
               Universal Operations & Workload Intelligence
             </span>
           </div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">
-            resource<span className="text-sky-400">pulse</span>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center justify-center gap-1">
+            <span>Resource</span>
+            <span className="text-sky-400 drop-shadow-[0_0_12px_rgba(56,189,248,0.4)]">Pulse</span>
           </h1>
-          <p className="text-xs text-slate-400 mt-1.5 max-w-md mx-auto leading-relaxed">
-            Register your team, select your industry or discipline, and let AI forecast bottlenecks, balance workloads, and track deliverables with zero mock data.
+          <p className="text-[11px] text-slate-400 mt-0.5 max-w-md mx-auto leading-tight">
+            Register your team & discipline. AI forecasts bottlenecks and balances capacity with zero mock data.
           </p>
         </div>
 
         {/* Auth Card */}
-        <div className="bg-slate-900/90 backdrop-blur-xl border border-sky-500/30 rounded-2xl p-6 sm:p-7 shadow-2xl shadow-slate-950">
+        <div className="bg-slate-900/85 backdrop-blur-2xl border border-sky-500/30 rounded-2xl p-4 sm:p-5 shadow-2xl shadow-slate-950 ring-1 ring-sky-500/10">
           {/* Mode Switcher Tabs */}
-          <div className="grid grid-cols-2 p-1 bg-slate-950/80 rounded-xl border border-slate-800 mb-5">
+          <div className="grid grid-cols-2 p-1 bg-slate-950/80 rounded-xl border border-slate-800 mb-3.5">
             <button
               type="button"
               onClick={() => setMode("register")}
-              className={`py-2 text-xs font-semibold rounded-lg transition-all ${
+              className={`py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                 mode === "register"
                   ? "bg-sky-500/20 text-sky-300 border border-sky-400/30 shadow-sm"
                   : "text-slate-400 hover:text-white"
@@ -246,7 +246,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
             <button
               type="button"
               onClick={() => setMode("signin")}
-              className={`py-2 text-xs font-semibold rounded-lg transition-all ${
+              className={`py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                 mode === "signin"
                   ? "bg-sky-500/20 text-sky-300 border border-sky-400/30 shadow-sm"
                   : "text-slate-400 hover:text-white"
@@ -258,81 +258,81 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
           {/* REGISTER REAL TEAM FORM */}
           {mode === "register" ? (
-            <form onSubmit={handleRegister} className="space-y-3.5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <form onSubmit={handleRegister} className="space-y-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <div>
-                  <label className="text-[11px] font-mono text-slate-400 uppercase font-semibold block mb-1">
+                  <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-0.5">
                     Your Full Name *
                   </label>
                   <div className="relative">
-                    <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <User size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
                     <input
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="e.g. Alex Rivera or Jordan Lee"
                       required
-                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 outline-none"
+                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-mono text-slate-400 uppercase font-semibold block mb-1">
-                    Work / Organization Email *
+                  <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-0.5">
+                    Work / Org Email *
                   </label>
                   <div className="relative">
-                    <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <Mail size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
                     <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="name@organization.com"
                       required
-                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 outline-none"
+                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <div>
-                  <label className="text-[11px] font-mono text-slate-400 uppercase font-semibold block mb-1">
+                  <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-0.5">
                     Password *
                   </label>
                   <div className="relative">
-                    <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <Lock size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
                     <input
                       type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••••••"
                       required
-                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-xl pl-9 pr-9 py-2 text-xs text-white placeholder-slate-500 outline-none"
+                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg pl-8 pr-8 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 cursor-pointer"
                     >
-                      {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                      {showPassword ? <EyeOff size={13} /> : <Eye size={13} />}
                     </button>
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-mono text-slate-400 uppercase font-semibold block mb-1">
-                    Team / Organization Workspace *
+                  <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-0.5">
+                    Team Workspace Name *
                   </label>
                   <div className="relative">
-                    <Users size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <Users size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
                     <input
                       type="text"
                       value={teamName}
                       onChange={(e) => setTeamName(e.target.value)}
-                      placeholder="e.g. Core Engineering Pod or Clinical Ops Alpha"
+                      placeholder="e.g. Core Engineering or Clinical Ops"
                       required
-                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 outline-none"
+                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
                     />
                   </div>
                 </div>
@@ -340,13 +340,13 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
               {/* Field / Sector Selection */}
               <div>
-                <label className="text-[11px] font-mono text-sky-400 uppercase font-bold flex items-center gap-1.5 mb-1">
-                  <Briefcase size={13} /> Select Your Industry / Sector *
+                <label className="text-[10px] font-mono text-sky-400 uppercase font-bold flex items-center gap-1 mb-0.5">
+                  <Briefcase size={12} /> Select Industry / Sector *
                 </label>
                 <select
                   value={field}
                   onChange={(e) => handleFieldChange(e.target.value)}
-                  className="w-full bg-slate-950/95 border border-sky-500/50 focus:border-sky-400 rounded-xl px-3 py-2 text-xs text-white outline-none cursor-pointer"
+                  className="w-full bg-slate-950/95 border border-sky-500/50 focus:border-sky-400 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none cursor-pointer"
                 >
                   {FIELD_OPTIONS.map((f) => (
                     <option key={f.id} value={f.name}>
@@ -354,20 +354,17 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                     </option>
                   ))}
                 </select>
-                <span className="text-[10px] text-slate-400 mt-1 block">
-                  All workload signals, capacity calculations, and bottlenecks will be tailored to this discipline.
-                </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <div>
-                  <label className="text-[11px] font-mono text-slate-400 uppercase font-semibold block mb-1">
+                  <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-0.5">
                     Your Role in Team
                   </label>
                   <select
                     value={roleTitle}
                     onChange={(e) => setRoleTitle(e.target.value)}
-                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 rounded-xl px-2.5 py-2 text-xs text-white outline-none"
+                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 rounded-lg px-2 py-1.5 text-xs text-white outline-none cursor-pointer"
                   >
                     {ROLE_OPTIONS.map((r) => (
                       <option key={r} value={r}>
@@ -378,36 +375,36 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-mono text-slate-400 uppercase font-semibold block mb-1">
+                  <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-0.5">
                     Weekly Hours Capacity
                   </label>
                   <div className="relative">
-                    <Clock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <Clock size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
                     <input
                       type="number"
                       min={5}
                       max={80}
                       value={weeklyHours}
                       onChange={(e) => setWeeklyHours(Number(e.target.value))}
-                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 rounded-xl pl-9 pr-3 py-2 text-xs text-white outline-none"
+                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white outline-none"
                     />
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="text-[11px] font-mono text-slate-400 uppercase font-semibold block mb-1">
+                <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-0.5">
                   Primary Deliverable / Milestone Task
                 </label>
                 <div className="relative">
-                  <Layers size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <Layers size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
                   <input
                     type="text"
                     value={primaryTask}
                     onChange={(e) => setPrimaryTask(e.target.value)}
                     placeholder="e.g. Core System Pipeline & QA Testing"
                     required
-                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 outline-none"
+                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
                   />
                 </div>
               </div>
@@ -415,10 +412,10 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full mt-3 py-3 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-sky-500/20 transition-all disabled:opacity-50 cursor-pointer"
+                className="w-full mt-2 py-2.5 rounded-xl bg-gradient-to-r from-sky-400 via-sky-500 to-blue-600 hover:from-sky-300 hover:to-blue-500 text-slate-950 font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-lg shadow-sky-500/25 transition-all disabled:opacity-50 cursor-pointer"
               >
                 {isLoading ? (
-                  <span>Initializing Real Workspace…</span>
+                  <span>Initializing Workspace…</span>
                 ) : (
                   <>
                     <span>Register & Launch Team Workspace</span>
@@ -429,62 +426,60 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
             </form>
           ) : (
             /* SIGN IN FORM */
-            <form onSubmit={handleSignIn} className="space-y-4">
+            <form onSubmit={handleSignIn} className="space-y-3">
               <div>
-                <label className="text-[11px] font-mono text-slate-400 uppercase font-semibold block mb-1.5">
+                <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-1">
                   Email Address
                 </label>
                 <div className="relative">
-                  <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="your.email@college.edu"
+                    placeholder="name@organization.com"
                     required
-                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
+                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all"
                   />
                 </div>
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-[11px] font-mono text-slate-400 uppercase font-semibold block">
-                    Password
-                  </label>
-                </div>
+                <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-1">
+                  Password
+                </label>
                 <div className="relative">
-                  <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                   <input
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••••••"
                     required
-                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
+                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg pl-9 pr-9 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 cursor-pointer"
                   >
-                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                    {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                   </button>
                 </div>
               </div>
 
               <div>
-                <label className="text-[11px] font-mono text-slate-400 uppercase font-semibold block mb-1.5">
-                  Team / Project Name
+                <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-1">
+                  Team / Workspace Name
                 </label>
                 <div className="relative">
-                  <Users size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <Users size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                   <input
                     type="text"
                     value={teamName}
                     onChange={(e) => setTeamName(e.target.value)}
-                    placeholder="e.g. Core Engineering Pod or Clinical Ops Alpha"
-                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
+                    placeholder="e.g. Core Engineering or Clinical Ops"
+                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all"
                   />
                 </div>
               </div>
@@ -492,14 +487,14 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-sky-500/20 transition-all disabled:opacity-50 cursor-pointer"
+                className="w-full mt-1 py-2.5 rounded-xl bg-gradient-to-r from-sky-400 via-sky-500 to-blue-600 hover:from-sky-300 hover:to-blue-500 text-slate-950 font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-lg shadow-sky-500/25 transition-all disabled:opacity-50 cursor-pointer"
               >
                 {isLoading ? (
                   <span>Signing In…</span>
                 ) : (
                   <>
                     <span>Enter Workspace</span>
-                    <ArrowRight size={15} />
+                    <ArrowRight size={14} />
                   </>
                 )}
               </button>
@@ -508,14 +503,14 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         </div>
 
         {/* Footer info */}
-        <div className="text-center mt-5 text-[11px] text-slate-500 flex items-center justify-center gap-4">
+        <div className="text-center mt-2.5 text-[10px] text-slate-500 flex items-center justify-center gap-3">
           <span className="flex items-center gap-1">
-            <CheckCircle2 size={12} className="text-emerald-400" /> 100% Real Team Data
+            <CheckCircle2 size={11} className="text-emerald-400" /> 100% Real Team Data
           </span>
           <span>•</span>
           <span>Universal Multi-Sector Engine</span>
           <span>•</span>
-          <span>Dynamic Real-Time Calculations</span>
+          <span>Dynamic Calculations</span>
         </div>
       </div>
     </div>

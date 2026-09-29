@@ -1706,3 +1706,47 @@ h1 { font-family: 'Space Grotesk', sans-serif; font-size: clamp(30px, 3vw, 40px)
   color: #64748b;
   max-width: 320px;
 }
+
+/* Website Opening & Card Entrance Animations */
+@keyframes openingReveal {
+  0% {
+    opacity: 0;
+    transform: scale(0.96) translateY(14px);
+    filter: blur(10px);
+  }
+  60% {
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes ambientGlowFloat {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+    opacity: 0.25;
+  }
+  50% {
+    transform: translate(25px, -15px) scale(1.1);
+    opacity: 0.42;
+  }
+}
+
+.animate-opening-card {
+  animation: openingReveal 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-ambient-glow {
+  animation: ambientGlowFloat 10s ease-in-out infinite;
+}
+
+.login-grid-bg {
+  background-image: 
+    radial-gradient(circle at 50% 45%, rgba(56, 189, 248, 0.09) 0%, transparent 65%),
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 100% 100%, 32px 32px, 32px 32px;
+}

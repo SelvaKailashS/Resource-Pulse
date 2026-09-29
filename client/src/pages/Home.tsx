@@ -494,7 +494,7 @@ function Home() {
       <aside className="sidebar">
         <div className="brand-mark">
           <div className="brand-icon"><Zap size={16} strokeWidth={2.5} /></div>
-          <span>resource<span className="brand-accent">pulse</span></span>
+          <span>Resource<span className="brand-accent">Pulse</span></span>
         </div>
         <button
           className="workspace-switcher"
