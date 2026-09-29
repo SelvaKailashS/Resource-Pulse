@@ -53,7 +53,14 @@ export function ResourcesView({
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) {
+          const hasStale = parsed.some((p: any) => p.name === "Alex Rivera" || p.name === "Maya Chen" || p.name === "Arjun Rao" || p.name === "Jordan Patel");
+          if (hasStale) {
+            localStorage.removeItem(STORAGE_KEY);
+            return [];
+          }
+          return parsed;
+        }
       } catch (e) {
         console.error("Failed to parse stored student resources:", e);
       }

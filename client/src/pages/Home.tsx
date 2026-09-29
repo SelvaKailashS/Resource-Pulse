@@ -57,11 +57,6 @@ const navItems = [
   { label: "Approvals", icon: ShieldCheck, badge: "2" },
 ];
 
-const riskItems = [
-  { title: "Mobile release train", detail: "QA capacity drops below threshold", level: "High", time: "in 9h", accent: "coral" },
-  { title: "Northstar onboarding", detail: "Dependency chain is compressing", level: "Medium", time: "in 2d", accent: "amber" },
-  { title: "Shared infra pool", detail: "Utilization trending above 82%", level: "Watch", time: "in 4d", accent: "blue" },
-];
 
 const scenarioData: Record<Scenario, { title: string; sub: string; gain: string; cost: string; risk: string; blurb: string }> = {
   balanced: { title: "Balanced recovery", sub: "Best overall outcome", gain: "+2.4 days", cost: "$1.2k", risk: "−38%", blurb: "Rebalances 4 resources while protecting the launch milestone." },
@@ -121,21 +116,43 @@ function Home() {
   const [realTeammates, setRealTeammates] = useState<any[]>(() => {
     try {
       const stored = localStorage.getItem("resourcepulse_student_resources");
-      if (stored) return JSON.parse(stored);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          // If stored has stale corporate demo names, purge it
+          const hasStale = parsed.some((p: any) => p.name === "Alex Rivera" || p.name === "Maya Chen" || p.name === "Arjun Rao" || p.name === "Jordan Patel");
+          if (hasStale) {
+            localStorage.removeItem("resourcepulse_student_resources");
+            return [];
+          }
+          return parsed;
+        }
+      }
     } catch {}
     return [];
   });
+
+  const teamName = localStorage.getItem("resourcepulse_team_name") || user?.teamName || "Student Project Team";
+  const userField = localStorage.getItem("resourcepulse_selected_field") || user?.field || "Software & Cloud Systems";
 
   useEffect(() => {
     try {
       const stored = localStorage.getItem("resourcepulse_student_resources");
       if (stored) {
         const parsed = JSON.parse(stored);
-        setRealTeammates(Array.isArray(parsed) ? parsed : []);
-        if (parsed[0]?.name) setSimulationPerson(parsed[0].name);
-      } else {
-        setRealTeammates([]);
+        if (Array.isArray(parsed)) {
+          const hasStale = parsed.some((p: any) => p.name === "Alex Rivera" || p.name === "Maya Chen" || p.name === "Arjun Rao" || p.name === "Jordan Patel");
+          if (hasStale) {
+            localStorage.removeItem("resourcepulse_student_resources");
+            setRealTeammates([]);
+            return;
+          }
+          setRealTeammates(parsed);
+          if (parsed[0]?.name) setSimulationPerson(parsed[0].name);
+          return;
+        }
       }
+      setRealTeammates([]);
     } catch {}
   }, [activeNav]);
 
@@ -204,6 +221,34 @@ function Home() {
     () => (realTeammates.length > 0 ? Math.round(realTeammates.reduce((acc: number, m: any) => acc + (m.utilization || 0), 0) / realTeammates.length) : 0),
     [realTeammates]
   );
+
+  const focalMember = useMemo(() => {
+    return (
+      overloadedTeammates[0] ||
+      realTeammates[0] || {
+        id: "STU-01",
+        name: user?.name || "Student Lead",
+        role: "Team Lead",
+        project: "Primary Sprint Deliverable",
+        utilization: 55,
+        weeklyHours: 20,
+      }
+    );
+  }, [overloadedTeammates, realTeammates, user]);
+
+  const helperMember = useMemo(() => {
+    return (
+      realTeammates.find((m: any) => m.id !== focalMember.id) ||
+      realTeammates[1] || {
+        id: "STU-02",
+        name: "Co-Developer",
+        role: "Core Contributor",
+        project: "Supporting Module",
+        utilization: 40,
+        weeklyHours: 20,
+      }
+    );
+  }, [realTeammates, focalMember]);
 
   const liveSignals = useMemo(() => {
     if (realTeammates.length === 0) {
@@ -578,16 +623,16 @@ function Home() {
                 {user?.name
                   ? user.name
                       .split(" ")
-                      .map((n) => n[0])
+                      .map((n: string) => n[0])
                       .join("")
                       .toUpperCase()
                       .slice(0, 2)
-                  : "MC"}
+                  : "ST"}
               </div>
               <div className="topbar-user-info">
-                <span className="topbar-user-name">{user?.name ?? "Maya Chen"}</span>
+                <span className="topbar-user-name">{user?.name || "Student User"}</span>
                 <span className="topbar-user-badge">
-                  <span className="topbar-role-tag">{user?.role ?? "admin"}</span>
+                  <span className="topbar-role-tag">{user?.role === "admin" ? "Team Lead" : "Core Member"}</span>
                   <span className="topbar-sub-tag">· Account settings</span>
                 </span>
               </div>
@@ -672,12 +717,12 @@ function Home() {
 
           {activeNav === "Command center" && (
             <>
-              {showNotice && (
+              {showNotice && overloadedTeammates.length > 0 && (
                 <div className="incident-banner">
                   <div className="incident-icon"><CircleAlert size={16} /></div>
                   <div>
-                    <strong>Student Sprint Deadline Risk</strong>
-                    <span>Capstone project milestone due in 48h · Workload distribution needs review.</span>
+                    <strong>Workload Bottleneck: {overloadedTeammates[0].name}</strong>
+                    <span>Operating at {overloadedTeammates[0].utilization}% capacity on "{overloadedTeammates[0].project}". Workload rebalance recommended.</span>
                   </div>
                   <button className="banner-action" onClick={() => setActiveNav("Resources")}>
                     Manage Teammates <ArrowUpRight size={14} />
@@ -691,24 +736,24 @@ function Home() {
               {isLoading && (
                 <div className="data-status-banner loading-banner" role="status" aria-live="polite">
                   <LoaderCircle size={15} className="spin" />
-                  <div><strong>Updating your command center</strong><span>Pulling the latest resource availability, task progress, and forecast signals.</span></div>
+                  <div><strong>Updating your command center</strong><span>Synchronizing team capacity and forecast models.</span></div>
                   <span className="loading-sheen" />
                 </div>
               )}
 
-              {dataError && (
+              {dataError && realTeammates.length === 0 && (
                 <div className="data-status-banner error-banner" role="alert">
                   <div className="data-error-icon"><CircleAlert size={15} /></div>
-                  <div><strong>We couldn’t refresh the dashboard</strong><span>Your last successful snapshot is still visible. Check your connection, then try again.</span></div>
-                  <button className="retry-button" onClick={() => loadDashboard(true)}><RotateCcw size={13} /> Try again</button>
+                  <div><strong>Ready to initialize team</strong><span>Add your real teammates in Resources to start tracking.</span></div>
+                  <button className="retry-button" onClick={() => setActiveNav("Resources")}><Users size={13} /> Go to Resources</button>
                 </div>
               )}
 
               <section className="hero-row">
                 <div>
                   <div className="eyebrow hero-eyebrow"><span className="pulse-ring" /> Live Operations Telemetry</div>
-                  <h1>Good morning, {user?.name ? user.name.split(" ")[0] : "Team"}<span className="heading-dot">.</span></h1>
-                  <p className="hero-copy">Your student team operation is <strong>monitored</strong>. Workloads and upcoming deadlines are synchronized.</p>
+                  <h1>Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening"}, {user?.name ? user.name.split(" ")[0] : "Team"}<span className="heading-dot">.</span></h1>
+                  <p className="hero-copy">Your <strong>{userField}</strong> workspace for <strong>{teamName}</strong> is active. Real capacity and deadline models are synchronized.</p>
                 </div>
                 <div className="hero-actions">
                   <button className="secondary-button" onClick={() => setActiveNav("Resources")}><Filter size={15} /> Manage Teammates</button>
@@ -766,23 +811,93 @@ function Home() {
 
               <section className="workspace-grid" id="impact-map">
                 <div className="panel impact-panel">
-                  <div className="panel-heading"><div><span className="panel-kicker"><GitBranch size={13} /> CASCADING IMPACT PREVIEW</span><h3>Mobile release train</h3></div><div className="impact-controls"><span className="status-pill"><StatusDot color="coral" /> Live analysis</span><button className="icon-button small" onClick={() => setActiveNav("Impact graph")}><RotateCcw size={14} /></button></div></div>
-                  <div className="impact-summary"><span><strong>18</strong> dependent tasks</span><span><strong>04</strong> resources touched</span><span><strong>+2.4d</strong> milestone shift</span></div>
+                  <div className="panel-heading">
+                    <div>
+                      <span className="panel-kicker"><GitBranch size={13} /> CASCADING IMPACT PREVIEW</span>
+                      <h3>{teamName} Critical Path</h3>
+                    </div>
+                    <div className="impact-controls">
+                      <span className="status-pill"><StatusDot color="coral" /> Live analysis</span>
+                      <button className="icon-button small" onClick={() => setActiveNav("Impact graph")}><RotateCcw size={14} /></button>
+                    </div>
+                  </div>
+                  <div className="impact-summary">
+                    <span><strong>{realTeammates.length * 3 || 3}</strong> dependent tasks</span>
+                    <span><strong>{String(realTeammates.length || 1).padStart(2, "0")}</strong> resources tracked</span>
+                    <span><strong>{overloadedTeammates.length > 0 ? "+2.0d" : "0.0d"}</strong> milestone shift</span>
+                  </div>
                   <div className="impact-canvas">
                     <div className="graph-grid" />
                     <svg className="graph-lines" viewBox="0 0 760 280" preserveAspectRatio="none" aria-hidden="true">
-                      <path d="M145 140 C205 140 198 78 265 78 S325 78 372 103" /><path d="M145 140 C215 140 200 200 265 200 S325 200 372 177" /><path d="M440 103 C510 103 520 69 600 69" /><path d="M440 177 C510 177 520 221 600 221" /><path d="M440 103 C515 103 515 140 600 140" /><path d="M440 177 C515 177 515 140 600 140" />
-                      <circle cx="145" cy="140" r="5" /><circle cx="372" cy="103" r="4" /><circle cx="372" cy="177" r="4" /><circle cx="600" cy="69" r="4" /><circle cx="600" cy="140" r="4" /><circle cx="600" cy="221" r="4" />
+                      <path d="M145 140 C205 140 198 78 265 78 S325 78 372 103" />
+                      <path d="M145 140 C215 140 200 200 265 200 S325 200 372 177" />
+                      <path d="M440 103 C510 103 520 69 600 69" />
+                      <path d="M440 177 C510 177 520 221 600 221" />
+                      <path d="M440 103 C515 103 515 140 600 140" />
+                      <path d="M440 177 C515 177 515 140 600 140" />
+                      <circle cx="145" cy="140" r="5" />
+                      <circle cx="372" cy="103" r="4" />
+                      <circle cx="372" cy="177" r="4" />
+                      <circle cx="600" cy="69" r="4" />
+                      <circle cx="600" cy="140" r="4" />
+                      <circle cx="600" cy="221" r="4" />
                     </svg>
-                    <div className="graph-node node-origin"><div className="node-icon node-coral"><CircleAlert size={14} /></div><div><strong>QA absence</strong><span>source event</span></div></div>
-                    <div className="graph-node node-a"><div className="node-icon node-amber"><Clock3 size={14} /></div><div><strong>Test cycle</strong><span>+1.5 days</span></div></div>
-                    <div className="graph-node node-b"><div className="node-icon node-amber"><GitBranch size={14} /></div><div><strong>Release gate</strong><span>blocked</span></div></div>
-                    <div className="graph-node node-c"><div className="node-icon node-blue"><Target size={14} /></div><div><strong>Launch milestone</strong><span>at risk</span></div></div>
-                    <div className="graph-node node-d"><div className="node-icon node-violet"><Users size={14} /></div><div><strong>Support pod</strong><span>idle 6h</span></div></div>
-                    <div className="graph-node node-e"><div className="node-icon node-coral"><Zap size={14} /></div><div><strong>Overtime</strong><span>+$1.2k est.</span></div></div>
-                    <div className="graph-tooltip"><span className="eyebrow">Predicted impact</span><strong>Deadline risk +26%</strong><span>Confidence 94.2%</span></div>
+                    <div className="graph-node node-origin">
+                      <div className="node-icon node-coral"><CircleAlert size={14} /></div>
+                      <div>
+                        <strong>{focalMember.name}</strong>
+                        <span>{focalMember.utilization}% load</span>
+                      </div>
+                    </div>
+                    <div className="graph-node node-a">
+                      <div className="node-icon node-amber"><Clock3 size={14} /></div>
+                      <div>
+                        <strong>{focalMember.project || "Sprint Deliverable"}</strong>
+                        <span>{overloadedTeammates.length > 0 ? "+1.5d slip" : "On schedule"}</span>
+                      </div>
+                    </div>
+                    <div className="graph-node node-b">
+                      <div className="node-icon node-amber"><GitBranch size={14} /></div>
+                      <div>
+                        <strong>Integration Gate</strong>
+                        <span>{overloadedTeammates.length > 0 ? "Blocked" : "Clear"}</span>
+                      </div>
+                    </div>
+                    <div className="graph-node node-c">
+                      <div className="node-icon node-blue"><Target size={14} /></div>
+                      <div>
+                        <strong>{teamName} Submission</strong>
+                        <span>{overloadedTeammates.length > 0 ? "At risk" : "Protected"}</span>
+                      </div>
+                    </div>
+                    <div className="graph-node node-d">
+                      <div className="node-icon node-violet"><Users size={14} /></div>
+                      <div>
+                        <strong>{helperMember.name}</strong>
+                        <span>{helperMember.weeklyHours || 20}h buffer</span>
+                      </div>
+                    </div>
+                    <div className="graph-node node-e">
+                      <div className="node-icon node-coral"><Zap size={14} /></div>
+                      <div>
+                        <strong>Workload Pressure</strong>
+                        <span>{overloadedTeammates.length > 0 ? "High stress" : "Equilibrium"}</span>
+                      </div>
+                    </div>
+                    <div className="graph-tooltip">
+                      <span className="eyebrow">Predicted impact</span>
+                      <strong>{overloadedTeammates.length > 0 ? "Workload rebalance required" : "Sprint in equilibrium"}</strong>
+                      <span>Discipline: {userField}</span>
+                    </div>
                   </div>
-                  <div className="impact-footer"><span><StatusDot color="coral" /> Direct impact</span><span><StatusDot color="amber" /> Dependent task</span><span><StatusDot color="blue" /> Recoverable path</span><button className="text-button" onClick={() => setActiveNav("Impact graph")}>Open full interactive graph <ArrowUpRight size={14} /></button></div>
+                  <div className="impact-footer">
+                    <span><StatusDot color="coral" /> Direct impact</span>
+                    <span><StatusDot color="amber" /> Dependent task</span>
+                    <span><StatusDot color="blue" /> Recoverable path</span>
+                    <button className="text-button" onClick={() => setActiveNav("Impact graph")}>
+                      Open full interactive graph <ArrowUpRight size={14} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="panel recommendation-panel">

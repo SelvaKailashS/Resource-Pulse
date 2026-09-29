@@ -250,10 +250,10 @@ export function ScenariosView({
               </tr>
               <tr>
                 <td className="font-semibold text-slate-300">Core Assumptions</td>
-                <td className="text-xs text-slate-400">Support pod absorbs 10% queue deferral</td>
-                <td className="text-xs text-slate-400">Immediate contractor onboarding</td>
-                <td className="text-xs text-slate-400">Analytics task moved to Sprint 45</td>
-                <td className="text-xs text-slate-400">UI polish segmented across team</td>
+                <td className="text-xs text-slate-400">Teammate absorbs 50% deliverable split</td>
+                <td className="text-xs text-slate-400">Pair programming during lab sessions</td>
+                <td className="text-xs text-slate-400">Non-critical polish moved to next milestone</td>
+                <td className="text-xs text-slate-400">Task review distributed across roster</td>
               </tr>
             </tbody>
           </table>

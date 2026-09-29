@@ -439,32 +439,6 @@ export function AccountCenter({
     toast.success("All notifications marked as read");
   };
 
-  const handleDirectLogin = (demoRole: "admin" | "operator" | "viewer") => {
-    const profiles = {
-      admin: {
-        name: "Maya Chen",
-        email: "mc@northstar.ops",
-        role: "admin",
-        permissionSet: "system.admin, approvals.write, dashboard.read, cash.write",
-      },
-      operator: {
-        name: "Arjun Rao",
-        email: "arjun@northstar.ops",
-        role: "operator",
-        permissionSet: "simulation.execute, approvals.write, dashboard.read",
-      },
-      viewer: {
-        name: "Priya Sharma",
-        email: "priya@northstar.ops",
-        role: "viewer",
-        permissionSet: "dashboard.read, audit.read",
-      },
-    };
-    const chosen = profiles[demoRole];
-    onUserUpdate?.({ ...chosen, emailVerified: 1, onboardingCompleted: 1 });
-    toast.success(`Active profile switched to ${chosen.name} (${chosen.role.toUpperCase()})`);
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent

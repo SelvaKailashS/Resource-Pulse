@@ -13,9 +13,9 @@ interface OnboardingModalProps {
   onComplete: (data: { role: string; analyticsConsent: boolean; emailAlerts: boolean; reducedMotion: boolean }) => void;
 }
 
-export function OnboardingModal({ open, onOpenChange, currentUserRole = "admin", currentUserName = "Maya Chen", onComplete }: OnboardingModalProps) {
+export function OnboardingModal({ open, onOpenChange, currentUserRole = "admin", currentUserName = "Student Lead", onComplete }: OnboardingModalProps) {
   const [step, setStep] = useState(1);
-  const [name, setName] = useState(currentUserName || "Maya Chen");
+  const [name, setName] = useState(currentUserName || "Student Lead");
   const [role, setRole] = useState<"admin" | "operator" | "viewer">((currentUserRole as any) || "admin");
   const [analyticsConsent, setAnalytics] = useState(true);
   const [emailAlerts, setEmailAlerts] = useState(true);
@@ -86,7 +86,7 @@ export function OnboardingModal({ open, onOpenChange, currentUserRole = "admin",
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Maya Chen"
+                placeholder="e.g. Your Name"
                 className="bg-slate-900 border-sky-900/50 text-white"
               />
             </div>

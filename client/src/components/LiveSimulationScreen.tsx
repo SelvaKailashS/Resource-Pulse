@@ -106,7 +106,7 @@ export function LiveSimulationScreen({ onClose, onApproveAndNavigate, initialRes
       data.summary.timeRecovered,
       data.summary.riskReduction,
       data.summary.estimatedCost,
-      data.replacements[0]?.name || "Arjun Rao"
+      data.replacements[0]?.name || "Assigned Teammate"
     );
     toast.success("Simulation Approved & Executed!", {
       description: `Plan queued for ${selectedPerson.name} recovery. Transferred to Approval Governance Center.`,

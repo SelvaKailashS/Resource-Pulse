@@ -82,8 +82,8 @@ export function VoiceAssistantCopilot({
       timestamp: "Just now",
       quickActions: [
         { label: "Run 5s Simulation", action: () => onLaunchSimulation(), icon: Play },
-        { label: "Why is release at risk?", action: () => handleDirectQuery("Why is the release at risk?"), icon: GitBranch },
-        { label: "Who is Arjun Rao?", action: () => handleDirectQuery("Tell me about Arjun Rao"), icon: Users },
+        { label: "Why split workload?", action: () => handleDirectQuery("Why split the workload?"), icon: GitBranch },
+        { label: "Who is on the team?", action: () => handleDirectQuery("Who is on the team?"), icon: Users },
       ],
     },
   ]);
@@ -385,10 +385,19 @@ export function VoiceAssistantCopilot({
       lower.includes("team members") ||
       lower.includes("how many resources")
     ) {
-      handleAIResponse(
-        "There are 4 core human engineers and 4 operational infrastructure nodes active across Northstar Ops: 1. Arjun Rao (Senior QA, 96% load), 2. Priya Sharma (Staff Backend, 88% load), 3. Marcus Vance (Cloud DevOps, 64% load), and 4. Elena Rostova (UI/UX, 70% load). Plus GPU Cluster Alpha, Test Lab, Redis Cache, and Sprint Reserve.",
-        "open_resources"
-      );
+      let teamSummary = "There are no teammates registered yet. Add your teammates in the Resources tab.";
+      try {
+        const raw = localStorage.getItem("resourcepulse_student_resources");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const teamName = localStorage.getItem("resourcepulse_team_name") || "your team";
+            teamSummary = `There are ${parsed.length} active members in ${teamName}: ` +
+              parsed.map((m: any) => `${m.name} (${m.role}, ${m.utilization}% load)`).join(", ") + ".";
+          }
+        }
+      } catch {}
+      handleAIResponse(teamSummary, "open_resources");
       return;
     }
 
@@ -401,25 +410,16 @@ export function VoiceAssistantCopilot({
       lower.includes("share work")
     ) {
       handleAIResponse(
-        "I recommend an Intelligent 50/50 Workload Split! Rather than overloading Arjun Rao with 100% of the emergency QA burden (+18h) and causing delays on his primary Support Pod, the AI recommends splitting the 18 hours equally: 9.0 hours to Arjun Rao and 9.0 hours to Priya Sharma. This maintains Pod stability and prevents burnout.",
+        "I recommend an Intelligent Workload Split! Distributing deliverable tasks equally among active teammates maintains velocity, avoids single-person bottlenecks, and prevents pre-milestone burnout.",
         "split_work"
       );
       return;
     }
 
-    // 5. Why reallocate to release train queries
-    if (lower.includes("why reallocate") || lower.includes("why is reallocate") || lower.includes("reallocate to release train")) {
+    // 5. Why reallocate queries
+    if (lower.includes("why reallocate") || lower.includes("why is reallocate") || lower.includes("reallocate")) {
       handleAIResponse(
-        "The 'Reallocate to Release Train' option is designed to address emergency QA deficits on Mobile Core. However, pulling an engineer 100% can create donor project bottlenecks. That's why our AI now suggests splitting the workload equally (50/50) across qualified engineers!",
-        "open_resources"
-      );
-      return;
-    }
-
-    // 6. Marcus Vance specific queries
-    if (lower.includes("marcus") || lower.includes("marcus vance")) {
-      handleAIResponse(
-        "Marcus Vance is our Cloud DevOps Architect ($105/h, 64% load) assigned to Northstar Onboarding. He is on-call this Friday for EKS infrastructure. Reallocating Marcus away from DevOps is flagged as High Risk (42% match) due to potential cluster downtime.",
+        "Workload reallocation is triggered when a teammate's capacity exceeds 80% or milestone deadlines are threatened. Rebalancing deliverables ensures all project components stay on schedule.",
         "open_resources"
       );
       return;
@@ -445,15 +445,17 @@ export function VoiceAssistantCopilot({
       lower === "assign task" ||
       lower === "assign new task"
     ) {
-      let person = "Arjun Rao";
-      if (lower.includes("priya")) person = "Priya Sharma";
-      else if (lower.includes("marcus")) person = "Marcus Vance";
-      else if (lower.includes("elena")) person = "Elena Rostova";
+      let team: any[] = [];
+      try {
+        const raw = localStorage.getItem("resourcepulse_student_resources");
+        if (raw) team = JSON.parse(raw);
+      } catch {}
+      const person = team[0]?.name || "Team Member";
+      const task = team[0]?.project || "Core Project Deliverable";
 
-      const task = "Mobile Core E2E Automated Testing";
       onAssignTask(person, task);
       const reply = `(New Task) Task assigned! ${person} has been allocated to ${task} with High Priority. The recovery package has been dispatched to Admin and Team Lead for sign-off.`;
-      handleAIResponse(reply, "assign_task");
+      handleAIResponse(reply, "assign_task", { person, task });
       return;
     }
 
@@ -478,7 +480,7 @@ export function VoiceAssistantCopilot({
     } catch (e) {
       setIsAnalyzing(false);
       handleAIResponse(
-        "I'm tracking our team capacity. Arjun Rao is currently the optimal replacement with 94% probability to avoid our mobile release delay."
+        "I'm tracking your team capacity and sprint deliverables. Workloads are operating within current capacity thresholds."
       );
     }
   };
@@ -564,8 +566,8 @@ export function VoiceAssistantCopilot({
     if (action === "run_simulation") {
       onLaunchSimulation();
     } else if (action === "assign_task") {
-      const p = actionPayload?.person || "Arjun Rao";
-      const t = actionPayload?.task || "Mobile Core E2E Automated Testing";
+      const p = actionPayload?.person || "Team Member";
+      const t = actionPayload?.task || "Sprint Deliverable";
       onAssignTask(p, t);
     } else if (action === "approve_plan") {
       onApprovePlan();
@@ -796,11 +798,9 @@ export function VoiceAssistantCopilot({
           <div className="px-3 py-1.5 bg-slate-950/70 border-b border-slate-800/80 flex gap-2 overflow-x-auto scrollbar-none shrink-0">
             {[
               "Today's date",
-              "How many workers are working?",
-              "Why is the release at risk?",
-              "Who is Arjun Rao?",
-              "Who is Priya Sharma?",
-              "What is Marcus's status?",
+              "Who is on the team?",
+              "Why split workload?",
+              "Check team capacity",
               "Compare scenarios",
             ].map((prompt) => (
               <button

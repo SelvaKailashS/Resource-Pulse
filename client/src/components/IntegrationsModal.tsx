@@ -65,7 +65,7 @@ const DEFAULT_INTEGRATIONS: IntegrationItem[] = [
     category: "Incident Management",
     status: "connected",
     lastSync: "2m ago",
-    description: "Monitors on-call schedules (Marcus Vance rotation) and escalation policies.",
+    description: "Monitors team on-call availability and escalation policies.",
     enabled: true,
   },
   {

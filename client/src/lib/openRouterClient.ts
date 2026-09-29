@@ -9,24 +9,33 @@ export async function askLiveCopilot(query: string): Promise<{
 }> {
   const q = query.trim().toLowerCase();
 
+  let team: any[] = [];
+  try {
+    const raw = localStorage.getItem("resourcepulse_student_resources");
+    if (raw) team = JSON.parse(raw);
+  } catch {}
+  const teamName = localStorage.getItem("resourcepulse_team_name") || "Student Team";
+  const field = localStorage.getItem("resourcepulse_selected_field") || "Software & Cloud Systems";
+
   // Handle direct navigation and actions first
   if (
     q.includes("assign task") ||
-    q.includes("allocate task") ||
-    q.includes("assign to arjun")
+    q.includes("allocate task")
   ) {
+    const person = team[0]?.name || "Team Member";
+    const task = team[0]?.project || "Core Project Deliverable";
     return {
       answer:
-        "(New Task) Task assigned! Arjun Rao has been allocated to Mobile Core E2E Automated Testing with High Priority. The recovery package has been dispatched to Admin and Team Lead for sign-off.",
+        `(New Task) Task assigned! ${person} has been allocated to ${task} with High Priority. The recovery package has been dispatched to Admin and Team Lead for sign-off.`,
       suggestedAction: "assign_task",
-      actionPayload: { person: "Arjun Rao", task: "Mobile Core E2E Automated Testing" },
+      actionPayload: { person, task },
     };
   }
 
   if (q === "approve" || q === "approve plan" || q === "confirm plan") {
     return {
       answer:
-        "Plan approved! The reallocation of Arjun Rao has been verified against skill and budget constraints, and logged into the audit trail for execution.",
+        "Plan approved! The team workload reallocation has been verified and logged into the audit trail for execution.",
       suggestedAction: "approve_plan",
     };
   }
@@ -34,7 +43,7 @@ export async function askLiveCopilot(query: string): Promise<{
   if (q === "run simulation" || q === "simulate" || q === "start simulation") {
     return {
       answer:
-        "Opening the 5-second live simulation screen now. Reallocating Arjun Rao recovers 2.4 days with 94% confidence.",
+        "Opening the 5-second live simulation screen now. Rebalancing workload recovers sprint velocity and protects submission deadlines.",
       suggestedAction: "run_simulation",
     };
   }
@@ -73,24 +82,18 @@ export async function askLiveCopilot(query: string): Promise<{
       });
       const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-      const promptContext = `You are Alex, an interactive, friendly, and expert AI Operations Director for Resource Pulse.
-Live context:
+      const promptContext = `You are Alex, an interactive, friendly, and expert AI Operations Assistant for Resource Pulse.
+Live team context:
 - Today's date: ${dateStr}. Current time: ${timeStr}.
-- System Health: ${SITE_KNOWLEDGE_BASE.organization.systemHealth}, Uptime: ${SITE_KNOWLEDGE_BASE.organization.uptime}.
-- At-risk capacity: 12.6h in Mobile testing.
-- 4 human engineers:
-  1. Arjun Rao (Senior QA, $85/h, 96% load, 6.5h open tomorrow, 94% match for Mobile testing).
-  2. Priya Sharma (Staff Backend, $110/h, 88% load, Go/gRPC, owns Northstar API & Payment Gateway).
-  3. Marcus Vance (Cloud DevOps, $105/h, 64% load, on-call Friday, DO NOT swap due to EKS cluster downtime risk).
-  4. Elena Rostova (Senior UI/UX, $90/h, 70% load, 4h open tomorrow, Figma/Design System 2.0).
-- 4 infra/budget pools: GPU Cluster Alpha (4x H100s, 98% load, 72h maintenance cycle), Test Lab Alpha (32 devices, 16 free), Sprint Reserve ($1,200 total, $696 buffer open), Redis Cache (84% load).
-- Downstream risk: QA drop delays Mobile Core E2E (+18h) -> delays Payment Gateway (+32h) -> slips Sprint 44 RC freeze (+3.8d, $4.2k overtime).
+- Team workspace: ${teamName}. Discipline / Field: ${field}.
+- Active team members:
+  ${team.length > 0 ? team.map((m: any, i: number) => `${i + 1}. ${m.name} (${m.role}, ${m.utilization}% load, deliverable: "${m.project}")`).join("\n  ") : "No members added yet"}
 
 Instructions:
-1. Answer the user's specific question naturally and conversationally in 1-3 sentences.
+1. Answer the user's specific question naturally and conversationally in 1-3 sentences based on their real team data.
 2. If they ask about today's date or time, answer with the exact date/time above.
-3. If they ask about workers/people, explain the 4 human engineers and their workloads.
-4. Keep answers engaging and dynamic. Never repeat a robotic boilerplate.`;
+3. If they ask about team members or capacity, summarize the active team members above.
+4. Keep answers engaging, helpful, and concise.`;
 
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",

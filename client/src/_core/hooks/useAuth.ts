@@ -9,26 +9,32 @@ export interface AuthUser {
   emailVerified?: number;
   onboardingCompleted?: number;
   permissionSet?: string | null;
+  field?: string | null;
+  teamName?: string | null;
 }
 
 const STORAGE_KEY = "resourcepulse_session_user";
-
-const defaultDemoUser: AuthUser = {
-  id: 1,
-  name: "Maya Chen",
-  email: "mc@northstar.ops",
-  role: "admin",
-  emailVerified: 1,
-  onboardingCompleted: 0,
-  permissionSet: "system.admin,approvals.write,dashboard.read",
-};
 
 export function useAuth() {
   const utils = trpc.useUtils();
   const [localUser, setLocalUser] = useState<AuthUser | null>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) return JSON.parse(stored);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Automatically purge any stale legacy demo profiles
+        if (
+          parsed.name === "Maya Chen" ||
+          parsed.name === "Alex Rivera" ||
+          parsed.email?.includes("northstar.ops") ||
+          parsed.email?.includes("demo")
+        ) {
+          localStorage.removeItem(STORAGE_KEY);
+          localStorage.removeItem("resourcepulse_student_resources");
+          return null;
+        }
+        return parsed;
+      }
       return null;
     } catch {
       return null;
@@ -46,12 +52,13 @@ export function useAuth() {
     },
   });
 
-  // Effective user: Server session takes priority if present, otherwise local persistent user
+  // Effective user: Server session takes priority if present, otherwise local real user
   const effectiveUser = (meQuery.data as AuthUser | undefined) || localUser;
 
   const updateUser = useCallback((partial: Partial<AuthUser>) => {
     setLocalUser((prev) => {
-      const updated = { ...(prev || defaultDemoUser), ...partial };
+      if (!prev) return prev;
+      const updated = { ...prev, ...partial };
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       } catch {}
@@ -65,42 +72,6 @@ export function useAuth() {
     } catch {}
     setLocalUser(userObj);
   }, []);
-
-  const quickDemoLogin = useCallback((role: "admin" | "operator" | "viewer") => {
-    let demo: AuthUser;
-    if (role === "admin") {
-      demo = {
-        id: 1,
-        name: "Maya Chen",
-        email: "mc@northstar.ops",
-        role: "admin",
-        emailVerified: 1,
-        onboardingCompleted: 1,
-        permissionSet: "system.admin,approvals.write,dashboard.read",
-      };
-    } else if (role === "operator") {
-      demo = {
-        id: 2,
-        name: "Arjun Rao",
-        email: "arjun@northstar.ops",
-        role: "operator",
-        emailVerified: 1,
-        onboardingCompleted: 1,
-        permissionSet: "approvals.write,dashboard.read",
-      };
-    } else {
-      demo = {
-        id: 3,
-        name: "Priya Sharma",
-        email: "priya@northstar.ops",
-        role: "viewer",
-        emailVerified: 1,
-        onboardingCompleted: 1,
-        permissionSet: "dashboard.read",
-      };
-    }
-    login(demo);
-  }, [login]);
 
   const logout = async () => {
     try {
@@ -117,7 +88,6 @@ export function useAuth() {
     loading: meQuery.isLoading,
     isAuthenticated: Boolean(effectiveUser),
     login,
-    quickDemoLogin,
     updateUser,
     logout,
   };
