@@ -78,6 +78,7 @@ export function LiveSimulationScreen({ onClose, onApproveAndNavigate, initialRes
       absentResourceName: selectedPerson.name,
       role: selectedPerson.role,
       project: selectedPerson.project,
+      availableTeammates: absentPersonnelOptions,
     },
     {
       staleTime: 60_000,
@@ -169,10 +170,10 @@ export function LiveSimulationScreen({ onClose, onApproveAndNavigate, initialRes
               <Clock size={16} className="text-sky-400" />
             </div>
             <div className="text-2xl md:text-3xl font-extrabold text-sky-400 font-mono mt-2">
-              {data?.summary.timeRecovered ?? "+2.4 Days"}
+              {data?.summary.timeRecovered ?? "0.0 Days"}
             </div>
             <p className="text-[11px] text-slate-300 mt-1 font-medium">
-              Sprint 44 milestone saved & freeze protected
+              {data?.absentAnalysis?.dependentMilestone ? `${data.absentAnalysis.dependentMilestone} protected` : "Milestone deliverable protected"}
             </p>
           </div>
 
@@ -182,10 +183,10 @@ export function LiveSimulationScreen({ onClose, onApproveAndNavigate, initialRes
               <TrendingDown size={16} className="text-emerald-400" />
             </div>
             <div className="text-2xl md:text-3xl font-extrabold text-emerald-400 font-mono mt-2">
-              {data?.summary.riskReduction ?? "−38%"}
+              {data?.summary.riskReduction ?? "0%"}
             </div>
             <p className="text-[11px] text-slate-300 mt-1 font-medium">
-              Deadline risk drops from 84% to safe 46%
+              {data?.summary?.riskReduction && data.summary.riskReduction !== "0%" ? `Risk reduced by ${data.summary.riskReduction.replace("−", "")}` : "Operational risk mitigated"}
             </p>
           </div>
 
@@ -195,10 +196,10 @@ export function LiveSimulationScreen({ onClose, onApproveAndNavigate, initialRes
               <DollarSign size={16} className="text-blue-400" />
             </div>
             <div className="text-2xl md:text-3xl font-extrabold text-white font-mono mt-2">
-              {data?.summary.estimatedCost ?? "$1,200"}
+              {data?.summary.estimatedCost ?? "$0"}
             </div>
             <p className="text-[11px] text-emerald-400 mt-1 font-medium">
-              Saves $3,000 vs. $4,200 emergency contractor spend
+              {data?.summary?.estimatedCost ? `${data.summary.estimatedCost} reallocation spend` : "$0 internal shift"}
             </p>
           </div>
 

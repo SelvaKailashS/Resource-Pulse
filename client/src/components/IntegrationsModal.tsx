@@ -29,7 +29,7 @@ const DEFAULT_INTEGRATIONS: IntegrationItem[] = [
     category: "Issue Tracking",
     status: "connected",
     lastSync: "42s ago",
-    description: "Syncs Sprint 44 epics, story points, and task blockers automatically.",
+    description: "Syncs project milestones, task deliverables, and blockers automatically.",
     enabled: true,
   },
   {

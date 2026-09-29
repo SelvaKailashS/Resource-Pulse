@@ -53,7 +53,16 @@ export async function askLiveCopilot(query: string): Promise<{
     const resp = await fetch("/api/trpc/simulation.ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ json: { query } }),
+      body: JSON.stringify({
+        json: {
+          query,
+          teamContext: {
+            teamName,
+            field,
+            members: team,
+          },
+        },
+      }),
     });
     if (resp.ok) {
       const data = await resp.json();

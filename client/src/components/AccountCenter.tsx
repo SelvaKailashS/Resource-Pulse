@@ -404,7 +404,7 @@ export function AccountCenter({
     const newNotice = {
       id: Date.now(),
       title: "Real-time Capacity Warning",
-      body: "QA Bandwidth slipped by 12.6h on Mobile Core release candidate.",
+      body: "Capacity telemetry alert dispatched for active project deliverables.",
       type: "signal",
       readAt: null,
       createdAt: new Date().toISOString(),

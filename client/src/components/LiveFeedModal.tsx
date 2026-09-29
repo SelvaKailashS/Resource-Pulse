@@ -27,9 +27,9 @@ const INITIAL_EVENTS: FeedEvent[] = [
   {
     id: "evt-1",
     timestamp: "Just now",
-    source: "Mobile E2E Runner",
-    level: "warning",
-    message: "Capacity bottleneck detected: 12.6h deficit in regression automated tests.",
+    source: "Telemetry Engine",
+    level: "success",
+    message: "Live capacity telemetry synchronized across all active team deliverables.",
     latencyMs: 142,
   },
   {
@@ -86,7 +86,7 @@ export function LiveFeedModal({ open, onOpenChange }: Props) {
         { source: "Redis Cluster Alpha", level: "success" as const, message: "Memory defragmentation cycle finished. Hit ratio: 98.7%." },
         { source: "GitHub CI/CD", level: "info" as const, message: "PR #142 test suite completed in 3m 42s with zero failures." },
         { source: "PagerDuty Guard", level: "info" as const, message: "On-call rotation verified: primary engineer active for cloud infra." },
-        { source: "Capacity Planner AI", level: "warning" as const, message: "Sprint 44 buffer threshold warning: 50% split mitigation advised." },
+        { source: "Capacity Planner AI", level: "info" as const, message: "Milestone buffer check: all deliverables operating in healthy equilibrium." },
       ];
 
       const chosen = liveSources[Math.floor(Math.random() * liveSources.length)];

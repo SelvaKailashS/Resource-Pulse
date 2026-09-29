@@ -261,21 +261,37 @@ export const SITE_KNOWLEDGE_BASE = {
   },
 };
 
-export async function runAISimulation(req: SimulationAIRequest): Promise<SimulationAIResponse> {
+export async function runAISimulation(
+  req: SimulationAIRequest & { availableTeammates?: any[] }
+): Promise<SimulationAIResponse> {
   const apiKey = ENV.openRouterApiKey;
   let llmExplanation = "";
+
+  const absentName = req.absentResourceName || "Team Member";
+  const absentRole = req.role || "Specialist";
+  const deliverable = req.project || "Core Project Deliverable";
+
+  const candidates = (req.availableTeammates || []).filter(
+    (m: any) =>
+      m.name.toLowerCase() !== absentName.toLowerCase() &&
+      m.id !== req.absentResourceId
+  );
+
+  const hasPeers = candidates.length > 0;
+  const bestPeer = hasPeers ? candidates[0] : null;
+  const secondPeer = candidates.length > 1 ? candidates[1] : null;
 
   if (apiKey) {
     try {
       const prompt = `You are the lead AI operations advisor for Resource Pulse.
 Analyze this event:
-Absent Resource: ${req.absentResourceName} (${req.role})
-Current Project: ${req.project}
-Task buffer: ${req.bufferDays || 3} days. Budget ceiling: $${req.budgetCeiling || 3500}.
+Absent Resource: ${absentName} (${absentRole})
+Current Deliverable / Task: ${deliverable}
+Available Peers: ${hasPeers ? candidates.map((c: any) => `${c.name} (${c.role || "Peer"})`).join(", ") : "None (single member team)"}
 
-Briefly state in 2 clear sentences:
-1. The exact cascading risk if no replacement is allocated.
-2. The recommended replacement strategy and probability of success.`;
+Briefly state in 1-2 clear sentences:
+1. The cascading impact if no replacement is allocated.
+2. The recommended reallocation plan.`;
 
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
@@ -288,7 +304,7 @@ Briefly state in 2 clear sentences:
         body: JSON.stringify({
           model: "openrouter/auto",
           messages: [{ role: "user", content: prompt }],
-          max_tokens: 220,
+          max_tokens: 200,
         }),
       });
 
@@ -301,135 +317,113 @@ Briefly state in 2 clear sentences:
     }
   }
 
-  const isArjun = req.absentResourceId.includes("01") || req.absentResourceName.includes("Arjun");
-  const isPriya = req.absentResourceId.includes("02") || req.absentResourceName.includes("Priya");
-  const isMarcus = req.absentResourceId.includes("03") || req.absentResourceName.includes("Marcus");
+  let replacements: ReplacementCandidate[] = [];
 
-  let summary = {
-    timeRecovered: "+2.4 Days",
-    riskReduction: "−38%",
-    estimatedCost: "$1,200",
-    aiConfidence: 94,
-    headline: "Optimal Recovery Path Synthesized",
-    verdict:
-      llmExplanation ||
-      "Reallocating Arjun Rao from Support pod avoids critical milestone slip with minimal donor disruption.",
-  };
-
-  let absentAnalysis = {
-    resourceName: req.absentResourceName || "Arjun Rao",
-    capacityDrop: "60% testing bandwidth loss",
-    directTaskBlocked: "Mobile Core E2E Automated Test Suite",
-    dependentMilestone: "Sprint 44 Release Candidate freeze",
-    unmitigatedDelay: "+3.8 Calendar Days",
-    unmitigatedCost: "+$4,200 emergency overtime",
-  };
-
-  let replacements: ReplacementCandidate[] = [
-    {
+  if (hasPeers && bestPeer) {
+    replacements.push({
       id: "CAND-01",
-      name: isArjun ? "Arjun Rao" : "Priya Sharma",
-      role: isArjun ? "Senior QA Automation Engineer" : "Staff Backend Engineer",
-      matchScore: 94,
-      probability: 94,
+      name: bestPeer.name,
+      role: bestPeer.role || "Peer Specialist",
+      matchScore: 92,
+      probability: 91,
       recommendationStatus: "Recommended",
-      skillsMatch: ["Appium", "Jest", "CI/CD Pipeline", "Regression Harness"],
+      skillsMatch: ["Core Delivery", "Active Capacity", "Internal Project Context"],
       skillsMissing: [],
-      availability: "6.5h open tomorrow",
-      donorProject: "Support Pod",
+      availability: "Available for rebalance",
+      donorProject: bestPeer.project || "Secondary Task",
       donorImpact: "Low",
-      costDelta: "$1,200 standard shift",
-      reasoning:
-        "Exact skill match for test automation. Support pod can buffer non-critical queue for 48h without SLA breach.",
-    },
-    {
-      id: "CAND-02",
-      name: "Contractor QA Burst Pod",
-      role: "External Verified QA Specialist",
-      matchScore: 82,
-      probability: 81,
+      costDelta: "$0 (Internal)",
+      reasoning: `Rebalancing with ${bestPeer.name} absorbs the deliverable without incurring external costs.`,
+    });
+
+    if (secondPeer) {
+      replacements.push({
+        id: "CAND-02",
+        name: secondPeer.name,
+        role: secondPeer.role || "Contributor",
+        matchScore: 78,
+        probability: 76,
+        recommendationStatus: "Alternative",
+        skillsMatch: ["Internal Project Context"],
+        skillsMissing: ["Lead Review"],
+        availability: "Partial availability",
+        donorProject: secondPeer.project || "Secondary Task",
+        donorImpact: "Medium",
+        costDelta: "$0 (Internal)",
+        reasoning: `${secondPeer.name} can assist with sub-tasks while maintaining their current track.`,
+      });
+    }
+  } else {
+    replacements.push({
+      id: "NO-PEERS",
+      name: "No backup registered",
+      role: "Invite teammates to enable auto-rebalancing",
+      matchScore: 0,
+      probability: 0,
       recommendationStatus: "Alternative",
-      skillsMatch: ["General QA", "Manual Test Scripts"],
-      skillsMissing: ["Internal E2E Architecture", "Appium Custom Harness"],
-      availability: "Available in 4h",
-      donorProject: "External Vendor",
-      donorImpact: "Low",
-      costDelta: "+$3,800 contractor billing",
-      reasoning:
-        "Fastest external backfill, but high cost and requires 4 hours of onboarding ramp.",
-    },
-    {
-      id: "CAND-03",
-      name: "Elena Rostova",
-      role: "Senior UI/UX Specialist",
-      matchScore: 65,
-      probability: 68,
-      recommendationStatus: "Alternative",
-      skillsMatch: ["UI Acceptance", "Figma Design Specs"],
-      skillsMissing: ["Automated Script Execution", "API Mocking"],
-      availability: "4.0h open tomorrow",
-      donorProject: "Design System 2.0",
-      donorImpact: "Medium",
-      costDelta: "$600 internal shift",
-      reasoning:
-        "Can verify visual design and manual UI paths, but cannot maintain automated CI pipeline.",
-    },
-    {
-      id: "CAND-04",
-      name: "Marcus Vance",
-      role: "Cloud DevOps Architect",
-      matchScore: 42,
-      probability: 42,
-      recommendationStatus: "Not Feasible",
-      skillsMatch: ["Docker", "Linux"],
-      skillsMissing: ["Mobile Testing", "Appium", "Jest"],
-      availability: "2.0h limited",
-      donorProject: "Cloud Architecture",
+      skillsMatch: [],
+      skillsMissing: ["Peer Capacity"],
+      availability: "0h",
+      donorProject: "None",
       donorImpact: "High",
       costDelta: "$0",
-      reasoning:
-        "High-risk swap: pulling Marcus introduces severe infrastructure downtime risk on EKS cluster.",
-    },
-  ];
-
-  if (isPriya) {
-    summary.headline = "Backend Critical Path Reallocation";
-    summary.timeRecovered = "+1.8 Days";
-    summary.riskReduction = "−42%";
-    summary.estimatedCost = "$1,600";
-    absentAnalysis.directTaskBlocked = "Payment Gateway v2.4 gRPC Integration";
-    absentAnalysis.dependentMilestone = "FinTech Compliance Sign-off";
-  } else if (isMarcus) {
-    summary.headline = "Infrastructure Auto-Scaling Mitigation";
-    summary.timeRecovered = "+1.5 Days";
-    summary.riskReduction = "−31%";
-    summary.estimatedCost = "$950";
-    absentAnalysis.directTaskBlocked = "Kubernetes Cluster Auto-scaling Group Tuning";
-    absentAnalysis.dependentMilestone = "Production Traffic Switch";
+      reasoning: "Only 1 member is currently registered. Share your Team Code or Invite Link from Resources to add peers.",
+    });
   }
+
+  const summary = {
+    timeRecovered: hasPeers ? "+2.0 Days" : "0.0 Days",
+    riskReduction: hasPeers ? "−45%" : "0%",
+    estimatedCost: "$0",
+    aiConfidence: hasPeers ? 94 : 85,
+    headline: hasPeers
+      ? `Dynamic Workload Reallocation for ${absentName}`
+      : `Single-Member Capacity Alert`,
+    verdict:
+      llmExplanation ||
+      (hasPeers
+        ? `Reallocating ${bestPeer!.name} buffers "${deliverable}" and keeps milestones on schedule.`
+        : `${absentName} is currently the sole contributor for "${deliverable}". Add teammates using your Team Code to eliminate single points of failure.`),
+  };
+
+  const absentAnalysis = {
+    resourceName: absentName,
+    capacityDrop: "100% capacity loss for this deliverable",
+    directTaskBlocked: deliverable,
+    dependentMilestone: `${deliverable} Milestone`,
+    unmitigatedDelay: hasPeers ? "+2.5 Calendar Days" : "+4.0 Calendar Days",
+    unmitigatedCost: "$0 (Internal Reallocation)",
+  };
 
   const beforeVsAfter = {
     unmitigated: [
-      `Absence causes ${absentAnalysis.directTaskBlocked} to stall (+18h).`,
+      `Absence causes "${deliverable}" to stall without an active owner.`,
       `Downstream ${absentAnalysis.dependentMilestone} slips by ${absentAnalysis.unmitigatedDelay}.`,
-      `Financial impact: ${absentAnalysis.unmitigatedCost} in unplanned team overtime.`,
-      `Final customer launch at critical risk (84% breach probability).`,
+      `Deliverable buffer drops to 0 hours.`,
+      `Milestone completion blocked until capacity is restored.`,
     ],
-    mitigated: [
-      `Immediate shift of ${replacements[0].name} absorbs the testing queue within 2 hours.`,
-      `Blocker cleared: ${absentAnalysis.directTaskBlocked} completes on schedule.`,
-      `Net financial savings: $3,000 saved compared to contractor baseline.`,
-      `Projected deadline risk drops from 84% to safe 46% (Milestone protected).`,
-    ],
+    mitigated: hasPeers
+      ? [
+          `Immediate workload shift to ${bestPeer!.name} absorbs active deliverables.`,
+          `Blocker cleared: "${deliverable}" remains protected.`,
+          `Net financial savings: $0 internal workload distribution.`,
+          `Projected milestone slip prevented.`,
+        ]
+      : [
+          `Invite teammates using your Team Code to share "${deliverable}".`,
+          `No external contractor costs incurred ($0).`,
+          `Once added, AI automatically balances workload across all peers.`,
+          `Milestone protection ready upon teammate registration.`,
+        ],
   };
 
   const liveExecutionTrace = [
-    `[0.1s] Telemetry: Detected capacity drop for ${req.absentResourceName} in ${req.project}.`,
-    `[0.4s] Knowledge Graph: Traced 18 downstream dependencies connected to ${absentAnalysis.directTaskBlocked}.`,
-    `[0.8s] Candidate Matrix: Evaluated 8 resources against skill requirements (Appium, CI/CD, Jest).`,
-    `[1.2s] Optimization: Evaluated trade-offs for 4 strategies; selected Balanced Recovery.`,
-    `[1.6s] Governance: Verified skill match (100%), overtime tolerance, and milestone budget.`,
-    `[1.9s] Ready: Actionable decision package prepared for human approval.`,
+    `[0.1s] Telemetry: Monitoring capacity for ${absentName} in ${deliverable}.`,
+    `[0.4s] Knowledge Graph: Traced dependencies for ${deliverable}.`,
+    `[0.8s] Candidate Matrix: Evaluated ${candidates.length} active registered peer(s).`,
+    `[1.2s] Optimization: Synthesized balance strategy.`,
+    `[1.6s] Governance: Verified skill alignment and buffer headroom.`,
+    `[1.9s] Ready: Actionable decision package prepared for review.`,
   ];
 
   return {
@@ -438,12 +432,15 @@ Briefly state in 2 clear sentences:
     replacements,
     beforeVsAfter,
     liveExecutionTrace,
-    aiModelUsed: apiKey ? "OpenRouter Multi-Model Synthesis" : "ResourcePulse Heuristic Engine",
+    aiModelUsed: apiKey ? "OpenRouter Multi-Model Synthesis" : "ResourcePulse Dynamic Telemetry Engine",
   };
 }
 
 // Interactive Human-Like AI Copilot Engine
-export async function askAICopilot(query: string): Promise<{
+export async function askAICopilot(
+  query: string,
+  teamContext?: { teamName?: string; field?: string; members?: any[] }
+): Promise<{
   answer: string;
   suggestedAction?: string;
   actionPayload?: any;
@@ -451,12 +448,65 @@ export async function askAICopilot(query: string): Promise<{
   const q = query.trim().toLowerCase();
   const apiKey = ENV.openRouterApiKey;
 
-  // Build high-context prompt containing every single detail of the website
-  const knowledgeSummary = JSON.stringify(SITE_KNOWLEDGE_BASE);
+  const teamName = teamContext?.teamName || "Operations Team";
+  const field = teamContext?.field || "Operations";
+  const members = teamContext?.members || [];
 
-  // Try OpenRouter first with rich system prompt
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  // Direct action detection
+  if (q.includes("simulation") || q.includes("simulate") || q.includes("what if")) {
+    return {
+      answer: "Opening the live 5-second simulation now. This simulates workload rebalancing and delivery protection.",
+      suggestedAction: "run_simulation",
+    };
+  }
+
+  if (q.includes("assign") || q.includes("allocate")) {
+    const person = members[0]?.name || "Team Member";
+    const task = members[0]?.project || "Core Deliverable";
+    return {
+      answer: `Task assigned! ${person} has been allocated to "${task}". Workload metrics updated.`,
+      suggestedAction: "assign_task",
+      actionPayload: { person, task },
+    };
+  }
+
+  if (q.includes("approve") || q.includes("sign off")) {
+    return {
+      answer: "Plan approved! Workload reallocation changes have been logged in the audit trail for execution.",
+      suggestedAction: "approve_plan",
+    };
+  }
+
+  // Try OpenRouter with live team context
   if (apiKey) {
     try {
+      const memberDescriptions =
+        members.length > 0
+          ? members.map((m: any, i: number) => `${i + 1}. ${m.name} (${m.role || "Member"}, ${m.utilization || 50}% load, task: "${m.project || "General"}")`).join("\n")
+          : "No members added yet";
+
+      const systemPrompt = `You are Alex, the friendly and expert AI Operations Assistant for Resource Pulse.
+Live team context:
+- Today's date: ${dateStr}, time: ${timeStr}.
+- Workspace: ${teamName} (Discipline: ${field}).
+- Active team members:
+${memberDescriptions}
+
+Guidelines:
+1. Speak warmly, clearly, and concisely (1-3 sentences max).
+2. Answer strictly based on the real team context provided above.
+3. NEVER make up fake team members like Arjun Rao, Priya Sharma, or Marcus Vance, and never mention Sprint 44 or fake test labs.
+4. If asked about headcount, workers, or who is on the team, state the exact active team members above.`;
+
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -468,49 +518,27 @@ export async function askAICopilot(query: string): Promise<{
         body: JSON.stringify({
           model: "openrouter/auto",
           messages: [
-            {
-              role: "system",
-              content: `You are Alex, the friendly, highly skilled AI Operations Director and pair-programmer for Resource Pulse (ResourceFlow AI).
-You have full access to the live state of the entire platform:
-${knowledgeSummary}
-
-Guidelines:
-1. Act like an intelligent, warm, interactive human colleague—not a rigid bot. Speak with confidence, empathy, and clarity.
-2. Directly answer ANY question about any person (Arjun, Priya, Marcus, Elena), equipment (GPU Cluster, Test Lab, Redis), budget, metric, cascading risk, scenario, approval, or the website's purpose.
-3. Keep answers concise (2-4 sentences max) so they are easy to read and natural to speak aloud via text-to-speech.
-4. When relevant, proactively suggest next steps (e.g., "Would you like me to run the simulation?" or "Should I assign this task to Arjun and notify the Team Lead?").`,
-            },
+            { role: "system", content: systemPrompt },
             { role: "user", content: query },
           ],
-          max_tokens: 300,
+          max_tokens: 250,
           temperature: 0.7,
         }),
       });
 
       if (response.ok) {
         const data = (await response.json()) as any;
-        const answer = data?.choices?.[0]?.message?.content;
-        if (answer && answer.length > 10) {
-          // Detect suggested action
+        const answer = data?.choices?.[0]?.message?.content?.trim();
+        if (answer && answer.length > 5) {
           let suggestedAction: string | undefined = undefined;
-          let actionPayload: any = undefined;
-
-          if (q.includes("simulation") || q.includes("simulate") || q.includes("what if")) {
-            suggestedAction = "run_simulation";
-          } else if (q.includes("assign") || q.includes("allocate")) {
-            suggestedAction = "assign_task";
-            actionPayload = { person: "Arjun Rao", task: "Mobile Core E2E Automated Testing" };
-          } else if (q.includes("approve") || q.includes("sign off")) {
-            suggestedAction = "approve_plan";
-          } else if (q.includes("impact") || q.includes("delay") || q.includes("cascade")) {
+          if (q.includes("impact") || q.includes("delay") || q.includes("cascade")) {
             suggestedAction = "open_impact";
           } else if (q.includes("scenario") || q.includes("tradeoff")) {
             suggestedAction = "open_scenarios";
-          } else if (q.includes("who") || q.includes("member") || q.includes("rate") || q.includes("load") || q.includes("resource")) {
+          } else if (q.includes("who") || q.includes("member") || q.includes("resource") || q.includes("worker")) {
             suggestedAction = "open_resources";
           }
-
-          return { answer, suggestedAction, actionPayload };
+          return { answer, suggestedAction };
         }
       }
     } catch (e) {
@@ -518,11 +546,14 @@ Guidelines:
     }
   }
 
-  // Robust Semantic Fallback Engine: Answers ANYTHING in the website instantly and humanly
-  return resolveFromLiveKnowledgeBase(q);
+  // Robust Live Fallback Engine using live team context
+  return resolveFromLiveKnowledgeBase(q, teamContext);
 }
 
-function resolveFromLiveKnowledgeBase(q: string): {
+function resolveFromLiveKnowledgeBase(
+  q: string,
+  teamContext?: { teamName?: string; field?: string; members?: any[] }
+): {
   answer: string;
   suggestedAction?: string;
   actionPayload?: any;
@@ -536,146 +567,111 @@ function resolveFromLiveKnowledgeBase(q: string): {
   });
   const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-  // 0a. Date & Time
+  const teamName = teamContext?.teamName || "your team";
+  const members = teamContext?.members || [];
+
+  // 1. Date & Time
   if (q.includes("date") || q.includes("today") || q.includes("day is it") || q.includes("time") || q.includes("current time")) {
     return {
-      answer: `Today is ${dateStr}, and the current operational time is ${timeStr}. All 8 Northstar resources and services are synchronized.`,
+      answer: `Today is ${dateStr}, and the current operational time is ${timeStr}. All operations for ${teamName} are nominal.`,
       suggestedAction: "open_home",
     };
   }
 
-  // 0b. Workers / Headcount
+  // 2. Workers / Headcount / Who is on team
   if (
     q.includes("how many worker") ||
     q.includes("how many people") ||
     q.includes("workers are working") ||
     q.includes("who is working") ||
+    q.includes("who is on the") ||
+    q.includes("who's on the") ||
+    q.includes("who is on team") ||
     q.includes("active workers") ||
+    q.includes("team member") ||
     q.includes("team members")
   ) {
+    if (members.length > 0) {
+      const list = members
+        .map((m: any) => `${m.name} (${m.role || "Contributor"}, ${m.utilization || 50}% load, task: "${m.project || "Active Task"}")`)
+        .join("; ");
+      return {
+        answer: `Your team currently has ${members.length} active member(s): ${list}. Workloads are synchronized with your milestone schedule.`,
+        suggestedAction: "open_resources",
+      };
+    }
     return {
-      answer:
-        "There are 4 core human engineers currently active: Arjun Rao (Senior QA, 96% load), Priya Sharma (Staff Backend, 88% load), Marcus Vance (Cloud DevOps, 64% load), and Elena Rostova (UI/UX, 70% load). In addition, 4 shared infrastructure pools (GPU Cluster, Test Lab, Contingency Reserve, Redis) are online.",
+      answer: `No team members have been added to ${teamName} yet. Go to Resources to add team members or invite peers using your Team Code.`,
       suggestedAction: "open_resources",
     };
   }
 
-  // 0c. Workload Split / Equal Split / Why Reallocate
+  // 3. Workload Split / Equal Split / Why Reallocate
   if (
     q.includes("split") ||
     q.includes("divide") ||
     q.includes("equal") ||
     q.includes("share work") ||
     q.includes("balance work") ||
-    q.includes("reallocate to release train") ||
+    q.includes("why split") ||
     q.includes("why reallocate")
   ) {
+    if (members.length > 1) {
+      return {
+        answer: `Splitting deliverables equally across team peers prevents individual burnout and eliminates single points of failure, protecting ${teamName}'s delivery milestones without external costs.`,
+        suggestedAction: "open_resources",
+      };
+    }
     return {
-      answer:
-        "Instead of overloading one engineer with 100% of the 18h emergency testing load, our AI recommends an Equal 50/50 Workload Split: 9.0h to the primary candidate (Arjun/Marcus) and 9.0h to peer backup (Priya Sharma). This prevents individual burnout while completely unblocking the Release Train.",
+      answer: `With ${members.length === 1 ? members[0].name : "1 member"} currently registered, add or invite teammates with your Team Code to enable automated 50/50 deliverable balancing.`,
       suggestedAction: "open_resources",
     };
   }
 
-  // 1. Arjun Rao
-  if (q.includes("arjun")) {
-    const res = SITE_KNOWLEDGE_BASE.resources[0];
-    return {
-      answer: `Arjun Rao is our Senior QA Automation Engineer ($${res.hourlyRate}/h) currently at ${res.load}. He has 6.5 hours of open availability tomorrow and is our top-recommended candidate (94% probability match) to unblock the Mobile Release Train.`,
-      suggestedAction: "assign_task",
-      actionPayload: { person: "Arjun Rao", task: "Mobile Core E2E Automated Testing" },
-    };
+  // 4. Specific member lookup
+  for (const m of members) {
+    const firstName = (m.name || "").split(" ")[0].toLowerCase();
+    if (firstName && q.includes(firstName)) {
+      return {
+        answer: `${m.name} is working as ${m.role || "Team Member"} at ${m.utilization || 50}% load on "${m.project || "Active Task"}".`,
+        suggestedAction: "open_resources",
+      };
+    }
   }
 
-  // 2. Priya Sharma
-  if (q.includes("priya")) {
-    const res = SITE_KNOWLEDGE_BASE.resources[1];
-    return {
-      answer: `Priya Sharma is our Staff Backend Engineer ($${res.hourlyRate}/h) operating at an optimal ${res.load}. She owns the Northstar Core API and Payment Gateway v2.4 microservices in Go and gRPC, with 4.0h buffer available for escalation.`,
-      suggestedAction: "open_resources",
-    };
-  }
-
-  // 3. Marcus Vance
-  if (q.includes("marcus")) {
-    const res = SITE_KNOWLEDGE_BASE.resources[2];
-    return {
-      answer: `Marcus Vance is our Cloud DevOps Architect ($${res.hourlyRate}/h) at ${res.load}. He's on-call this Friday for EKS infrastructure. Note: our AI flags reallocating Marcus as high risk (42% match) because pulling him would jeopardize cluster stability.`,
-      suggestedAction: "open_resources",
-    };
-  }
-
-  // 4. Elena Rostova
-  if (q.includes("elena")) {
-    const res = SITE_KNOWLEDGE_BASE.resources[3];
-    return {
-      answer: `Elena Rostova is our Senior UI/UX Specialist ($${res.hourlyRate}/h) at ${res.load}, leading Design System 2.0. She has 4 hours open tomorrow; she can verify visual UI acceptance but cannot maintain automated CI/CD pipelines.`,
-      suggestedAction: "open_resources",
-    };
-  }
-
-  // 5. GPU Cluster Alpha
-  if (q.includes("gpu") || q.includes("h100") || q.includes("cluster alpha")) {
-    const res = SITE_KNOWLEDGE_BASE.resources[4];
-    return {
-      answer: `GPU Cluster Alpha houses 4x NVIDIA H100 SXM5 GPUs ($${res.hourlyRate}/h) at ${res.load}, accelerating our Monte-Carlo simulations and inference. It has a routine scheduled maintenance cycle in 72 hours with failover ready.`,
-      suggestedAction: "open_resources",
-    };
-  }
-
-  // 6. Test Lab Alpha
-  if (q.includes("test lab") || q.includes("device") || q.includes("farm") || q.includes("android") || q.includes("ios")) {
-    const res = SITE_KNOWLEDGE_BASE.resources[5];
-    return {
-      answer: `Test Lab Alpha is our physical device farm with 32 iOS 18 & Android 15 test devices ($${res.hourlyRate}/h) at ${res.load}. It currently has 16 free device slots ready for immediate parallel regression runs.`,
-      suggestedAction: "open_resources",
-    };
-  }
-
-  // 7. Budget / Reserve / Money / Rate
-  if (q.includes("budget") || q.includes("reserve") || q.includes("contingency") || q.includes("money") || q.includes("cost")) {
-    const res = SITE_KNOWLEDGE_BASE.resources[6];
-    return {
-      answer: `Our Sprint Contingency Reserve has $1,200 total, with $504 spent (42% utilized) and a healthy $696 buffer remaining. The recommended Balanced Recovery plan requires only $1,200, which is fully authorized within our policy limits.`,
-      suggestedAction: "open_scenarios",
-    };
-  }
-
-  // 8. Redis Cache Cluster
-  if (q.includes("redis") || q.includes("cache")) {
-    const res = SITE_KNOWLEDGE_BASE.resources[7];
-    return {
-      answer: `The Shared Redis Cache Cluster ($${res.hourlyRate}/h) is at 84% load on a 64GB cluster. Memory is stable under the 85% safety ceiling, supporting session stores and rate limiting across Northstar microservices.`,
-      suggestedAction: "open_resources",
-    };
-  }
-
-  // 9. Purpose / Where can this website be used / What is this website
+  // 5. Purpose
   if (
     q.includes("purpose") ||
     q.includes("what is this website") ||
     q.includes("where can this website be used") ||
     q.includes("why do we need") ||
     q.includes("explain the website") ||
-    q.includes("use case")
+    q.includes("use case") ||
+    q.includes("who uses this")
   ) {
     return {
       answer:
-        "Resource Pulse is an AI engineering operations command center. It predicts cascading release delays before they happen when engineers are absent or overloaded, calculates optimal skill-matched replacements with exact probabilities, and allows 1-click human-in-the-loop executive approval. It is used by CTOs, Engineering Managers, and Tech Leads across FinTech, SaaS, and high-velocity engineering organizations.",
-      suggestedAction: "run_simulation",
-    };
-  }
-
-  // 10. Overall Health / Metrics / KPIs
-  if (q.includes("health") || q.includes("metric") || q.includes("kpi") || q.includes("status") || q.includes("overall")) {
-    const kpi = SITE_KNOWLEDGE_BASE.organization;
-    return {
-      answer: `Overall Resource Health is ${kpi.systemHealth} with ${kpi.uptime} system uptime. We have ${kpi.atRiskCapacity}, forecast confidence is at ${kpi.forecastConfidence}, and there are ${kpi.openDecisions}.`,
+        "Resource Pulse is an intelligent capacity management and operations command center. It models active team capacity in real time, predicts delivery bottlenecks before milestones slip, runs 5-second rebalancing simulations, and provides decision intelligence for project leads.",
       suggestedAction: "open_home",
     };
   }
 
-  // 11. Why is the release at risk / Cascading Impact Graph
+  // 6. Overall Health / Metrics / KPIs
+  if (q.includes("health") || q.includes("metric") || q.includes("kpi") || q.includes("status") || q.includes("overall")) {
+    const overloaded = members.filter((m: any) => (m.utilization || 50) > 85);
+    if (overloaded.length > 0) {
+      return {
+        answer: `Team health alert: ${overloaded.map((m: any) => m.name).join(", ")} is at high capacity utilization (>85%). Consider rebalancing deliverables to avoid milestone delays.`,
+        suggestedAction: "open_home",
+      };
+    }
+    return {
+      answer: `Team Health is 100% nominal. All ${members.length || 1} active team member(s) are operating within safe capacity limits with 0 hours at risk.`,
+      suggestedAction: "open_home",
+    };
+  }
+
+  // 7. Cascading Impact / Risk
   if (
     q.includes("why") ||
     q.includes("risk") ||
@@ -683,79 +679,35 @@ function resolveFromLiveKnowledgeBase(q: string): {
     q.includes("cascade") ||
     q.includes("blocked") ||
     q.includes("delay") ||
-    q.includes("slip")
+    q.includes("slip") ||
+    q.includes("bottleneck")
   ) {
-    const imp = SITE_KNOWLEDGE_BASE.cascadingImpactChain;
     return {
-      answer: `A 60% QA bandwidth drop has blocked Mobile Core E2E Testing (+18h), which cascades to delay Payment Gateway v2.4 (+32h). Unmitigated, the Sprint 44 Release Candidate freeze slips by +3.8 calendar days with $4,200 in overtime.`,
+      answer: `All active deliverables in ${teamName} are operating in equilibrium with 0 cascading bottlenecks detected.`,
       suggestedAction: "open_impact",
     };
   }
 
-  // 12. Scenarios / Trade-offs
+  // 8. Scenarios / Trade-offs
   if (q.includes("scenario") || q.includes("tradeoff") || q.includes("compare") || q.includes("option") || q.includes("plan")) {
     return {
       answer:
-        "We have 4 recovery scenarios: Balanced Recovery (Recommended, +2.4d, $1.2k, -38% risk), Protect Deadline (+4.1d, $3.8k, contractor pod), Minimize Cost (+1.2d, $400), and Utilization Leveling (+2.0d, $950). Would you like to review them?",
+        "We support 3 dynamic recovery scenarios: 50/50 Equal Workload Split, Accelerate Milestone Delivery, and Strict Scope Prioritization. You can review and compare them in the Scenarios view.",
       suggestedAction: "open_scenarios",
     };
   }
 
-  // 13. Approvals / Decisions / Governance / Audit Log
-  if (
-    q.includes("approval") ||
-    q.includes("decision") ||
-    q.includes("admin") ||
-    q.includes("lead") ||
-    q.includes("audit") ||
-    q.includes("maya")
-  ) {
-    return {
-      answer:
-        "There are 2 pending decisions: reallocating Arjun Rao to Mobile Core E2E ($1,200) and an overtime authorization for Payment Gateway ($650). Maya Chen previously approved Kafka Overtime ($801) at 08:30 AM today in the audit log.",
-      suggestedAction: "open_approvals",
-    };
-  }
-
-  // 14. Simulation / What If
-  if (q.includes("simulation") || q.includes("simulate") || q.includes("what if") || q.includes("absent")) {
-    return {
-      answer:
-        "Running our absence simulation shows that without intervention, Sprint 44 slips by 3.8 days. Reallocating Arjun Rao recovers 2.4 days with 94% probability, cutting deadline risk by 38%. Opening the live simulation screen now!",
-      suggestedAction: "run_simulation",
-    };
-  }
-
-  // 15. Task Assignment Voice Request
-  if (q.includes("assign") || q.includes("allocate") || q.includes("task")) {
-    return {
-      answer:
-        "Task assigned! Arjun Rao has been allocated to Mobile Core E2E Automated Testing with High Priority. The recovery package has been dispatched to the Admin and Team Lead for sign-off.",
-      suggestedAction: "assign_task",
-      actionPayload: { person: "Arjun Rao", task: "Mobile Core E2E Automated Testing" },
-    };
-  }
-
-  // 16. Approval Voice Request
-  if (q.includes("approve") || q.includes("sign off") || q.includes("confirm")) {
-    return {
-      answer: "Plan approved! Workload reallocation changes have been logged in the audit trail for execution.",
-      suggestedAction: "approve_plan",
-    };
-  }
-
-  // 17. Greetings & General conversation
+  // 9. Greetings & General conversation
   if (q.includes("hello") || q.includes("hi") || q.includes("hey") || q.includes("who are you") || q.includes("what can you do")) {
     return {
-      answer:
-        "Hello! I'm Alex, your AI Operations Copilot for ResourcePulse. I track your team members' workloads, identify capacity bottlenecks, run 5-second simulations, and assist with deliverable rebalancing. Ask me about who is on your team, project status, or tell me to run a simulation!",
+      answer: `Hello! I'm Alex, your AI Operations Copilot for ${teamName}. I track your team members' workloads, identify capacity bottlenecks, run 5-second simulations, and assist with deliverable rebalancing. Ask me about who is on your team, project status, or tell me to run a simulation!`,
       suggestedAction: "open_home",
     };
   }
 
   // Default intelligent human response
   return {
-    answer: "I'm monitoring your workspace telemetry and deliverable schedules. Team capacity is synchronized with your milestone commitments. How can I assist you?",
+    answer: `I'm monitoring ${teamName} workspace telemetry. Workloads and milestone deliverables are synchronized. How can I assist you?`,
     suggestedAction: "open_home",
   };
 }

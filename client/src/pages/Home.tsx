@@ -394,9 +394,10 @@ function Home() {
 
   const liveScenarios = useMemo(() => {
     const overloaded = overloadedTeammates[0] || realTeammates[0];
-    const helper = realTeammates.find((m: any) => m.id !== overloaded?.id) || realTeammates[1] || overloaded;
+    const helper = realTeammates.find((m: any) => m.id !== overloaded?.id) || realTeammates[1];
     const ovName = overloaded?.name || "Teammate";
     const hpName = helper?.name || "Partner";
+    const hasPeers = realTeammates.length > 1;
 
     return [
       {
@@ -404,20 +405,22 @@ function Home() {
         scenarioKey: "balanced" as const,
         title: "50/50 Equal Workload Split",
         subtitle: "Optimal team balance",
-        timeRecovered: "+2.0 days",
+        timeRecovered: hasPeers ? "+2.0 days" : "0.0 days",
         estimatedCost: "$0 (Internal)",
-        riskReduction: "−42%",
-        blurb: `Rebalances ${ovName}’s deliverable equally with ${hpName} to avoid bottlenecking milestones.`,
-        feasible: 1,
+        riskReduction: hasPeers ? "−42%" : "0%",
+        blurb: hasPeers
+          ? `Rebalances ${ovName}’s deliverable equally with ${hpName} to avoid bottlenecking milestones.`
+          : `Invite or add teammates using your Team Code to enable automated 50/50 deliverable balancing.`,
+        feasible: hasPeers ? 1 : 0,
       },
       {
         id: 2,
         scenarioKey: "deadline" as const,
         title: "Accelerate Milestone Delivery",
         subtitle: "Speed-first focus",
-        timeRecovered: "+3.5 days",
+        timeRecovered: hasPeers ? "+3.5 days" : "0.0 days",
         estimatedCost: "$0 (Internal)",
-        riskReduction: "−58%",
+        riskReduction: hasPeers ? "−58%" : "0%",
         blurb: "Pulls forward the critical path by parallelizing module integration.",
         feasible: 1,
       },
@@ -426,14 +429,14 @@ function Home() {
         scenarioKey: "cost" as const,
         title: "Strict Scope Prioritization",
         subtitle: "Scope-lean core",
-        timeRecovered: "+1.2 days",
+        timeRecovered: hasPeers ? "+1.2 days" : "0.0 days",
         estimatedCost: "$0 (Internal)",
-        riskReduction: "−22%",
+        riskReduction: hasPeers ? "−22%" : "0%",
         blurb: "Focuses strictly on critical path deliverables and minimizes idle scope.",
         feasible: 1,
       },
     ];
-  }, [realTeammates, overloadedTeammates]);
+  }, [overloadedTeammates, realTeammates]);
 
   const selected = useMemo(
     () => liveScenarios.find((s) => s.scenarioKey === selectedScenario) ?? liveScenarios[0],
@@ -811,12 +814,51 @@ function Home() {
                       <ArrowUpRight size={15} className="row-arrow" />
                     </button>)}
                   </div>
-                  <div className="panel-footer"><span><span className="mini-avatar avatar-blue">AL</span><span className="mini-avatar avatar-violet">RK</span><span className="mini-avatar avatar-sky">JD</span></span><span>3 owners notified</span><button className="icon-button small" onClick={() => setActiveNav("Resources")}><Plus size={14} /></button></div>
+                  <div className="panel-footer">
+                    <span>
+                      {realTeammates.length > 0 ? (
+                        realTeammates.slice(0, 3).map((m: any, idx: number) => {
+                          const initials = (m.name || "TM")
+                            .split(" ")
+                            .map((n: string) => n[0])
+                            .join("")
+                            .slice(0, 2)
+                            .toUpperCase();
+                          const colors = ["avatar-blue", "avatar-violet", "avatar-sky"];
+                          return (
+                            <span key={m.id || idx} className={`mini-avatar ${colors[idx % colors.length]}`}>
+                              {initials}
+                            </span>
+                          );
+                        })
+                      ) : (
+                        <span className="text-xs text-slate-500">None</span>
+                      )}
+                    </span>
+                    <span>
+                      {realTeammates.length > 0
+                        ? `${realTeammates.length} ${realTeammates.length === 1 ? "owner" : "owners"} notified`
+                        : "0 owners notified"}
+                    </span>
+                    <button className="icon-button small" onClick={() => setActiveNav("Resources")}>
+                      <Plus size={14} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="panel forecast-panel">
-                  <div className="panel-heading"><div><span className="panel-kicker"><TrendingDown size={13} /> FORECAST</span><h3>Capacity pressure</h3></div><button className="period-select" onClick={() => toast("Forecast range", { description: "Showing the next 7 days." })}>Next 7 days <ChevronDown size={13} /></button></div>
-                  <div className="forecast-value"><strong>−12.6</strong><span>hours at risk</span><div className="forecast-badge"><TrendingDown size={13} /> 18.2%</div></div>
+                  <div className="panel-heading">
+                    <div><span className="panel-kicker"><TrendingDown size={13} /> FORECAST</span><h3>Capacity pressure</h3></div>
+                    <button className="period-select" onClick={() => toast("Forecast range", { description: "Showing the next 7 days." })}>Next 7 days <ChevronDown size={13} /></button>
+                  </div>
+                  <div className="forecast-value">
+                    <strong>{overloadedTeammates.length > 0 ? `−${(overloadedTeammates.length * 6.5).toFixed(1)}` : "0.0"}</strong>
+                    <span>hours at risk</span>
+                    <div className="forecast-badge">
+                      {overloadedTeammates.length > 0 ? <TrendingDown size={13} /> : null}{" "}
+                      {overloadedTeammates.length > 0 ? `${(overloadedTeammates.length * 18.2).toFixed(1)}%` : "0.0%"}
+                    </div>
+                  </div>
                   <div className="chart-wrap">
                     <div className="chart-y-labels"><span>100%</span><span>75%</span><span>50%</span><span>25%</span></div>
                     <svg viewBox="0 0 500 138" className="forecast-chart" preserveAspectRatio="none" aria-label="Capacity pressure forecast chart">

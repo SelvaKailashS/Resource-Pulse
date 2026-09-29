@@ -94,18 +94,30 @@ export const appRouter = router({
     runAI: publicProcedure
       .input(
         z.object({
-          absentResourceId: z.string().default("RES-01"),
-          absentResourceName: z.string().default("Arjun Rao"),
-          role: z.string().default("Senior QA Automation Engineer"),
-          project: z.string().default("Support Pod"),
+          absentResourceId: z.string().default("MEM-01"),
+          absentResourceName: z.string().default("Team Member"),
+          role: z.string().default("Specialist"),
+          project: z.string().default("Core Deliverable"),
           bufferDays: z.number().optional().default(3),
           budgetCeiling: z.number().optional().default(3500),
+          availableTeammates: z.array(z.any()).optional(),
         })
       )
       .query(async ({ input }) => runAISimulation(input)),
     ask: publicProcedure
-      .input(z.object({ query: z.string() }))
-      .mutation(async ({ input }) => askAICopilot(input.query)),
+      .input(
+        z.object({
+          query: z.string(),
+          teamContext: z
+            .object({
+              teamName: z.string().optional(),
+              field: z.string().optional(),
+              members: z.array(z.any()).optional(),
+            })
+            .optional(),
+        })
+      )
+      .mutation(async ({ input }) => askAICopilot(input.query, input.teamContext)),
   }),
   billing: router({
     status: protectedProcedure.query(async ({ ctx }) => {

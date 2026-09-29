@@ -521,10 +521,10 @@ export function VoiceAssistantCopilot({
 
     if (
       action === "open_resources" ||
-      replyText.toLowerCase().includes("arjun") ||
-      replyText.toLowerCase().includes("priya") ||
-      replyText.toLowerCase().includes("marcus") ||
-      replyText.toLowerCase().includes("worker")
+      replyText.toLowerCase().includes("teammate") ||
+      replyText.toLowerCase().includes("member") ||
+      replyText.toLowerCase().includes("worker") ||
+      replyText.toLowerCase().includes("capacity")
     ) {
       quickActions.push({
         label: "View in Resources",
