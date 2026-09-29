@@ -739,24 +739,23 @@ function resolveFromLiveKnowledgeBase(q: string): {
   // 16. Approval Voice Request
   if (q.includes("approve") || q.includes("sign off") || q.includes("confirm")) {
     return {
-      answer:
-        "Plan approved! The reallocation of Arjun Rao has been verified against skill and budget constraints, and logged into the audit trail for execution.",
+      answer: "Plan approved! Workload reallocation changes have been logged in the audit trail for execution.",
       suggestedAction: "approve_plan",
     };
   }
 
   // 17. Greetings & General conversation
-  if (q.includes("hello") || q.includes("hi") || q.includes("hey") || q.includes("who are you")) {
+  if (q.includes("hello") || q.includes("hi") || q.includes("hey") || q.includes("who are you") || q.includes("what can you do")) {
     return {
       answer:
-        "Hello! I'm Alex, your AI Operations Copilot for Resource Pulse. I track all 8 resources, live bottlenecks, cascading risks, and multi-scenario tradeoffs. Ask me anything, or speak a command like 'Show resources', 'Why is release at risk?', or 'Run simulation'!",
+        "Hello! I'm Alex, your AI Operations Copilot for ResourcePulse. I track your team members' workloads, identify capacity bottlenecks, run 5-second simulations, and assist with deliverable rebalancing. Ask me about who is on your team, project status, or tell me to run a simulation!",
       suggestedAction: "open_home",
     };
   }
 
   // Default intelligent human response
   return {
-    answer: `I'm monitoring all 8 resources across Northstar Ops. Overall resource health is 87.4% with 94.2% forecast confidence. Mobile Core E2E testing has a 12.6h capacity shortfall, and Arjun Rao is our top recovery candidate. How can I assist you?`,
+    answer: "I'm monitoring your workspace telemetry and deliverable schedules. Team capacity is synchronized with your milestone commitments. How can I assist you?",
     suggestedAction: "open_home",
   };
 }

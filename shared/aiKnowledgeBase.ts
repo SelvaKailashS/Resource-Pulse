@@ -465,45 +465,89 @@ export function resolveQueryKnowledgeBase(query: string): {
 
   // 17. Simulation / What If
   if (q.includes("simulation") || q.includes("simulate") || q.includes("what if") || q.includes("absent")) {
+    let memberName = "a team member";
+    try {
+      if (typeof window !== "undefined") {
+        const raw = localStorage.getItem("resourcepulse_student_resources");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed[0]?.name) memberName = parsed[0].name;
+        }
+      }
+    } catch {}
     return {
-      answer:
-        "Running our absence simulation shows that without intervention, Sprint 44 slips by 3.8 days. Reallocating Arjun Rao recovers 2.4 days with 94% probability, cutting deadline risk by 38%. Opening the live simulation screen now!",
+      answer: `Launching live simulation! Evaluating workload impact if ${memberName} is absent and computing recovery paths. Opening the simulation screen now!`,
       suggestedAction: "run_simulation",
     };
   }
 
   // 18. Task Assignment Voice Request
   if (q.includes("assign") || q.includes("allocate") || q.includes("task")) {
+    let person = "Team Member";
+    let task = "Core Deliverable";
+    try {
+      if (typeof window !== "undefined") {
+        const raw = localStorage.getItem("resourcepulse_student_resources");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed[0]) {
+            person = parsed[0].name || person;
+            task = parsed[0].project || task;
+          }
+        }
+      }
+    } catch {}
     return {
-      answer:
-        "Task assigned! Arjun Rao has been allocated to Mobile Core E2E Automated Testing with High Priority. The recovery package has been dispatched to the Admin and Team Lead for sign-off.",
+      answer: `Task assigned! ${person} has been allocated to "${task}". Reallocation request logged for team review.`,
       suggestedAction: "assign_task",
-      actionPayload: { person: "Arjun Rao", task: "Mobile Core E2E Automated Testing" },
+      actionPayload: { person, task },
     };
   }
 
   // 19. Approval Voice Request
   if (q.includes("approve") || q.includes("sign off") || q.includes("confirm")) {
     return {
-      answer:
-        "Plan approved! The reallocation of Arjun Rao has been verified against skill and budget constraints, and logged into the audit trail for execution.",
+      answer: "Plan approved! Workload reallocation changes have been logged in the audit trail for execution.",
       suggestedAction: "approve_plan",
     };
   }
 
   // 20. Greetings & General conversation
   if (q.includes("hello") || q.includes("hi") || q.includes("hey") || q.includes("who are you") || q.includes("what can you do")) {
+    let currentTeam = "your team";
+    try {
+      if (typeof window !== "undefined") {
+        currentTeam = localStorage.getItem("resourcepulse_team_name") || "your team";
+      }
+    } catch {}
     return {
-      answer:
-        "Hello! I'm Alex, your AI Operations Copilot for Resource Pulse. I track all 8 resources, live bottlenecks, cascading risks, and multi-scenario tradeoffs. Ask me anything, or speak a command like 'Show resources', 'Why is release at risk?', or 'Run simulation'!",
+      answer: `Hello! I'm Alex, your AI Operations Copilot for ${currentTeam}. I track your team members' workloads, identify capacity bottlenecks, run 5-second simulations, and assist with deliverable rebalancing. Ask me about who is on your team, project status, or tell me to run a simulation!`,
       suggestedAction: "open_home",
     };
   }
 
   // Default intelligent human response
+  let teamCount = 0;
+  let currentTeamName = "your team";
+  let teamSummary = "";
+  try {
+    if (typeof window !== "undefined") {
+      currentTeamName = localStorage.getItem("resourcepulse_team_name") || "your team";
+      const raw = localStorage.getItem("resourcepulse_student_resources");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          teamCount = parsed.length;
+          teamSummary = `Tracking ${teamCount} active member(s): ` + parsed.map((m: any) => `${m.name} (${m.role})`).join(", ") + ".";
+        }
+      }
+    }
+  } catch {}
+
   return {
-    answer:
-      "I'm monitoring all 8 resources across Northstar Ops. Overall resource health is 87.4% with 94.2% forecast confidence. Mobile Core E2E testing has a 12.6h capacity shortfall, and Arjun Rao is our top recovery candidate. How can I assist you?",
+    answer: teamCount > 0
+      ? `I'm monitoring ${currentTeamName}. ${teamSummary} Workloads are synchronized with your milestone schedule. How can I assist you?`
+      : `I'm monitoring your ${currentTeamName} workspace. You can add your team members in Resources or click 'AI Project Setup' to configure deliverables! How can I assist you?`,
     suggestedAction: "open_home",
   };
 }

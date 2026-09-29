@@ -74,19 +74,22 @@ export function VoiceAssistantCopilot({
     return parseFloat(localStorage.getItem("rp_voice_rate") || "1.05");
   });
 
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: "1",
-      sender: "ai",
-      text: "Hello! I'm Alex, your interactive AI Operations Copilot. You can talk to me naturally or type. Ask me anything about our 8 resources, project bottlenecks, cascading delays, or scenarios!",
-      timestamp: "Just now",
-      quickActions: [
-        { label: "Run 5s Simulation", action: () => onLaunchSimulation(), icon: Play },
-        { label: "Why split workload?", action: () => handleDirectQuery("Why split the workload?"), icon: GitBranch },
-        { label: "Who is on the team?", action: () => handleDirectQuery("Who is on the team?"), icon: Users },
-      ],
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    const currentTeam = typeof window !== "undefined" ? localStorage.getItem("resourcepulse_team_name") || "your team" : "your team";
+    return [
+      {
+        id: "1",
+        sender: "ai",
+        text: `Hello! I'm Alex, your AI Operations Copilot for ${currentTeam}. Ask me anything about your team's workload capacity, deliverables, project bottlenecks, or simulation scenarios!`,
+        timestamp: "Just now",
+        quickActions: [
+          { label: "Who is on the team?", action: () => handleDirectQuery("Who is on the team?"), icon: Users },
+          { label: "Run simulation", action: () => onLaunchSimulation(), icon: Play },
+          { label: "What can you do?", action: () => handleDirectQuery("What can you do?"), icon: GitBranch },
+        ],
+      },
+    ];
+  });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
@@ -372,32 +375,57 @@ export function VoiceAssistantCopilot({
       const now = new Date();
       const dateStr = now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
       const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-      handleAIResponse(`Today is ${dateStr}, and the current operational time is ${timeStr}. All 8 resources are active across Northstar Ops.`);
+      const currentTeam = localStorage.getItem("resourcepulse_team_name") || "your team";
+      handleAIResponse(`Today is ${dateStr}, and the current time is ${timeStr}. Monitoring live operations for ${currentTeam}.`);
       return;
     }
 
-    // 3. Workers / Team headcount queries
+    // 3. Workers / Team headcount / Who is on the team queries
     if (
       lower.includes("how many workers") ||
       lower.includes("workers are working") ||
       lower.includes("who is working") ||
       lower.includes("how many people") ||
       lower.includes("team members") ||
-      lower.includes("how many resources")
+      lower.includes("how many resources") ||
+      lower.includes("who is on the team") ||
+      lower.includes("who is on team") ||
+      lower.includes("team roster") ||
+      lower.includes("my team") ||
+      lower.includes("show team")
     ) {
-      let teamSummary = "There are no teammates registered yet. Add your teammates in the Resources tab.";
+      let teamSummary = "There are no teammates registered yet. Add your teammates in the Resources tab or use the AI Project Setup.";
       try {
         const raw = localStorage.getItem("resourcepulse_student_resources");
         if (raw) {
           const parsed = JSON.parse(raw);
           if (Array.isArray(parsed) && parsed.length > 0) {
             const teamName = localStorage.getItem("resourcepulse_team_name") || "your team";
-            teamSummary = `There are ${parsed.length} active members in ${teamName}: ` +
-              parsed.map((m: any) => `${m.name} (${m.role}, ${m.utilization}% load)`).join(", ") + ".";
+            teamSummary = `There are ${parsed.length} active member(s) in ${teamName}: ` +
+              parsed.map((m: any) => `${m.name} (${m.role}, ${m.utilization}% load, working on: "${m.project}")`).join(", ") + ".";
           }
         }
       } catch {}
       handleAIResponse(teamSummary, "open_resources");
+      return;
+    }
+
+    // 4. Greetings & What can you do
+    if (
+      lower.includes("what can you do") ||
+      lower.includes("who are you") ||
+      lower.includes("hello") ||
+      lower.includes("hi alex") ||
+      lower.includes("hey alex") ||
+      lower === "hi" ||
+      lower === "hey" ||
+      lower === "hello"
+    ) {
+      const currentTeam = localStorage.getItem("resourcepulse_team_name") || "your team";
+      handleAIResponse(
+        `Hello! I'm Alex, your AI Operations Copilot for ${currentTeam}. I track your team members' workloads, identify capacity bottlenecks, run 5-second simulations, and assist with deliverable rebalancing. Ask me about who is on your team, project status, or tell me to run a simulation!`,
+        "open_home"
+      );
       return;
     }
 
