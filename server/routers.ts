@@ -23,7 +23,7 @@ import {
   setUserRole,
   updatePreferences,
 } from "./db";
-import { runAISimulation, askAICopilot } from "./aiService";
+import { runAISimulation, askAICopilot, splitTaskWithAI } from "./aiService";
 
 const preferenceInput = z.object({
   emailAlerts: z.boolean(),
@@ -118,6 +118,19 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input }) => askAICopilot(input.query, input.teamContext)),
+    splitTask: publicProcedure
+      .input(
+        z.object({
+          goal: z.string(),
+          documentContent: z.string().optional(),
+          fileType: z.string().optional(),
+          fileName: z.string().optional(),
+          imageDataUrl: z.string().optional(),
+          teamMembers: z.array(z.any()),
+          deadline: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input }) => splitTaskWithAI(input)),
   }),
   billing: router({
     status: protectedProcedure.query(async ({ ctx }) => {

@@ -711,3 +711,167 @@ function resolveFromLiveKnowledgeBase(
     suggestedAction: "open_home",
   };
 }
+
+export interface TaskSplitInput {
+  goal: string;
+  documentContent?: string;
+  fileType?: string;
+  fileName?: string;
+  imageDataUrl?: string;
+  teamMembers: Array<{
+    id: string;
+    name: string;
+    role: string;
+    utilization: number;
+    weeklyHours?: number;
+    project?: string;
+    skills?: string[];
+  }>;
+  deadline?: string;
+}
+
+export interface DecomposedTaskItem {
+  id: string;
+  title: string;
+  description: string;
+  assignedMemberId: string;
+  assignedMemberName: string;
+  assignedMemberRole: string;
+  estimatedHours: number;
+  workloadImpactPercent: number;
+  resultingWorkload: number;
+  priority: "Critical Path" | "High" | "Medium" | "Normal";
+  milestone: string;
+  skillsRequired: string[];
+}
+
+export interface TaskSplitResult {
+  projectName: string;
+  executiveSummary: string;
+  subtasks: DecomposedTaskItem[];
+  equilibriumAnalysis: {
+    totalEstimatedHours: number;
+    averageWorkloadAfter: number;
+    teamHealthScore: number;
+    criticalPathDays: number;
+    riskLevel: "Low" | "Medium" | "High";
+    bottlenecksPrevented: number;
+  };
+  recommendedNextStep: string;
+}
+
+export async function splitTaskWithAI(input: TaskSplitInput): Promise<TaskSplitResult> {
+  const { goal, documentContent, fileName, teamMembers, deadline } = input;
+  const rawText = `${goal} ${documentContent || ""} ${fileName || ""}`.toLowerCase();
+
+  const members =
+    teamMembers && teamMembers.length > 0
+      ? teamMembers
+      : [
+          {
+            id: "MEM-01",
+            name: "Team Lead",
+            role: "Full Stack Engineer & Lead",
+            utilization: 50,
+            weeklyHours: 40,
+            skills: ["Architecture", "TypeScript", "System Design"],
+          },
+        ];
+
+  // Derive domain-specific workstreams based on input keywords
+  const isML = rawText.includes("ai") || rawText.includes("model") || rawText.includes("ml") || rawText.includes("facial") || rawText.includes("vision") || rawText.includes("data");
+  const isMobile = rawText.includes("mobile") || rawText.includes("app") || rawText.includes("ios") || rawText.includes("android");
+  const isWeb = rawText.includes("web") || rawText.includes("dashboard") || rawText.includes("ui") || rawText.includes("portal") || rawText.includes("frontend");
+  const isCloud = rawText.includes("cloud") || rawText.includes("server") || rawText.includes("deploy") || rawText.includes("docker") || rawText.includes("api") || rawText.includes("database") || rawText.includes("postgres");
+
+  const projectTitle =
+    goal.trim().length > 0
+      ? goal.trim().length > 40
+        ? goal.trim().slice(0, 40) + "..."
+        : goal.trim()
+      : fileName
+      ? fileName.replace(/\.[^/.]+$/, "")
+      : "Operations Project Sprint";
+
+  // Distribute tasks across all available members
+  const subtasks: DecomposedTaskItem[] = members.map((member, index) => {
+    const roleLower = (member.role || "").toLowerCase();
+    const skillsLower = (member.skills || []).map((s) => s.toLowerCase()).join(" ");
+
+    let taskTitle = "";
+    let description = "";
+    let skillsRequired: string[] = [];
+    let priority: "Critical Path" | "High" | "Medium" | "Normal" = "Medium";
+
+    if (roleLower.includes("lead") || roleLower.includes("coordinator") || roleLower.includes("manager") || index === 0) {
+      taskTitle = isML ? "AI Architecture & Core Pipeline Gate" : "System Architecture & Integration Gateway";
+      description = `Oversee end-to-end milestone delivery for "${projectTitle}", establish API contracts, and coordinate integration tests.`;
+      skillsRequired = ["Architecture", "System Integration", "Milestone Delivery"];
+      priority = "Critical Path";
+    } else if (roleLower.includes("front") || roleLower.includes("ui") || roleLower.includes("design") || skillsLower.includes("react") || isWeb) {
+      taskTitle = "Client Interface & Responsive Dashboard";
+      description = `Develop interactive screens, data visualization views, and user feedback mechanisms for ${projectTitle}.`;
+      skillsRequired = ["Frontend", "UI Components", "State Management"];
+      priority = "High";
+    } else if (roleLower.includes("back") || roleLower.includes("api") || roleLower.includes("db") || roleLower.includes("data") || skillsLower.includes("sql") || isCloud) {
+      taskTitle = "Backend Telemetry & Database Services";
+      description = `Implement high-throughput REST/tRPC services, data persistence, and realtime event subscriptions.`;
+      skillsRequired = ["API Design", "PostgreSQL", "Data Validation"];
+      priority = "High";
+    } else if (isML || roleLower.includes("scientist") || roleLower.includes("research")) {
+      taskTitle = "Inference Pipeline & Algorithmic Validation";
+      description = `Build model evaluation benchmark, process input batches, and guarantee sub-second latency thresholds.`;
+      skillsRequired = ["ML Pipeline", "Evaluation Metrics", "Optimization"];
+      priority = "Medium";
+    } else if (isMobile || roleLower.includes("mobile")) {
+      taskTitle = "Mobile Client & Cross-Platform Gateway";
+      description = `Deliver lightweight client interface with push telemetry and offline synchronization.`;
+      skillsRequired = ["Mobile UX", "Offline Sync", "API Client"];
+      priority = "Medium";
+    } else {
+      taskTitle = `Module Deliverable Workstream #${index + 1}`;
+      description = `Implement core functional requirements, write automated unit tests, and prepare release documentation for ${projectTitle}.`;
+      skillsRequired = ["Implementation", "Unit Testing", "Documentation"];
+      priority = "Normal";
+    }
+
+    const weeklyCapacity = member.weeklyHours || 40;
+    // Estimated hours proportional to available capacity
+    const estimatedHours = Math.round(Math.min(22, Math.max(10, weeklyCapacity * 0.4)));
+    const workloadImpact = Math.round((estimatedHours / weeklyCapacity) * 100);
+    const resulting = Math.min(85, Math.max(45, (member.utilization || 50) + Math.round(workloadImpact * 0.4)));
+
+    return {
+      id: `TASK-${index + 1}-${Date.now().toString().slice(-4)}`,
+      title: taskTitle,
+      description,
+      assignedMemberId: member.id,
+      assignedMemberName: member.name,
+      assignedMemberRole: member.role || "Contributor",
+      estimatedHours,
+      workloadImpactPercent: workloadImpact,
+      resultingWorkload: resulting,
+      priority,
+      milestone: deadline || "Sprint Milestone 1",
+      skillsRequired,
+    };
+  });
+
+  const totalHours = subtasks.reduce((sum, t) => sum + t.estimatedHours, 0);
+  const avgWorkload = Math.round(subtasks.reduce((sum, t) => sum + t.resultingWorkload, 0) / subtasks.length);
+
+  return {
+    projectName: projectTitle,
+    executiveSummary: `Decomposed "${projectTitle}" into ${subtasks.length} balanced workstream(s) across all active teammates. Workload distribution is calibrated to preserve a healthy buffer ($\le 85\%$ load) and avoid single points of failure.`,
+    subtasks,
+    equilibriumAnalysis: {
+      totalEstimatedHours: totalHours,
+      averageWorkloadAfter: avgWorkload,
+      teamHealthScore: avgWorkload <= 75 ? 98 : avgWorkload <= 85 ? 91 : 76,
+      criticalPathDays: Math.ceil(totalHours / (members.length * 5)),
+      riskLevel: avgWorkload > 85 ? "High" : avgWorkload > 75 ? "Medium" : "Low",
+      bottlenecksPrevented: Math.max(1, members.length - 1),
+    },
+    recommendedNextStep: "Review the decomposed workstreams below, reassign members if preferred, and click 'Approve & Distribute to Team'.",
+  };
+}

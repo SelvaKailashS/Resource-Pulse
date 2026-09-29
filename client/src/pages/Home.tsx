@@ -13,6 +13,7 @@ import { LiveFeedModal } from "@/components/LiveFeedModal";
 import { IntegrationsModal } from "@/components/IntegrationsModal";
 import { CommandPaletteModal } from "@/components/CommandPaletteModal";
 import { TeamChatView } from "@/components/TeamChatView";
+import { TaskSplitModal } from "@/components/TaskSplitModal";
 import { track } from "@/lib/analytics";
 import { recordTaskAssignment, recordApprovalDecision } from "@/lib/supabase";
 import {
@@ -111,6 +112,7 @@ function Home() {
   const [activeNav, setActiveNav] = useState("Command center");
   const [accountOpen, setAccountOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isTaskSplitOpen, setIsTaskSplitOpen] = useState(false);
   const [isAiNeedsOpen, setIsAiNeedsOpen] = useState(() => {
     try {
       return localStorage.getItem("resourcepulse_needs_setup_pending") === "true";
@@ -625,6 +627,14 @@ function Home() {
               <span className="notification-dot" />
             </button>
             <button
+              className="primary-button text-xs py-1.5 px-3 flex items-center gap-1.5 font-bold bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 shadow-md text-white border-0 cursor-pointer"
+              onClick={() => setIsTaskSplitOpen(true)}
+              title="Add task, upload document/image, and let AI split work across your team"
+            >
+              <Plus size={15} />
+              <span>+ Add Task</span>
+            </button>
+            <button
               className="command-button"
               style={{
                 color: "#38bdf8",
@@ -1063,6 +1073,18 @@ function Home() {
         open={isAiNeedsOpen}
         onOpenChange={setIsAiNeedsOpen}
         onPlanApplied={() => {
+          try {
+            const stored = localStorage.getItem("resourcepulse_student_resources");
+            if (stored) setRealTeammates(JSON.parse(stored));
+          } catch {}
+          void loadDashboard(true);
+        }}
+      />
+
+      <TaskSplitModal
+        open={isTaskSplitOpen}
+        onOpenChange={setIsTaskSplitOpen}
+        onTaskDistributed={() => {
           try {
             const stored = localStorage.getItem("resourcepulse_student_resources");
             if (stored) setRealTeammates(JSON.parse(stored));

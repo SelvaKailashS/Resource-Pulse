@@ -26,6 +26,7 @@ import {
   Clock,
 } from "lucide-react";
 import { toast } from "sonner";
+import { TaskSplitModal } from "./TaskSplitModal";
 
 export interface ResourceItem {
   id: string;
@@ -108,6 +109,7 @@ export function ResourcesView({
 
   // Batch Import state
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isTaskSplitOpen, setIsTaskSplitOpen] = useState(false);
   const [previewImportItems, setPreviewImportItems] = useState<ResourceItem[]>([]);
   const [importMode, setImportMode] = useState<"append" | "replace">("append");
 
@@ -672,6 +674,14 @@ export function ResourcesView({
           >
             <Upload size={14} className="text-sky-400" />
             <span>Import CSV / JSON</span>
+          </button>
+          <button
+            className="secondary-button text-xs flex items-center gap-1.5 border-sky-400/40 hover:border-sky-300 text-sky-300 font-bold bg-sky-500/10"
+            onClick={() => setIsTaskSplitOpen(true)}
+            title="Add a project task, upload documents/images, and let AI split work across your team"
+          >
+            <Sparkles size={14} className="text-sky-400" />
+            <span>+ Add Task (AI Split)</span>
           </button>
           <button
             className="primary-button text-xs flex items-center gap-1.5"
@@ -1539,6 +1549,18 @@ export function ResourcesView({
           </div>
         </div>
       )}
+
+      {/* Task Split Modal */}
+      <TaskSplitModal
+        open={isTaskSplitOpen}
+        onOpenChange={setIsTaskSplitOpen}
+        onTaskDistributed={() => {
+          try {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) setResources(JSON.parse(stored));
+          } catch {}
+        }}
+      />
     </div>
   );
 }
