@@ -20,6 +20,7 @@ import {
   Bell,
   BellRing,
   Boxes,
+  Briefcase,
   Bot,
   Check,
   ChevronDown,
