@@ -17,6 +17,13 @@ import {
   Copy,
   Link as LinkIcon,
   Share2,
+  Upload,
+  Download,
+  FileSpreadsheet,
+  Mail,
+  MessageCircle,
+  Send,
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -36,6 +43,8 @@ export interface ResourceItem {
   avatarBg: string;
   upcoming: string;
   constraints: string;
+  email?: string;
+  phone?: string;
 }
 
 const STORAGE_KEY = "resourcepulse_student_resources";
@@ -94,12 +103,281 @@ export function ResourcesView({
   const [formProject, setFormProject] = useState("");
   const [formSkills, setFormSkills] = useState("");
   const [formConstraints, setFormConstraints] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formPhone, setFormPhone] = useState("");
+
+  // Batch Import state
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [previewImportItems, setPreviewImportItems] = useState<ResourceItem[]>([]);
+  const [importMode, setImportMode] = useState<"append" | "replace">("append");
 
   const currentTeamName = localStorage.getItem("resourcepulse_team_name") || "Operations Team";
   const teamCode = localStorage.getItem("resourcepulse_team_code") || "RP-7842";
   const inviteLink = typeof window !== "undefined"
     ? `${window.location.origin}/?join=${teamCode}&team=${encodeURIComponent(currentTeamName)}`
     : "";
+
+  const sendWhatsAppNotification = (res: ResourceItem, contextNote?: string) => {
+    const text =
+      `⚡ *Resource Pulse Operations Telemetry*\n\n` +
+      `Hello ${res.name},\n` +
+      (contextNote ? `📢 *Notice:* ${contextNote}\n\n` : "") +
+      `📋 *Assigned Deliverable:* ${res.project}\n` +
+      `⏱ *Weekly Capacity:* ${res.weeklyHours || 40} hrs (${res.utilization}% load)\n` +
+      `🚦 *Status:* ${res.status}\n` +
+      `🎯 *Risk Level:* ${res.risk}\n\n` +
+      `_Automated AI Operations Dispatch - Resource Pulse_`;
+
+    if (res.phone) {
+      const cleanPhone = res.phone.replace(/[^0-9]/g, "");
+      window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, "_blank");
+      toast.success(`WhatsApp dispatch opened for ${res.name}`, {
+        description: `Alert prepared for ${cleanPhone}.`,
+      });
+    } else {
+      navigator.clipboard.writeText(text);
+      window.open(`https://web.whatsapp.com/`, "_blank");
+      toast.info(`WhatsApp Alert Copied for ${res.name}`, {
+        description: "Text copied to clipboard. Opening WhatsApp Web...",
+      });
+    }
+  };
+
+  const sendEmailNotification = (res: ResourceItem, contextNote?: string) => {
+    const subject = `[Resource Pulse] Sprint Telemetry: ${res.project}`;
+    const body =
+      `Hello ${res.name},\n\n` +
+      (contextNote ? `Notice: ${contextNote}\n\n` : "") +
+      `Here is your latest sprint telemetry from Resource Pulse:\n\n` +
+      `• Assigned Deliverable: ${res.project}\n` +
+      `• Weekly Available Capacity: ${res.weeklyHours || 40} hours\n` +
+      `• Current Workload: ${res.utilization}%\n` +
+      `• Milestone Status: ${res.status}\n` +
+      `• Delivery Risk: ${res.risk}\n\n` +
+      `Please ensure upcoming milestones are on track or flag blockers in the team workspace.\n\n` +
+      `Best regards,\nResource Pulse Operations`;
+
+    if (res.email) {
+      window.location.href = `mailto:${res.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      toast.success(`Email client opened for ${res.name}`);
+    } else {
+      navigator.clipboard.writeText(`Subject: ${subject}\n\n${body}`);
+      toast.info("Email briefing copied to clipboard!", {
+        description: `No email address saved for ${res.name}. Text copied to clipboard.`,
+      });
+    }
+  };
+
+  const downloadSampleCSV = () => {
+    const csvContent =
+      "Name,Role,Workload,WeeklyHours,Deliverable,Skills,Email,Phone\n" +
+      "Kailash,Team Lead,55,40,Academic Research & Lab Milestone,Leadership; Python; Cloud,kailash@university.edu,+919876543210\n" +
+      "Priya Sharma,Data Scientist,65,40,ML Model Evaluation & Pipeline,PyTorch; NumPy; SQL,priya@university.edu,+919876543211\n" +
+      "Rohan Verma,Backend Engineer,50,40,Supabase & TRPC API Integration,TypeScript; Node.js; Docker,rohan@university.edu,+919876543212\n" +
+      "Ananya Iyer,UI/UX Researcher,45,35,User Journey & Usability Testing,Figma; React; Wireframing,ananya@university.edu,+919876543213\n";
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "resourcepulse_team_roster_template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("CSV Template Downloaded", {
+      description: "Fill this template in Excel/Sheets and re-upload here.",
+    });
+  };
+
+  const downloadSampleJSON = () => {
+    const sampleData = [
+      {
+        name: "Kailash",
+        role: "Team Lead",
+        utilization: 55,
+        weeklyHours: 40,
+        project: "Academic Research & Lab Milestone",
+        skills: ["Leadership", "Python", "Cloud"],
+        email: "kailash@university.edu",
+        phone: "+919876543210"
+      },
+      {
+        name: "Priya Sharma",
+        role: "Data Scientist",
+        utilization: 65,
+        weeklyHours: 40,
+        project: "ML Model Evaluation & Pipeline",
+        skills: ["PyTorch", "NumPy", "SQL"],
+        email: "priya@university.edu",
+        phone: "+919876543211"
+      }
+    ];
+
+    const blob = new Blob([JSON.stringify(sampleData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "resourcepulse_team_roster_template.json");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("JSON Template Downloaded");
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        if (!text) return;
+
+        let parsedItems: ResourceItem[] = [];
+
+        if (file.name.endsWith(".json")) {
+          const json = JSON.parse(text);
+          if (Array.isArray(json)) {
+            parsedItems = json.map((item: any, idx: number) => {
+              const util = Number(item.utilization || item.workload || 50);
+              const weekly = Number(item.weeklyHours || item.capacity || 40);
+              const initials = (item.name || "TM")
+                .split(" ")
+                .map((n: string) => n[0])
+                .join("")
+                .toUpperCase()
+                .slice(0, 2);
+              return {
+                id: item.id || `MEM-IMPORT-${idx + 1}-${Date.now().toString().slice(-4)}`,
+                name: String(item.name || `Teammate ${idx + 1}`),
+                role: String(item.role || "Specialist"),
+                type: String(item.type || (idx === 0 && resources.length === 0 ? "Team Lead" : "Core Member")),
+                status: (util > 85 ? "High Load" : "Available") as any,
+                utilization: util,
+                weeklyHours: weekly,
+                project: String(item.project || item.deliverable || item.task || "Assigned Deliverable"),
+                skills: Array.isArray(item.skills)
+                  ? item.skills
+                  : typeof item.skills === "string"
+                  ? item.skills.split(/[;,]/).map((s: string) => s.trim()).filter(Boolean)
+                  : ["Operations"],
+                costRate: "Internal Resource",
+                risk: util > 85 ? "High" : util > 70 ? "Medium" : "Low",
+                avatarText: initials || "TM",
+                avatarBg: util > 80 ? "from-amber-600 to-rose-600" : "from-sky-600 to-indigo-600",
+                upcoming: `${item.project || "Deliverable"} on schedule`,
+                constraints: item.constraints || "Standard availability",
+                email: item.email || undefined,
+                phone: item.phone || undefined,
+              };
+            });
+          }
+        } else {
+          // CSV Parser
+          const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+          if (lines.length > 1) {
+            const rawHeaders = lines[0].split(",").map((h) => h.trim().toLowerCase().replace(/[^a-z0-9]/g, ""));
+            parsedItems = lines.slice(1).map((line, idx) => {
+              const cols = line.split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
+              const row: Record<string, string> = {};
+              rawHeaders.forEach((header, colIdx) => {
+                row[header] = cols[colIdx] || "";
+              });
+
+              const name = row.name || `Teammate ${idx + 1}`;
+              const role = row.role || "Specialist";
+              const util = Number(row.workload || row.utilization || 50);
+              const weekly = Number(row.weeklyhours || row.capacity || 40);
+              const project = row.deliverable || row.project || row.task || "Sprint Deliverable";
+              const skills = (row.skills || "Collaboration")
+                .split(/[;]/)
+                .map((s) => s.trim())
+                .filter(Boolean);
+              const email = row.email || undefined;
+              const phone = row.phone || row.whatsapp || undefined;
+
+              const initials = name
+                .split(" ")
+                .map((n) => n[0])
+                .join("")
+                .toUpperCase()
+                .slice(0, 2);
+
+              return {
+                id: `MEM-CSV-${idx + 1}-${Date.now().toString().slice(-4)}`,
+                name,
+                role,
+                type: idx === 0 && resources.length === 0 ? "Team Lead" : "Core Member",
+                status: util > 85 ? "High Load" : "Available",
+                utilization: util,
+                weeklyHours: weekly,
+                project,
+                skills: skills.length > 0 ? skills : ["Operations"],
+                costRate: "Internal Resource",
+                risk: util > 85 ? "High" : util > 70 ? "Medium" : "Low",
+                avatarText: initials || "TM",
+                avatarBg: util > 80 ? "from-amber-600 to-rose-600" : "from-sky-600 to-indigo-600",
+                upcoming: `${project} on schedule`,
+                constraints: "Standard availability",
+                email,
+                phone,
+              };
+            });
+          }
+        }
+
+        if (parsedItems.length === 0) {
+          toast.error("Could not parse file", {
+            description: "Please check your CSV/JSON format or download our template.",
+          });
+          return;
+        }
+
+        setPreviewImportItems(parsedItems);
+        toast.info(`Found ${parsedItems.length} members`, {
+          description: "Review preview and confirm import.",
+        });
+      } catch (err: any) {
+        toast.error("Import failed", { description: err.message });
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleConfirmImport = () => {
+    if (previewImportItems.length === 0) return;
+
+    if (importMode === "replace") {
+      setResources(previewImportItems);
+    } else {
+      setResources((prev) => {
+        const existingNames = new Set(prev.map((p) => p.name.toLowerCase()));
+        const uniqueNew = previewImportItems.filter((p) => !existingNames.has(p.name.toLowerCase()));
+        return [...prev, ...uniqueNew];
+      });
+    }
+
+    // Sync to Supabase in background
+    previewImportItems.forEach((item) => {
+      void recordTeamMember({
+        id: item.id,
+        name: item.name,
+        role: item.role,
+        project: item.project,
+        weeklyHours: item.weeklyHours,
+        utilization: item.utilization,
+        status: item.status,
+      });
+    });
+
+    toast.success(`Successfully imported ${previewImportItems.length} teammates!`, {
+      description: "Workload telemetry and deliverable tracking are active.",
+    });
+
+    setPreviewImportItems([]);
+    setIsImportModalOpen(false);
+  };
 
   const filtered = useMemo(() => {
     return resources.filter((res) => {
@@ -160,6 +438,8 @@ export function ResourcesView({
     setFormProject("");
     setFormSkills("");
     setFormConstraints("");
+    setFormEmail("");
+    setFormPhone("");
     setIsFormOpen(true);
   };
 
@@ -176,6 +456,8 @@ export function ResourcesView({
     setFormProject(res.project);
     setFormSkills(res.skills.join(", "));
     setFormConstraints(res.constraints);
+    setFormEmail(res.email || "");
+    setFormPhone(res.phone || "");
     setIsFormOpen(true);
   };
 
@@ -219,6 +501,8 @@ export function ResourcesView({
                 constraints: formConstraints.trim() || "Standard availability",
                 risk: riskVal,
                 avatarText: initials || "TM",
+                email: formEmail.trim() || undefined,
+                phone: formPhone.trim() || undefined,
               }
             : item
         )
@@ -257,6 +541,8 @@ export function ResourcesView({
             : "from-sky-600 to-indigo-600",
         upcoming: `${formProject.trim() || "Assigned task"} milestone deliverable`,
         constraints: formConstraints.trim() || "Standard availability",
+        email: formEmail.trim() || undefined,
+        phone: formPhone.trim() || undefined,
       };
 
       setResources((prev) => [newTeammate, ...prev]);
@@ -379,6 +665,14 @@ export function ResourcesView({
               <span>Add Myself</span>
             </button>
           )}
+          <button
+            className="secondary-button text-xs flex items-center gap-1.5 border-sky-500/30 hover:border-sky-400/60"
+            onClick={() => setIsImportModalOpen(true)}
+            title="Import Organization Roster from CSV or JSON file"
+          >
+            <Upload size={14} className="text-sky-400" />
+            <span>Import CSV / JSON</span>
+          </button>
           <button
             className="primary-button text-xs flex items-center gap-1.5"
             onClick={openAddModal}
@@ -549,6 +843,26 @@ export function ResourcesView({
                   </td>
                   <td className="text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        className="p-1.5 rounded-lg text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/40 transition-colors"
+                        title="Send WhatsApp Operations Briefing"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          sendWhatsAppNotification(item);
+                        }}
+                      >
+                        <MessageCircle size={14} />
+                      </button>
+                      <button
+                        className="p-1.5 rounded-lg text-sky-400 hover:text-sky-300 hover:bg-sky-950/40 transition-colors"
+                        title="Send Email Telemetry Alert"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          sendEmailNotification(item);
+                        }}
+                      >
+                        <Mail size={14} />
+                      </button>
                       <button
                         className="p-1.5 rounded-lg text-slate-400 hover:text-sky-300 hover:bg-slate-800 transition-colors"
                         title="Edit Teammate"
@@ -863,6 +1177,33 @@ export function ResourcesView({
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1">
+                    <Mail size={12} className="text-sky-400" /> Work Email (Optional)
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="teammate@company.com"
+                    className="w-full bg-slate-950/80 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
+                    value={formEmail}
+                    onChange={(e) => setFormEmail(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1">
+                    <MessageCircle size={12} className="text-emerald-400" /> WhatsApp / Phone (Optional)
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="+919876543210"
+                    className="w-full bg-slate-950/80 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 font-mono"
+                    value={formPhone}
+                    onChange={(e) => setFormPhone(e.target.value)}
+                  />
+                </div>
+              </div>
+
               <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-sky-900/30">
                 <button
                   type="button"
@@ -997,6 +1338,39 @@ export function ResourcesView({
                 </button>
               </div>
 
+              {/* Automated Operations Telemetry & Alerts */}
+              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-700/80 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <strong className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <MessageCircle size={14} className="text-emerald-400" /> Automated Telemetry & Alerts
+                  </strong>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    Active
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Send instant AI operations briefings directly to {selectedResource.name} for newly assigned deliverables, work shifts, or upcoming deadlines.
+                </p>
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <button
+                    className="secondary-button text-xs py-2 flex items-center justify-center gap-1.5 border-emerald-500/30 hover:border-emerald-400 hover:bg-emerald-950/20 text-emerald-300 font-semibold"
+                    onClick={() => sendWhatsAppNotification(selectedResource)}
+                    title="Open WhatsApp with AI operations briefing"
+                  >
+                    <MessageCircle size={13} className="text-emerald-400" />
+                    <span>WhatsApp Alert</span>
+                  </button>
+                  <button
+                    className="secondary-button text-xs py-2 flex items-center justify-center gap-1.5 border-sky-500/30 hover:border-sky-400 hover:bg-sky-950/20 text-sky-300 font-semibold"
+                    onClick={() => sendEmailNotification(selectedResource)}
+                    title="Open Email client with prefilled milestone telemetry"
+                  >
+                    <Mail size={13} className="text-sky-400" />
+                    <span>Email Alert</span>
+                  </button>
+                </div>
+              </div>
+
               <div className="p-3 rounded-lg bg-slate-900/40 border border-slate-800">
                 <strong className="block text-slate-300 font-semibold mb-1 flex items-center gap-1.5">
                   <AlertTriangle size={14} className="text-amber-400" /> Operational & Schedule Constraints
@@ -1017,6 +1391,149 @@ export function ResourcesView({
                 onClick={(e) => handleDeleteTeammate(selectedResource.id, selectedResource.name, e)}
               >
                 <Trash2 size={13} /> Remove from Team
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Batch Import Organization Data Modal */}
+      {isImportModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsImportModalOpen(false)}>
+          <div className="modal-box max-w-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between pb-3 border-b border-sky-900/30">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-sky-500/20 border border-sky-400/30 flex items-center justify-center text-sky-400">
+                  <Upload size={16} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Import Organization Data</h3>
+                  <p className="text-[11px] text-slate-400">Upload CSV or JSON roster with tasks, capacity & contact info</p>
+                </div>
+              </div>
+              <button
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                onClick={() => setIsImportModalOpen(false)}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="py-4 space-y-4">
+              {/* Template download row */}
+              <div className="p-3 rounded-lg bg-sky-950/30 border border-sky-800/40 flex items-center justify-between">
+                <div>
+                  <strong className="text-xs text-white block">Need a template to get started?</strong>
+                  <span className="text-[11px] text-slate-400">Download sample structure with Name, Role, Workload, Deliverable, Email, Phone</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={downloadSampleCSV}
+                    className="secondary-button text-[11px] py-1.5 px-2.5 flex items-center gap-1 font-semibold"
+                  >
+                    <Download size={12} className="text-sky-400" />
+                    <span>Sample CSV</span>
+                  </button>
+                  <button
+                    onClick={downloadSampleJSON}
+                    className="secondary-button text-[11px] py-1.5 px-2.5 flex items-center gap-1 font-semibold"
+                  >
+                    <Download size={12} className="text-sky-400" />
+                    <span>Sample JSON</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* File upload drag drop zone */}
+              <label className="border-2 border-dashed border-slate-700 hover:border-sky-500/60 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer transition-colors bg-slate-950/40">
+                <FileSpreadsheet size={32} className="text-sky-400 mb-2" />
+                <span className="text-xs font-semibold text-white">Click or drag & drop CSV or JSON file here</span>
+                <span className="text-[11px] text-slate-400 mt-1">Supports UTF-8 .csv or .json files</span>
+                <input
+                  type="file"
+                  accept=".csv,.json,text/csv,application/json"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+              </label>
+
+              {/* Preview table if parsed */}
+              {previewImportItems.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1">
+                      <CheckCircle2 size={13} /> {previewImportItems.length} Teammates parsed successfully
+                    </span>
+                    <div className="flex items-center gap-3 text-xs">
+                      <label className="flex items-center gap-1 text-slate-300 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="importMode"
+                          checked={importMode === "append"}
+                          onChange={() => setImportMode("append")}
+                        />
+                        <span>Append to roster</span>
+                      </label>
+                      <label className="flex items-center gap-1 text-slate-300 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="importMode"
+                          checked={importMode === "replace"}
+                          onChange={() => setImportMode("replace")}
+                        />
+                        <span>Replace roster</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="max-h-48 overflow-y-auto border border-slate-800 rounded-lg text-xs">
+                    <table className="w-full text-left">
+                      <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 sticky top-0">
+                        <tr>
+                          <th className="p-2">Name</th>
+                          <th className="p-2">Role</th>
+                          <th className="p-2">Load</th>
+                          <th className="p-2">Deliverable</th>
+                          <th className="p-2">Contact</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800">
+                        {previewImportItems.map((item, idx) => (
+                          <tr key={idx} className="hover:bg-slate-800/30">
+                            <td className="p-2 text-white font-medium">{item.name}</td>
+                            <td className="p-2 text-slate-300">{item.role}</td>
+                            <td className="p-2 font-mono text-sky-400">{item.utilization}%</td>
+                            <td className="p-2 text-slate-300 truncate max-w-xs">{item.project}</td>
+                            <td className="p-2 text-slate-400 text-[10px]">
+                              {item.phone || item.email || "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-sky-900/30">
+              <button
+                type="button"
+                className="secondary-button text-xs px-4 py-2"
+                onClick={() => {
+                  setPreviewImportItems([]);
+                  setIsImportModalOpen(false);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={previewImportItems.length === 0}
+                className="primary-button text-xs px-5 py-2 font-bold disabled:opacity-50"
+                onClick={handleConfirmImport}
+              >
+                Import {previewImportItems.length > 0 ? `${previewImportItems.length} Members` : "Data"}
               </button>
             </div>
           </div>
