@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Shield, Bell, Sparkles, UserRound, ArrowRight, ArrowLeft, Lock, Zap } from "lucide-react";
+import { Check, Bell, Sparkles, ArrowRight, ArrowLeft, Zap } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -13,25 +13,26 @@ interface OnboardingModalProps {
   onComplete: (data: { role: string; analyticsConsent: boolean; emailAlerts: boolean; reducedMotion: boolean }) => void;
 }
 
-export function OnboardingModal({ open, onOpenChange, currentUserRole = "admin", currentUserName = "Student Lead", onComplete }: OnboardingModalProps) {
+export function OnboardingModal({ open, onOpenChange, currentUserRole = "admin", currentUserName = "Team Lead", onComplete }: OnboardingModalProps) {
   const [step, setStep] = useState(1);
-  const [name, setName] = useState(currentUserName || "Student Lead");
-  const [role, setRole] = useState<"admin" | "operator" | "viewer">((currentUserRole as any) || "admin");
+  const [name, setName] = useState(currentUserName || "Team Lead");
   const [analyticsConsent, setAnalytics] = useState(true);
   const [emailAlerts, setEmailAlerts] = useState(true);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const teamName = localStorage.getItem("resourcepulse_team_name") || "Operations Team";
+
   const handleFinish = () => {
     setIsSubmitting(true);
     setAnalyticsConsent(analyticsConsent);
-    track("onboarding_completed", { role, analyticsConsent });
+    track("onboarding_completed", { role: currentUserRole || "admin", analyticsConsent });
 
     setTimeout(() => {
       setIsSubmitting(false);
-      onComplete({ role, analyticsConsent, emailAlerts, reducedMotion });
-      toast.success("Workspace Onboarding Complete!", {
-        description: `Configured as ${role.toUpperCase()} with privacy preferences saved.`,
+      onComplete({ role: currentUserRole || "admin", analyticsConsent, emailAlerts, reducedMotion });
+      toast.success("Workspace Tour Complete!", {
+        description: `Preferences saved for ${teamName}.`,
       });
       onOpenChange(false);
     }, 400);
@@ -42,19 +43,17 @@ export function OnboardingModal({ open, onOpenChange, currentUserRole = "admin",
       <DialogContent className="max-w-lg bg-slate-950 border border-sky-900/50 text-white shadow-2xl p-6 rounded-2xl">
         <DialogHeader className="mb-4">
           <div className="flex items-center gap-2 text-sky-400 text-xs font-mono mb-1 uppercase tracking-wider">
-            <Sparkles size={14} /> Step {step} of 4 · Workspace Setup
+            <Sparkles size={14} /> Step {step} of 3 · Workspace Setup
           </div>
           <DialogTitle className="text-xl font-bold text-white">
-            {step === 1 && "Welcome to Resource Pulse"}
-            {step === 2 && "Choose Your Operational Role (RBAC)"}
-            {step === 3 && "Privacy & Telemetry Controls"}
-            {step === 4 && "Review & Launch Workspace"}
+            {step === 1 && "Welcome to ResourcePulse"}
+            {step === 2 && "Privacy & Telemetry Controls"}
+            {step === 3 && "Review & Launch Workspace"}
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-400">
-            {step === 1 && "Configure your personal profile and Northstar Ops workspace parameters."}
-            {step === 2 && "Role permissions dictate your governance and execution capabilities."}
-            {step === 3 && "Full transparency over telemetry, analytics, and alert preferences."}
-            {step === 4 && "Confirm your workspace configuration before entering live operations."}
+            {step === 1 && "Configure your personal display name and workspace parameters."}
+            {step === 2 && "Full transparency over telemetry, analytics, and alert preferences."}
+            {step === 3 && "Confirm your workspace configuration before entering live operations."}
           </DialogDescription>
         </DialogHeader>
 
@@ -62,7 +61,7 @@ export function OnboardingModal({ open, onOpenChange, currentUserRole = "admin",
         <div className="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden mb-6 border border-sky-950">
           <div
             className="bg-gradient-to-r from-sky-500 to-blue-600 h-full transition-all duration-300"
-            style={{ width: `${(step / 4) * 100}%` }}
+            style={{ width: `${(step / 3) * 100}%` }}
           />
         </div>
 
@@ -74,7 +73,7 @@ export function OnboardingModal({ open, onOpenChange, currentUserRole = "admin",
                 <Zap size={20} />
               </div>
               <div>
-                <strong className="text-sm font-bold text-white block">Northstar Ops Engine</strong>
+                <strong className="text-sm font-bold text-white block">ResourcePulse Operations</strong>
                 <p className="text-xs text-slate-300">
                   Real-time resource rebalancing with 5-second cascading impact simulation.
                 </p>
@@ -91,69 +90,23 @@ export function OnboardingModal({ open, onOpenChange, currentUserRole = "admin",
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">Organization / Pod</label>
+              <label className="text-xs font-semibold text-slate-300 block mb-1">Team Workspace</label>
               <Input
-                defaultValue="Northstar Operations Command"
+                value={teamName}
                 disabled
-                className="bg-slate-900/50 border-slate-800 text-slate-400 cursor-not-allowed"
+                className="bg-slate-900/50 border-slate-800 text-slate-300 cursor-not-allowed"
               />
             </div>
           </div>
         )}
 
-        {/* Step 2: Role Selection (RBAC) */}
+        {/* Step 2: Privacy & Telemetry */}
         {step === 2 && (
-          <div className="space-y-3 py-2">
-            {[
-              {
-                id: "admin",
-                title: "Administrator",
-                desc: "Full governance, approval authority, member management, and financial reporting.",
-                tags: "system.admin, approvals.write, cash.write",
-              },
-              {
-                id: "operator",
-                title: "Operations Lead / Operator",
-                desc: "Run 5s simulations, allocate staff, and trigger explainable recovery plans.",
-                tags: "simulation.execute, allocations.write",
-              },
-              {
-                id: "viewer",
-                title: "Executive Viewer",
-                desc: "Read-only access to capacity health, dependency trees, and risk horizons.",
-                tags: "dashboard.read, audit.read",
-              },
-            ].map((r) => (
-              <div
-                key={r.id}
-                onClick={() => setRole(r.id as any)}
-                className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                  role === r.id
-                    ? "bg-sky-950/60 border-sky-400 shadow-md shadow-sky-950"
-                    : "bg-slate-900/50 border-slate-800 hover:border-slate-700"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-2">
-                    <Shield size={16} className={role === r.id ? "text-sky-400" : "text-slate-400"} />
-                    <strong className="text-sm font-semibold text-white">{r.title}</strong>
-                  </div>
-                  {role === r.id && <Check size={16} className="text-sky-400" />}
-                </div>
-                <p className="text-xs text-slate-400 pl-6">{r.desc}</p>
-                <span className="mono text-[10px] text-sky-400/80 block mt-2 pl-6">{r.tags}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Step 3: Privacy & Telemetry */}
-        {step === 3 && (
           <div className="space-y-3 py-2">
             <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between">
               <div>
                 <strong className="text-sm font-semibold text-white block">Anonymous Product Analytics</strong>
-                <p className="text-xs text-slate-400">Opt-in telemetry helps us optimize simulation latency.</p>
+                <p className="text-xs text-slate-400">Opt-in telemetry helps optimize simulation models.</p>
               </div>
               <input
                 type="checkbox"
@@ -191,8 +144,8 @@ export function OnboardingModal({ open, onOpenChange, currentUserRole = "admin",
           </div>
         )}
 
-        {/* Step 4: Review & Launch */}
-        {step === 4 && (
+        {/* Step 3: Review & Launch */}
+        {step === 3 && (
           <div className="space-y-4 py-2">
             <div className="p-4 rounded-xl bg-gradient-to-br from-blue-950/70 to-slate-900 border border-sky-400/40">
               <strong className="text-sm font-bold text-white block mb-2">Workspace Configuration Summary</strong>
@@ -202,8 +155,8 @@ export function OnboardingModal({ open, onOpenChange, currentUserRole = "admin",
                   <span className="font-semibold text-white">{name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Assigned Role:</span>
-                  <span className="font-semibold text-sky-400 uppercase font-mono">{role}</span>
+                  <span className="text-slate-400">Workspace:</span>
+                  <span className="font-semibold text-sky-400 font-mono">{teamName}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Analytics Consent:</span>
@@ -215,13 +168,13 @@ export function OnboardingModal({ open, onOpenChange, currentUserRole = "admin",
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Data Persistence:</span>
-                  <span className="font-semibold text-emerald-400">Supabase + LocalStorage ✓</span>
+                  <span className="font-semibold text-emerald-400">Supabase Connected ✓</span>
                 </div>
               </div>
             </div>
 
             <p className="text-xs text-slate-400 text-center">
-              You can adjust these settings anytime from your Account Center in the bottom sidebar.
+              You can adjust these settings anytime from your Account Center in the top right.
             </p>
           </div>
         )}
@@ -240,7 +193,7 @@ export function OnboardingModal({ open, onOpenChange, currentUserRole = "admin",
             <div />
           )}
 
-          {step < 4 ? (
+          {step < 3 ? (
             <button
               type="button"
               className="primary-button text-xs flex items-center gap-1.5"
@@ -263,3 +216,5 @@ export function OnboardingModal({ open, onOpenChange, currentUserRole = "admin",
     </Dialog>
   );
 }
+
+export default OnboardingModal;

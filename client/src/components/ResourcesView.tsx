@@ -14,6 +14,9 @@ import {
   GraduationCap,
   CheckCircle2,
   UserCheck,
+  Copy,
+  Link as LinkIcon,
+  Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -80,6 +83,7 @@ export function ResourcesView({
 
   // Add / Edit Modal state
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [modalTab, setModalTab] = useState<"invite" | "manual">("invite");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formName, setFormName] = useState("");
   const [formRole, setFormRole] = useState("Lead Engineer / Specialist");
@@ -90,6 +94,12 @@ export function ResourcesView({
   const [formProject, setFormProject] = useState("");
   const [formSkills, setFormSkills] = useState("");
   const [formConstraints, setFormConstraints] = useState("");
+
+  const currentTeamName = localStorage.getItem("resourcepulse_team_name") || "Operations Team";
+  const teamCode = localStorage.getItem("resourcepulse_team_code") || "RP-7842";
+  const inviteLink = typeof window !== "undefined"
+    ? `${window.location.origin}/?join=${teamCode}&team=${encodeURIComponent(currentTeamName)}`
+    : "";
 
   const filtered = useMemo(() => {
     return resources.filter((res) => {
@@ -124,8 +134,8 @@ export function ResourcesView({
       status: "Available",
       utilization: 50,
       weeklyHours: 40,
-      project: `${team} Core Deliverables`,
-      skills: [roleTitle, "System Architecture", "Operations"],
+      project: "Project Scope & Execution",
+      skills: [roleTitle],
       costRate: "Internal Resource",
       risk: "Low",
       avatarText: initials || "TL",
@@ -140,21 +150,23 @@ export function ResourcesView({
 
   const openAddModal = () => {
     setEditingId(null);
+    setModalTab("invite");
     setFormName("");
     setFormRole("Lead Engineer / Specialist");
     setFormType("Core Member");
     setFormStatus("Available");
     setFormUtilization(60);
     setFormWeeklyHours(40);
-    setFormProject("Project Deliverable");
-    setFormSkills("Architecture, Git, Cloud");
-    setFormConstraints("Standard working hours");
+    setFormProject("");
+    setFormSkills("");
+    setFormConstraints("");
     setIsFormOpen(true);
   };
 
   const openEditModal = (res: ResourceItem, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     setEditingId(res.id);
+    setModalTab("manual");
     setFormName(res.name);
     setFormRole(res.role);
     setFormType(res.type);
@@ -589,6 +601,131 @@ export function ResourcesView({
               </button>
             </div>
 
+            {/* Modal Tabs: Invite Link / Team Code vs Manual Entry */}
+            {!editingId && (
+              <div className="grid grid-cols-2 p-1 bg-slate-950/80 rounded-xl border border-slate-800 mb-5">
+                <button
+                  type="button"
+                  onClick={() => setModalTab("invite")}
+                  className={`py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    modalTab === "invite"
+                      ? "bg-sky-500/20 text-sky-300 border border-sky-400/30 shadow-sm"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <LinkIcon size={13} />
+                  <span>1. Invite Link & Team Code</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModalTab("manual")}
+                  className={`py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    modalTab === "manual"
+                      ? "bg-sky-500/20 text-sky-300 border border-sky-400/30 shadow-sm"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <Users size={13} />
+                  <span>2. Add Manually</span>
+                </button>
+              </div>
+            )}
+
+            {modalTab === "invite" && !editingId ? (
+              <div className="space-y-4">
+                {/* Team Code Card */}
+                <div className="p-4 rounded-xl bg-slate-950/90 border border-sky-500/30 flex items-center justify-between shadow-lg">
+                  <div>
+                    <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block font-bold">
+                      Team Workspace Code
+                    </span>
+                    <strong className="text-2xl font-mono text-sky-400 tracking-wider">
+                      {teamCode}
+                    </strong>
+                    <span className="text-[11px] text-slate-400 block mt-0.5">
+                      Share this code with teammates to join "{currentTeamName}"
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(teamCode);
+                      toast.success("Team Code Copied!", {
+                        description: `Code ${teamCode} copied to clipboard.`,
+                      });
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-400/40 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <Copy size={14} />
+                    <span>Copy Code</span>
+                  </button>
+                </div>
+
+                {/* Invite Link Card */}
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-mono uppercase font-bold text-slate-300 block">
+                    Shareable Direct Invite Link
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={inviteLink}
+                      className="flex-1 bg-slate-950/90 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-sky-300 font-mono select-all outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(inviteLink);
+                        toast.success("Invite Link Copied!", {
+                          description: "Teammates can click this link to register directly into your team.",
+                        });
+                      }}
+                      className="primary-button text-xs px-4 py-2 font-bold flex items-center gap-1.5 shrink-0 cursor-pointer"
+                    >
+                      <LinkIcon size={14} />
+                      <span>Copy Link</span>
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    When teammates open this link, your workspace name and code are automatically configured.
+                  </p>
+                </div>
+
+                {/* Share Announcement Text */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const msg = `Hey! Join our "${currentTeamName}" workspace on ResourcePulse:\nInvite Link: ${inviteLink}\nTeam Code: ${teamCode}`;
+                    navigator.clipboard.writeText(msg);
+                    toast.success("Invitation Message Copied!", {
+                      description: "Paste into WhatsApp, Teams, Slack, or Email to invite your team.",
+                    });
+                  }}
+                  className="w-full py-3 rounded-xl bg-slate-950/80 hover:bg-slate-950 border border-slate-700 hover:border-sky-400/50 text-xs font-semibold text-slate-300 hover:text-white flex items-center justify-center gap-2 transition-all cursor-pointer"
+                >
+                  <Share2 size={15} className="text-sky-400" />
+                  <span>Copy Full Message (for WhatsApp / Slack / Email)</span>
+                </button>
+
+                <div className="pt-3 border-t border-sky-900/30 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setModalTab("manual")}
+                    className="text-xs text-sky-400 hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Or add teammate profile manually →</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsFormOpen(false)}
+                    className="secondary-button text-xs px-4 py-2"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            ) : (
             <form onSubmit={handleSaveTeammate} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -715,11 +852,11 @@ export function ResourcesView({
 
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Academic Constraints / Availability Notes
+                  Availability Notes & Constraints
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Midterm exam on Thursday 2 PM; free Friday all day"
+                  placeholder="e.g. Focus on backend APIs; unavailable Friday afternoon"
                   className="w-full bg-slate-950/80 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
                   value={formConstraints}
                   onChange={(e) => setFormConstraints(e.target.value)}
@@ -742,6 +879,7 @@ export function ResourcesView({
                 </button>
               </div>
             </form>
+            )}
           </div>
         </div>
       )}

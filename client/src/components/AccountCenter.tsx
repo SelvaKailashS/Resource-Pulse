@@ -399,18 +399,6 @@ export function AccountCenter({
     });
   };
 
-  const handleRoleChange = (newRole: "admin" | "operator" | "viewer") => {
-    const permMap = {
-      admin: "system.admin,approvals.write,dashboard.read,cash.write",
-      operator: "approvals.write,dashboard.read,simulation.execute",
-      viewer: "dashboard.read",
-    };
-    onUserUpdate?.({ role: newRole, permissionSet: permMap[newRole] });
-    toast.success(`Role switched to ${newRole.toUpperCase()}`, {
-      description: `Active permissions: ${permMap[newRole]}`,
-    });
-    track("role_changed", { role: newRole });
-  };
 
   const handleSendTestAlert = () => {
     const newNotice = {
@@ -599,62 +587,6 @@ export function AccountCenter({
                   </div>
                 </div>
 
-                {/* Role Switcher (RBAC) */}
-                <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <strong className="text-sm font-bold text-white block">Role Switcher (RBAC)</strong>
-                      <span className="text-xs text-slate-400">
-                        Switch active governance mode to test role-based UI access and execution authority
-                      </span>
-                    </div>
-                    <span className="text-xs font-mono text-sky-400 font-bold uppercase">
-                      Current: {currentRole}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-                    {[
-                      {
-                        role: "admin" as const,
-                        label: "Administrator",
-                        desc: "Full system authority, approvals, financial write, and team access management.",
-                        perms: "system.admin, approvals.write, cash.write",
-                      },
-                      {
-                        role: "operator" as const,
-                        label: "Operator",
-                        desc: "Execute 5s simulations, allocate tasks, and submit recommendations for sign-off.",
-                        perms: "simulation.execute, allocations.write",
-                      },
-                      {
-                        role: "viewer" as const,
-                        label: "Viewer",
-                        desc: "Read-only access to live telemetry, dashboards, and audit log history.",
-                        perms: "dashboard.read, audit.read",
-                      },
-                    ].map((item) => (
-                      <button
-                        key={item.role}
-                        onClick={() => handleRoleChange(item.role)}
-                        className={`p-4 rounded-xl text-left border transition-all ${
-                          currentRole === item.role
-                            ? "bg-sky-500/15 border-sky-400/60 shadow-md shadow-sky-950/50"
-                            : "bg-slate-950/60 border-slate-800 hover:border-slate-700"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <strong className="text-sm font-bold text-white">{item.label}</strong>
-                          {currentRole === item.role && <CheckCircle2 size={16} className="text-sky-400" />}
-                        </div>
-                        <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">{item.desc}</p>
-                        <div className="mt-3 pt-2.5 border-t border-slate-800/80 text-[10px] font-mono text-slate-500">
-                          {item.perms}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
 
                 {/* Team Access & Member Governance */}
                 <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4">

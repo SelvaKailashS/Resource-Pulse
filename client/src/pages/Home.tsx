@@ -9,6 +9,7 @@ import { ApprovalsView } from "@/components/ApprovalsView";
 import { LiveSimulationScreen } from "@/components/LiveSimulationScreen";
 import { VoiceAssistantCopilot } from "@/components/VoiceAssistantCopilot";
 import { OnboardingModal } from "@/components/OnboardingModal";
+import { AINeedsModal } from "@/components/AINeedsModal";
 import { LiveFeedModal } from "@/components/LiveFeedModal";
 import { IntegrationsModal } from "@/components/IntegrationsModal";
 import { track } from "@/lib/analytics";
@@ -107,6 +108,13 @@ function Home() {
   const [activeNav, setActiveNav] = useState("Command center");
   const [accountOpen, setAccountOpen] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [isAiNeedsOpen, setIsAiNeedsOpen] = useState(() => {
+    try {
+      return localStorage.getItem("resourcepulse_needs_setup_pending") === "true";
+    } catch {
+      return false;
+    }
+  });
   const [assignedTaskNotification, setAssignedTaskNotification] = useState<{
     person: string;
     task: string;
@@ -605,6 +613,20 @@ function Home() {
             </button>
             <button
               className="command-button"
+              style={{
+                color: "#38bdf8",
+                borderColor: "rgba(56, 189, 248, 0.45)",
+                background: "rgba(14, 165, 233, 0.15)",
+                fontWeight: 600,
+              }}
+              onClick={() => setIsAiNeedsOpen(true)}
+              title="Tell AI your project needs, features, and deliverables"
+            >
+              <Sparkles size={14} className="text-sky-400 animate-pulse" />
+              <span>AI Project Setup</span>
+            </button>
+            <button
+              className="command-button"
               style={{ color: "#38bdf8", borderColor: "rgba(56, 189, 248, 0.4)", background: "rgba(14, 165, 233, 0.1)" }}
               onClick={() => setOnboardingOpen(true)}
             >
@@ -978,6 +1000,18 @@ function Home() {
             role: data.role as any,
             onboardingCompleted: 1,
           });
+        }}
+      />
+
+      <AINeedsModal
+        open={isAiNeedsOpen}
+        onOpenChange={setIsAiNeedsOpen}
+        onPlanApplied={() => {
+          try {
+            const stored = localStorage.getItem("resourcepulse_student_resources");
+            if (stored) setRealTeammates(JSON.parse(stored));
+          } catch {}
+          void loadDashboard(true);
         }}
       />
 
