@@ -23,13 +23,29 @@ interface LoginPageProps {
 }
 
 const FIELD_OPTIONS = [
-  { id: "software", name: "Software & Cloud Systems", defaultTask: "Core Web App & API Architecture" },
-  { id: "ai_data", name: "AI & Data Science", defaultTask: "Model Training & Data Pipeline" },
-  { id: "robotics", name: "Robotics & Autonomous Systems", defaultTask: "Sensor Fusion & ROS2 Controller" },
-  { id: "biomedical", name: "Biomedical & Healthcare", defaultTask: "Clinical Telemetry & Diagnostic Analysis" },
-  { id: "energy", name: "Renewable Energy & Power Systems", defaultTask: "Microgrid Inverter & Battery Storage" },
-  { id: "mechanical", name: "Mechanical & Aerospace Engineering", defaultTask: "CAD Structural Analysis & Aero Testing" },
-  { id: "business", name: "Business & Financial Analytics", defaultTask: "Market Valuation & Operational Modeling" },
+  { id: "software", name: "Software, Cloud & IT Systems", defaultTask: "Core Web App & API Architecture" },
+  { id: "ai_data", name: "AI, Machine Learning & Data Science", defaultTask: "Model Training & Data Pipeline" },
+  { id: "biomedical", name: "Healthcare, Medical & Biotech", defaultTask: "Clinical Telemetry & Diagnostic Analysis" },
+  { id: "robotics", name: "Robotics, IoT & Autonomous Systems", defaultTask: "Sensor Fusion & Hardware Integration" },
+  { id: "finance", name: "Finance, Banking & Fintech", defaultTask: "Algorithmic Risk & Transaction Modeling" },
+  { id: "energy", name: "Renewable Energy & Sustainability", defaultTask: "Power Grid Inverter & Storage Management" },
+  { id: "mechanical", name: "Manufacturing & Aerospace Engineering", defaultTask: "CAD Structural Analysis & QA Testing" },
+  { id: "creative", name: "Media, Creative & Product Design", defaultTask: "Design System & Brand Assets" },
+  { id: "consulting", name: "Corporate Strategy & Consulting", defaultTask: "Client Deliverables & Market Research" },
+  { id: "academic", name: "Education, University & Research Labs", defaultTask: "Academic Research & Lab Milestone" },
+];
+
+const ROLE_OPTIONS = [
+  "Team Lead / Project Coordinator",
+  "Engineering Lead / Architect",
+  "Product Manager / Delivery Lead",
+  "Senior Developer / Technical Lead",
+  "AI / Machine Learning Specialist",
+  "Operations / Resource Director",
+  "Clinical / Healthcare Lead",
+  "Research Fellow / Academic Lead",
+  "UI/UX & Creative Specialist",
+  "Consultant / Business Analyst",
 ];
 
 export function LoginPage({ onLoginSuccess }: LoginPageProps) {
@@ -37,11 +53,11 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [teamName, setTeamName] = useState("Capstone Sprint Team");
+  const [teamName, setTeamName] = useState("Operations Team Alpha");
   const [field, setField] = useState(FIELD_OPTIONS[0].name);
-  const [studentRoleTitle, setStudentRoleTitle] = useState("Team Lead / Project Coordinator");
+  const [roleTitle, setRoleTitle] = useState(ROLE_OPTIONS[0]);
   const [primaryTask, setPrimaryTask] = useState(FIELD_OPTIONS[0].defaultTask);
-  const [weeklyHours, setWeeklyHours] = useState(20);
+  const [weeklyHours, setWeeklyHours] = useState(40);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -77,7 +93,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         email: email.trim(),
         role: "admin",
         field: field,
-        teamName: teamName.trim() || "Student Project Team",
+        teamName: teamName.trim() || "Operations Team",
         emailVerified: 1,
         onboardingCompleted: 1,
         permissionSet: "system.admin,approvals.write,dashboard.read,cash.write",
@@ -90,7 +106,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
       } catch {}
 
       toast.success(`Welcome back, ${user.name}!`, {
-        description: `Signed in to ${user.teamName || "Student Project Team"}.`,
+        description: `Signed in to ${user.teamName || "Operations Team"}.`,
       });
       onLoginSuccess(user);
     }, 450);
@@ -126,28 +142,28 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
       // Create initial teammate record for the registered user
       const initialTeammate = {
-        id: `STU-01`,
+        id: `MEM-01`,
         name: name.trim(),
-        role: studentRoleTitle,
-        type: "Student Lead" as const,
+        role: roleTitle,
+        type: "Team Lead" as const,
         status: "Available" as const,
         utilization: 55,
-        weeklyHours: Number(weeklyHours) || 20,
+        weeklyHours: Number(weeklyHours) || 40,
         project: primaryTask.trim() || `${teamName.trim()} Core Deliverable`,
-        skills: [studentRoleTitle, field],
-        costRate: "Academic Credit",
+        skills: [roleTitle, field],
+        costRate: "Internal Resource",
         risk: "Low" as const,
-        avatarText: name.trim().split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "LE",
+        avatarText: name.trim().split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "TL",
         avatarBg: "from-blue-600 to-cyan-500",
-        upcoming: "Sprint setup & team member onboarding",
-        constraints: "Active student lead",
+        upcoming: "Kickoff & workload alignment",
+        constraints: "Active team lead",
       };
 
       try {
         localStorage.setItem("resourcepulse_session_user", JSON.stringify(user));
         localStorage.setItem("resourcepulse_team_name", teamName.trim());
         localStorage.setItem("resourcepulse_selected_field", field);
-        localStorage.setItem("resourcepulse_student_role_title", studentRoleTitle);
+        localStorage.setItem("resourcepulse_student_role_title", roleTitle);
         localStorage.setItem("resourcepulse_student_resources", JSON.stringify([initialTeammate]));
         localStorage.setItem("resourcepulse_approvals", JSON.stringify([]));
         localStorage.setItem("resourcepulse_cash_entries", JSON.stringify([]));
@@ -155,7 +171,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
       } catch {}
 
       toast.success(`Account created for ${user.name}!`, {
-        description: `Registered as ${studentRoleTitle} in ${field} for "${teamName}".`,
+        description: `Registered as ${roleTitle} in ${field} for "${teamName}".`,
       });
       onLoginSuccess(user);
     }, 500);
@@ -171,16 +187,16 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         {/* Brand Header */}
         <div className="text-center mb-6">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/10 border border-sky-400/25 mb-3 shadow-sm shadow-sky-950">
-            <GraduationCap size={15} className="text-sky-400" />
+            <Zap size={14} className="text-sky-400" />
             <span className="text-xs font-mono font-bold tracking-wider uppercase text-sky-300">
-              Real Team Operations & Workload Engine
+              Universal Operations & Workload Intelligence
             </span>
           </div>
           <h1 className="text-3xl font-extrabold text-white tracking-tight">
             resource<span className="text-sky-400">pulse</span>
           </h1>
           <p className="text-xs text-slate-400 mt-1.5 max-w-md mx-auto leading-relaxed">
-            Register your team, select your discipline field, and let AI forecast bottlenecks, balance workloads, and track deliverables with zero mock data.
+            Register your team, select your industry or discipline, and let AI forecast bottlenecks, balance workloads, and track deliverables with zero mock data.
           </p>
         </div>
 
@@ -197,7 +213,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              1. Register Real Team
+              1. Register Team
             </button>
             <button
               type="button"
@@ -226,7 +242,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. Kailash S."
+                      placeholder="e.g. Alex Rivera or Jordan Lee"
                       required
                       className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 outline-none"
                     />
@@ -235,7 +251,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
                 <div>
                   <label className="text-[11px] font-mono text-slate-400 uppercase font-semibold block mb-1">
-                    Student / Work Email *
+                    Work / Organization Email *
                   </label>
                   <div className="relative">
                     <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -243,7 +259,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="your.email@college.edu"
+                      placeholder="name@organization.com"
                       required
                       className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 outline-none"
                     />
@@ -278,7 +294,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
                 <div>
                   <label className="text-[11px] font-mono text-slate-400 uppercase font-semibold block mb-1">
-                    Team / Project Workspace *
+                    Team / Organization Workspace *
                   </label>
                   <div className="relative">
                     <Users size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -286,7 +302,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                       type="text"
                       value={teamName}
                       onChange={(e) => setTeamName(e.target.value)}
-                      placeholder="e.g. AI Capstone Pod"
+                      placeholder="e.g. Core Engineering Pod or Clinical Ops Alpha"
                       required
                       className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 outline-none"
                     />
@@ -297,7 +313,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
               {/* Field / Sector Selection */}
               <div>
                 <label className="text-[11px] font-mono text-sky-400 uppercase font-bold flex items-center gap-1.5 mb-1">
-                  <Briefcase size={13} /> Select Your Project Field / Sector *
+                  <Briefcase size={13} /> Select Your Industry / Sector *
                 </label>
                 <select
                   value={field}
@@ -321,16 +337,15 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                     Your Role in Team
                   </label>
                   <select
-                    value={studentRoleTitle}
-                    onChange={(e) => setStudentRoleTitle(e.target.value)}
+                    value={roleTitle}
+                    onChange={(e) => setRoleTitle(e.target.value)}
                     className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 rounded-xl px-2.5 py-2 text-xs text-white outline-none"
                   >
-                    <option value="Team Lead / Project Coordinator">Team Lead / Coordinator</option>
-                    <option value="Lead Developer / Architect">Lead Developer / Architect</option>
-                    <option value="AI / ML Engineer">AI / ML Engineer</option>
-                    <option value="Hardware / Embedded Engineer">Hardware / Embedded Engineer</option>
-                    <option value="UI/UX & Frontend Specialist">UI/UX & Frontend Specialist</option>
-                    <option value="Core Researcher & Analyst">Core Researcher & Analyst</option>
+                    {ROLE_OPTIONS.map((r) => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -343,7 +358,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                     <input
                       type="number"
                       min={5}
-                      max={60}
+                      max={80}
                       value={weeklyHours}
                       onChange={(e) => setWeeklyHours(Number(e.target.value))}
                       className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 rounded-xl pl-9 pr-3 py-2 text-xs text-white outline-none"
@@ -354,7 +369,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
               <div>
                 <label className="text-[11px] font-mono text-slate-400 uppercase font-semibold block mb-1">
-                  Primary Sprint Deliverable / Task
+                  Primary Deliverable / Milestone Task
                 </label>
                 <div className="relative">
                   <Layers size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -362,7 +377,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                     type="text"
                     value={primaryTask}
                     onChange={(e) => setPrimaryTask(e.target.value)}
-                    placeholder="e.g. Core System Pipeline & Testing"
+                    placeholder="e.g. Core System Pipeline & QA Testing"
                     required
                     className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 outline-none"
                   />
@@ -440,7 +455,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                     type="text"
                     value={teamName}
                     onChange={(e) => setTeamName(e.target.value)}
-                    placeholder="e.g. Capstone Sprint Team"
+                    placeholder="e.g. Core Engineering Pod or Clinical Ops Alpha"
                     className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
                   />
                 </div>
@@ -467,12 +482,12 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         {/* Footer info */}
         <div className="text-center mt-5 text-[11px] text-slate-500 flex items-center justify-center gap-4">
           <span className="flex items-center gap-1">
-            <CheckCircle2 size={12} className="text-emerald-400" /> 100% Real Teammate Data
+            <CheckCircle2 size={12} className="text-emerald-400" /> 100% Real Team Data
           </span>
           <span>•</span>
-          <span>Zero Corporate Mock Records</span>
+          <span>Universal Multi-Sector Engine</span>
           <span>•</span>
-          <span>Dynamic Calculations</span>
+          <span>Dynamic Real-Time Calculations</span>
         </div>
       </div>
     </div>

@@ -20,7 +20,7 @@ export interface ResourceItem {
   id: string;
   name: string;
   role: string;
-  type: "Core Student" | "Student Lead" | "Collaborator" | "Lab Resource" | "People" | "Equipment" | "Budget" | "Shared" | string;
+  type: "Team Lead" | "Core Member" | "Collaborator" | "Specialist" | "Partner / External" | "Shared Resource" | string;
   status: "Available" | "High Load" | "Overallocated" | "Unavailable";
   utilization: number;
   weeklyHours?: number;
@@ -62,7 +62,7 @@ export function ResourcesView({
           return parsed;
         }
       } catch (e) {
-        console.error("Failed to parse stored student resources:", e);
+        console.error("Failed to parse stored resources:", e);
       }
     }
     return [];
@@ -81,11 +81,11 @@ export function ResourcesView({
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formName, setFormName] = useState("");
-  const [formRole, setFormRole] = useState("Frontend Developer");
-  const [formType, setFormType] = useState<ResourceItem["type"]>("Core Student");
+  const [formRole, setFormRole] = useState("Lead Engineer / Specialist");
+  const [formType, setFormType] = useState<ResourceItem["type"]>("Core Member");
   const [formStatus, setFormStatus] = useState<ResourceItem["status"]>("Available");
   const [formUtilization, setFormUtilization] = useState(65);
-  const [formWeeklyHours, setFormWeeklyHours] = useState(20);
+  const [formWeeklyHours, setFormWeeklyHours] = useState(40);
   const [formProject, setFormProject] = useState("");
   const [formSkills, setFormSkills] = useState("");
   const [formConstraints, setFormConstraints] = useState("");
@@ -105,7 +105,7 @@ export function ResourcesView({
   const addMyself = () => {
     if (!user) return;
     const roleTitle = localStorage.getItem("resourcepulse_student_role_title") || "Team Lead";
-    const team = localStorage.getItem("resourcepulse_team_name") || "Student Project";
+    const team = localStorage.getItem("resourcepulse_team_name") || "Operations Team";
     const initials = user.name
       ? user.name
           .split(" ")
@@ -116,21 +116,21 @@ export function ResourcesView({
       : "ME";
 
     const newMember: ResourceItem = {
-      id: `STU-${Date.now().toString().slice(-4)}`,
-      name: user.name || "Student Member",
+      id: `MEM-${Date.now().toString().slice(-4)}`,
+      name: user.name || "Team Member",
       role: roleTitle,
-      type: "Student Lead",
+      type: "Team Lead",
       status: "Available",
       utilization: 50,
-      weeklyHours: 25,
-      project: `${team} Core Sprint Deliverables`,
-      skills: [roleTitle, "System Architecture", "Git"],
-      costRate: "Academic Credit",
+      weeklyHours: 40,
+      project: `${team} Core Deliverables`,
+      skills: [roleTitle, "System Architecture", "Operations"],
+      costRate: "Internal Resource",
       risk: "Low",
-      avatarText: initials || "ST",
+      avatarText: initials || "TL",
       avatarBg: "from-blue-600 to-cyan-500",
       upcoming: "Project architecture & sprint kickoff",
-      constraints: "Available weekdays & weekends",
+      constraints: "Full availability",
     };
 
     setResources((prev) => [newMember, ...prev.filter((r) => r.name !== newMember.name)]);
@@ -140,14 +140,14 @@ export function ResourcesView({
   const openAddModal = () => {
     setEditingId(null);
     setFormName("");
-    setFormRole("Frontend Developer");
-    setFormType("Core Student");
+    setFormRole("Lead Engineer / Specialist");
+    setFormType("Core Member");
     setFormStatus("Available");
     setFormUtilization(60);
-    setFormWeeklyHours(20);
-    setFormProject("Sprint Deliverable");
-    setFormSkills("React, TypeScript, CSS");
-    setFormConstraints("Available after classes");
+    setFormWeeklyHours(40);
+    setFormProject("Project Deliverable");
+    setFormSkills("Architecture, Git, Cloud");
+    setFormConstraints("Standard working hours");
     setIsFormOpen(true);
   };
 
@@ -159,7 +159,7 @@ export function ResourcesView({
     setFormType(res.type);
     setFormStatus(res.status);
     setFormUtilization(res.utilization);
-    setFormWeeklyHours(res.weeklyHours || 20);
+    setFormWeeklyHours(res.weeklyHours || 40);
     setFormProject(res.project);
     setFormSkills(res.skills.join(", "));
     setFormConstraints(res.constraints);
@@ -201,11 +201,11 @@ export function ResourcesView({
                 status: formStatus,
                 utilization: formUtilization,
                 weeklyHours: formWeeklyHours,
-                project: formProject.trim() || "Project Task",
-                skills: skillsArray.length > 0 ? skillsArray : ["Full-Stack"],
+                project: formProject.trim() || "Project Deliverable",
+                skills: skillsArray.length > 0 ? skillsArray : ["Specialist"],
                 constraints: formConstraints.trim() || "Standard availability",
                 risk: riskVal,
-                avatarText: initials || "ST",
+                avatarText: initials || "TM",
               }
             : item
         )
@@ -215,20 +215,20 @@ export function ResourcesView({
       });
     } else {
       const newTeammate: ResourceItem = {
-        id: `STU-${Date.now().toString().slice(-4)}`,
+        id: `MEM-${Date.now().toString().slice(-4)}`,
         name: formName.trim(),
         role: formRole.trim(),
         type: formType,
         status: formStatus,
         utilization: formUtilization,
         weeklyHours: formWeeklyHours,
-        project: formProject.trim() || "Project Task",
-        skills: skillsArray.length > 0 ? skillsArray : ["Developer", "Git"],
-        costRate: "Academic Credit",
+        project: formProject.trim() || "Project Deliverable",
+        skills: skillsArray.length > 0 ? skillsArray : ["Specialist", "Operations"],
+        costRate: "Internal Resource",
         risk: riskVal,
-        avatarText: initials || "ST",
+        avatarText: initials || "TM",
         avatarBg:
-          formType === "Student Lead"
+          formType === "Team Lead"
             ? "from-blue-600 to-cyan-500"
             : formUtilization > 80
             ? "from-amber-600 to-rose-600"
@@ -310,7 +310,7 @@ export function ResourcesView({
         fromProject: res.project,
         toProject: `${res.project} (Shared)`,
         timeGain: "+2.0 days recovered",
-        costImpact: "$0 (Student)",
+        costImpact: "$0 (Internal Rebalance)",
         status: "pending",
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
@@ -329,13 +329,13 @@ export function ResourcesView({
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-sky-500/20 text-sky-400 border border-sky-400/30 flex items-center gap-1">
-              <GraduationCap size={13} /> Real Student Team Roster
+              <Users size={13} /> Active Team Roster
             </span>
             <span className="text-xs text-slate-400">· {resources.length} active members</span>
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Student Team & Workload Management</h1>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Team & Resource Allocation</h1>
           <p className="text-sm text-slate-400 max-w-2xl">
-            Input real teammates, track assigned project tasks, monitor weekly available hours, and prevent student burnout before deadlines.
+            Input team members, track deliverables, monitor weekly available hours, and prevent burnout before milestone deadlines.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -353,7 +353,7 @@ export function ResourcesView({
             onClick={openAddModal}
           >
             <Plus size={14} />
-            <span>+ Add Student Teammate</span>
+            <span>+ Add Team Member</span>
           </button>
         </div>
       </div>
@@ -370,7 +370,7 @@ export function ResourcesView({
         </div>
 
         <div className="filter-tabs">
-          {["All", "Student Lead", "Core Student", "Collaborator"].map((type) => (
+          {["All", "Team Lead", "Core Member", "Collaborator", "Specialist"].map((type) => (
             <button
               key={type}
               className={`filter-tab ${selectedType === type ? "active" : ""}`}
@@ -409,7 +409,7 @@ export function ResourcesView({
                     </strong>
                     <p className="text-xs text-slate-400 max-w-md mx-auto mb-6 text-center leading-relaxed">
                       {resources.length === 0
-                        ? "Add your real student team members and their sprint work to begin tracking capacity, workload splits, and deadline risks."
+                        ? "Add your team members and their deliverables to begin tracking capacity, workload splits, and deadline risks."
                         : `No members matched your search "${search}".`}
                     </p>
                     <div className="flex items-center gap-3">
@@ -427,7 +427,7 @@ export function ResourcesView({
                         onClick={openAddModal}
                       >
                         <Plus size={14} />
-                        <span>+ Add Real Teammate</span>
+                        <span>+ Add Team Member</span>
                       </button>
                     </div>
                   </div>
@@ -555,10 +555,10 @@ export function ResourcesView({
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-white">
-                    {editingId ? "Edit Student Teammate" : "Add Real Student Teammate"}
+                    {editingId ? "Edit Team Member" : "Add Team Member"}
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Real teammate credentials and workload allocation
+                    Team member credentials and workload allocation
                   </p>
                 </div>
               </div>
@@ -610,10 +610,11 @@ export function ResourcesView({
                     value={formType}
                     onChange={(e) => setFormType(e.target.value as ResourceItem["type"])}
                   >
-                    <option value="Student Lead">Student Lead</option>
-                    <option value="Core Student">Core Student</option>
+                    <option value="Team Lead">Team Lead</option>
+                    <option value="Core Member">Core Member</option>
                     <option value="Collaborator">Collaborator</option>
-                    <option value="Lab Resource">Lab Resource</option>
+                    <option value="Specialist">Specialist</option>
+                    <option value="Shared / Lab Resource">Shared / Lab Resource</option>
                   </select>
                 </div>
                 <div>
@@ -841,7 +842,7 @@ export function ResourcesView({
 
               <div className="p-3 rounded-lg bg-slate-900/40 border border-slate-800">
                 <strong className="block text-slate-300 font-semibold mb-1 flex items-center gap-1.5">
-                  <AlertTriangle size={14} className="text-amber-400" /> Academic & Schedule Constraints
+                  <AlertTriangle size={14} className="text-amber-400" /> Operational & Schedule Constraints
                 </strong>
                 <p className="text-slate-400">{selectedResource.constraints}</p>
               </div>

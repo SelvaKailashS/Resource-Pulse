@@ -72,7 +72,7 @@ export function ApprovalsView() {
     const newRecord: AuditRecord = {
       id: `AUD-${Math.floor(100 + Math.random() * 900)}`,
       title: item.title,
-      approver: `${user?.name || "Student Lead"} (Project Lead)`,
+      approver: `${user?.name || "Team Lead"} (Project Lead)`,
       timestamp: "Just now",
       decision: "Approved",
       details: `Authorized workload rebalancing of ${item.targetResource || "teammate"}.`,
@@ -98,7 +98,7 @@ export function ApprovalsView() {
     const newRecord: AuditRecord = {
       id: `AUD-${Math.floor(100 + Math.random() * 900)}`,
       title: item.title,
-      approver: `${user?.name || "Student Lead"} (Project Lead)`,
+      approver: `${user?.name || "Team Lead"} (Project Lead)`,
       timestamp: "Just now",
       decision: "Rejected",
       details: "Recommendation rejected by team lead.",

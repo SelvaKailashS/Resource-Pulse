@@ -14,8 +14,8 @@ export async function askLiveCopilot(query: string): Promise<{
     const raw = localStorage.getItem("resourcepulse_student_resources");
     if (raw) team = JSON.parse(raw);
   } catch {}
-  const teamName = localStorage.getItem("resourcepulse_team_name") || "Student Team";
-  const field = localStorage.getItem("resourcepulse_selected_field") || "Software & Cloud Systems";
+  const teamName = localStorage.getItem("resourcepulse_team_name") || "Operations Team";
+  const field = localStorage.getItem("resourcepulse_selected_field") || "Operations & Cloud Systems";
 
   // Handle direct navigation and actions first
   if (
@@ -43,7 +43,7 @@ export async function askLiveCopilot(query: string): Promise<{
   if (q === "run simulation" || q === "simulate" || q === "start simulation") {
     return {
       answer:
-        "Opening the 5-second live simulation screen now. Rebalancing workload recovers sprint velocity and protects submission deadlines.",
+        "Opening the 5-second live simulation screen now. Rebalancing workload recovers velocity and protects project milestones.",
       suggestedAction: "run_simulation",
     };
   }

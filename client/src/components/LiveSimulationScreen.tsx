@@ -44,10 +44,10 @@ const getRealTeammates = () => {
   } catch {}
   return [
     {
-      id: "STU-01",
-      name: "Student Teammate",
-      role: "Project Developer",
-      project: "Sprint Module",
+      id: "MEM-01",
+      name: "Team Member",
+      role: "Lead Specialist",
+      project: "Core Deliverable",
       avatarBg: "from-blue-600 to-cyan-500",
     },
   ];

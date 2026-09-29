@@ -98,7 +98,7 @@ function Home() {
   const [selectedScenario, setSelectedScenario] = useState<Scenario>("balanced");
   const [simulating, setSimulating] = useState(false);
   const [isLiveSimulationOpen, setIsLiveSimulationOpen] = useState(false);
-  const [simulationPerson, setSimulationPerson] = useState<string>("Student");
+  const [simulationPerson, setSimulationPerson] = useState<string>("Team Member");
   const [isLiveFeedOpen, setIsLiveFeedOpen] = useState(false);
   const [isIntegrationsOpen, setIsIntegrationsOpen] = useState(false);
   const [approved, setApproved] = useState(false);
@@ -112,7 +112,7 @@ function Home() {
     time: string;
   } | null>(null);
 
-  // Load real student teammates from localStorage
+  // Load real teammates from localStorage
   const [realTeammates, setRealTeammates] = useState<any[]>(() => {
     try {
       const stored = localStorage.getItem("resourcepulse_student_resources");
@@ -132,8 +132,8 @@ function Home() {
     return [];
   });
 
-  const teamName = localStorage.getItem("resourcepulse_team_name") || user?.teamName || "Student Project Team";
-  const userField = localStorage.getItem("resourcepulse_selected_field") || user?.field || "Software & Cloud Systems";
+  const teamName = localStorage.getItem("resourcepulse_team_name") || user?.teamName || "Operations Team";
+  const userField = localStorage.getItem("resourcepulse_selected_field") || user?.field || "Operations & Cloud Systems";
 
   useEffect(() => {
     try {
@@ -226,12 +226,12 @@ function Home() {
     return (
       overloadedTeammates[0] ||
       realTeammates[0] || {
-        id: "STU-01",
-        name: user?.name || "Student Lead",
+        id: "MEM-01",
+        name: user?.name || "Team Lead",
         role: "Team Lead",
-        project: "Primary Sprint Deliverable",
+        project: "Primary Deliverable",
         utilization: 55,
-        weeklyHours: 20,
+        weeklyHours: 40,
       }
     );
   }, [overloadedTeammates, realTeammates, user]);
@@ -240,12 +240,12 @@ function Home() {
     return (
       realTeammates.find((m: any) => m.id !== focalMember.id) ||
       realTeammates[1] || {
-        id: "STU-02",
-        name: "Co-Developer",
-        role: "Core Contributor",
-        project: "Supporting Module",
+        id: "MEM-02",
+        name: "Core Contributor",
+        role: "Specialist",
+        project: "Supporting Workstream",
         utilization: 40,
-        weeklyHours: 20,
+        weeklyHours: 40,
       }
     );
   }, [realTeammates, focalMember]);
@@ -269,7 +269,7 @@ function Home() {
         {
           id: 1,
           title: "Team Workload Equilibrium",
-          detail: `All ${realTeammates.length} active student members are operating within healthy capacity.`,
+          detail: `All ${realTeammates.length} active team members are operating within healthy capacity.`,
           severity: "watch" as const,
           horizon: "Nominal",
           status: "active",
@@ -280,7 +280,7 @@ function Home() {
     return overloadedTeammates.map((m: any, idx: number) => ({
       id: idx + 1,
       title: `${m.name} (${m.role})`,
-      detail: `Assigned to "${m.project}" at ${m.utilization}% load. ${m.constraints || "High burnout risk before milestone"}`,
+      detail: `Assigned to "${m.project}" at ${m.utilization}% load. ${m.constraints || "Workload rebalance recommended."}`,
       severity: m.utilization > 85 ? ("high" as const) : ("medium" as const),
       horizon: "Active Sprint",
       status: "active",
@@ -293,14 +293,14 @@ function Home() {
       return {
         id: 1,
         title: "Initialize Team Roster",
-        recommendation: "Add real teammates in the Resources tab to enable AI equal workload split and bottleneck protection.",
+        recommendation: "Add team members in the Resources tab to enable AI equal workload split and bottleneck protection.",
         confidence: 99,
         expectedOutcome: "Team ready",
         expectedOutcomeLabel: "readiness",
         riskChange: "0%",
         riskChangeLabel: "status",
         status: "pending",
-        recommendedResource: user?.name || "Student",
+        recommendedResource: user?.name || "Team Lead",
         skillMatch: "Lead",
         availability: "Flexible",
         sourceProjectImpact: "none",
@@ -323,15 +323,15 @@ function Home() {
         status: "pending",
         recommendedResource: helper.name,
         skillMatch: helper.role,
-        availability: `${helper.weeklyHours || 20}h capacity`,
+        availability: `${helper.weeklyHours || 40}h capacity`,
         sourceProjectImpact: "low",
       };
     }
 
     return {
       id: 1,
-      title: "Sprint Capacity Balanced",
-      recommendation: "All teammates currently have manageable workloads. Monitor sprint submissions and upcoming exam schedules.",
+      title: "Capacity Balanced",
+      recommendation: "All team members currently have manageable workloads. Ongoing deliverables are on schedule.",
       confidence: 96,
       expectedOutcome: "On track",
       expectedOutcomeLabel: "milestone confidence",
@@ -394,20 +394,20 @@ function Home() {
         id: 1,
         scenarioKey: "balanced" as const,
         title: "50/50 Equal Workload Split",
-        subtitle: "Best sprint balance",
+        subtitle: "Optimal team balance",
         timeRecovered: "+2.0 days",
-        estimatedCost: "$0 (Student)",
+        estimatedCost: "$0 (Internal)",
         riskReduction: "−42%",
-        blurb: `Rebalances ${ovName}’s module equally with ${hpName} to avoid bottlenecking submission.`,
+        blurb: `Rebalances ${ovName}’s deliverable equally with ${hpName} to avoid bottlenecking milestones.`,
         feasible: 1,
       },
       {
         id: 2,
         scenarioKey: "deadline" as const,
-        title: "Accelerate Sprint Milestone",
+        title: "Accelerate Milestone Delivery",
         subtitle: "Speed-first focus",
         timeRecovered: "+3.5 days",
-        estimatedCost: "$0 (Student)",
+        estimatedCost: "$0 (Internal)",
         riskReduction: "−58%",
         blurb: "Pulls forward the critical path by parallelizing module integration.",
         feasible: 1,
@@ -416,11 +416,11 @@ function Home() {
         id: 3,
         scenarioKey: "cost" as const,
         title: "Strict Scope Prioritization",
-        subtitle: "Scope-lean MVP",
+        subtitle: "Scope-lean core",
         timeRecovered: "+1.2 days",
-        estimatedCost: "$0 (Student)",
+        estimatedCost: "$0 (Internal)",
         riskReduction: "−22%",
-        blurb: "Focuses strictly on MVP grading rubric requirements and postpones optional polish.",
+        blurb: "Focuses strictly on critical path deliverables and minimizes idle scope.",
         feasible: 1,
       },
     ];
@@ -458,8 +458,8 @@ function Home() {
         {
           id: 2,
           eventType: "prediction" as const,
-          title: "Sprint Telemetry Active",
-          detail: "Workload distribution and deadline risk monitored.",
+          title: "Workload Telemetry Active",
+          detail: "Capacity distribution and milestone risk monitored.",
         },
       ];
     }
@@ -469,7 +469,7 @@ function Home() {
         id: 1,
         eventType: "signal" as const,
         title: "Team Setup Phase",
-        detail: "Add your real student teammates in Resources to begin telemetry.",
+        detail: "Add your team members in Resources to begin telemetry.",
       },
     ];
   }, [realTeammates]);
@@ -483,10 +483,10 @@ function Home() {
     approvalMutation.mutate({ id: liveRecommendation.id });
     void recordApprovalDecision(
       String(liveRecommendation.id),
-      user?.name || "Student Lead",
+      user?.name || "Team Lead",
       "Reallocation of " + (liveRecommendation.recommendedResource || "Teammate") + " for balanced sprint delivery"
     );
-    speakAnnouncement(`Plan approved by ${user?.name || "Student Lead"}. Workload updated in the audit trail.`);
+    speakAnnouncement(`Plan approved by ${user?.name || "Team Lead"}. Workload updated in the audit trail.`);
   };
 
   return (
@@ -510,13 +510,13 @@ function Home() {
               border: "1px solid rgba(56, 189, 248, 0.4)",
             }}
           >
-            🎓
+            🏢
           </div>
           <div className="workspace-copy">
             <span className="eyebrow" style={{ color: "#38bdf8" }}>
-              Student Workspace
+              {userField || "Team Workspace"}
             </span>
-            <strong>{localStorage.getItem("resourcepulse_team_name") || "Student Project Team"}</strong>
+            <strong>{localStorage.getItem("resourcepulse_team_name") || "Operations Team"}</strong>
           </div>
           <ChevronDown size={15} className="muted-icon" />
         </button>
@@ -569,8 +569,8 @@ function Home() {
         <header className="topbar">
           <div className="breadcrumb">
             <span className="flex items-center gap-1.5 text-slate-300 font-medium">
-              <span>🎓</span>
-              <span>{localStorage.getItem("resourcepulse_team_name") || "Student Project Team"}</span>
+              <Briefcase size={14} className="text-sky-400" />
+              <span>{localStorage.getItem("resourcepulse_team_name") || "Operations Team"}</span>
             </span>
             <span className="slash">/</span>
             <strong>{activeNav}</strong>
@@ -583,10 +583,10 @@ function Home() {
                 borderColor: "rgba(56, 189, 248, 0.35)",
                 background: "rgba(14, 165, 233, 0.1)",
               }}
-              title="Active Student Project Workspace"
+              title="Active Team Workspace"
             >
-              <span>🎓</span>
-              <span>{localStorage.getItem("resourcepulse_team_name") || "Student Team"}</span>
+              <Briefcase size={13} className="text-sky-400" />
+              <span>{localStorage.getItem("resourcepulse_team_name") || "Operations Team"}</span>
             </div>
             <button className="sync-status" onClick={() => loadDashboard(true)}>
               <StatusDot color={dataError ? "coral" : "blue"} />
@@ -627,10 +627,10 @@ function Home() {
                       .join("")
                       .toUpperCase()
                       .slice(0, 2)
-                  : "ST"}
+                  : "TL"}
               </div>
               <div className="topbar-user-info">
-                <span className="topbar-user-name">{user?.name || "Student User"}</span>
+                <span className="topbar-user-name">{user?.name || "Team Lead"}</span>
                 <span className="topbar-user-badge">
                   <span className="topbar-role-tag">{user?.role === "admin" ? "Team Lead" : "Core Member"}</span>
                   <span className="topbar-sub-tag">· Account settings</span>

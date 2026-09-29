@@ -538,17 +538,17 @@ export function AccountCenter({
                               .join("")
                               .toUpperCase()
                               .slice(0, 2)
-                          : "ST"}
+                          : "TL"}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="text-lg font-bold text-white">{accountUser?.name ?? "Student Teammate"}</h3>
+                          <h3 className="text-lg font-bold text-white">{accountUser?.name ?? "Team Member"}</h3>
                           <span className="text-[10px] font-mono uppercase font-bold px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30">
                             {currentRole}
                           </span>
                         </div>
                         <p className="text-xs text-slate-400 mt-1 font-mono">
-                          {accountUser?.email ?? "student@university.edu"} · {localStorage.getItem("resourcepulse_team_name") || "Student Project Team"}
+                          {accountUser?.email ?? "member@organization.com"} · {localStorage.getItem("resourcepulse_team_name") || "Operations Team"}
                         </p>
                       </div>
                     </div>
@@ -662,7 +662,7 @@ export function AccountCenter({
                     <div>
                       <strong className="text-sm font-bold text-white block">Team Access & Member Governance</strong>
                       <span className="text-xs text-slate-400">
-                        {studentTeamMembers.length} verified team members in {localStorage.getItem("resourcepulse_team_name") || "Student Workspace"}
+                        {studentTeamMembers.length} verified team members in {localStorage.getItem("resourcepulse_team_name") || "Operations Team"}
                       </span>
                     </div>
                     <span className="text-xs font-mono uppercase text-sky-400 font-semibold px-2.5 py-1 rounded-full bg-sky-500/10 border border-sky-500/20">
