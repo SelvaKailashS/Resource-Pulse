@@ -1,5 +1,14 @@
 import { useState, useMemo } from "react";
-import { Layers3, Check, Sliders, ShieldCheck, ArrowUpRight, DollarSign, Clock, AlertTriangle, Sparkles, Send } from "lucide-react";
+import {
+  Layers3,
+  Check,
+  Sliders,
+  ShieldCheck,
+  Clock,
+  Sparkles,
+  Users,
+  AlertTriangle,
+} from "lucide-react";
 import { toast } from "sonner";
 
 interface ScenarioOption {
@@ -17,62 +26,81 @@ interface ScenarioOption {
   blurb: string;
 }
 
-const getDynamicScenarioOptions = (): ScenarioOption[] => {
+const getDynamicScenarioOptions = (): { options: ScenarioOption[]; hasPeers: boolean; teamCount: number } => {
   try {
     const raw = localStorage.getItem("resourcepulse_student_resources");
+    let team: any[] = [];
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        const overloaded = parsed.find((m: any) => (m.utilization || 0) > 80) || parsed[0];
-        const helper = parsed.find((m: any) => m.id !== overloaded.id) || parsed[0];
-        return [
-          {
-            key: "balanced",
-            title: "50/50 Equal Workload Split",
-            tag: "Recommended",
-            timeGain: "+2.0 days",
-            costDelta: "$0 (Internal)",
-            riskReduction: "-42%",
-            overtimeHours: "0.0h",
-            feasibility: "95% High",
-            affectedResources: [overloaded.name, helper.name],
-            affectedTasks: [overloaded.project || "Project Deliverable", `${helper.project || "Core"} Co-development`],
-            assumptions: `${helper.name} can absorb 50% of the deliverable tasks to avoid bottle-necking milestone delivery.`,
-            blurb: `Rebalances ${overloaded.name}’s workload equally with ${helper.name}. Preserves final deadline without overtime burnout.`,
-          },
-          {
-            key: "deadline",
-            title: "Accelerate Milestone Delivery",
-            tag: "Speed-First",
-            timeGain: "+3.5 days",
-            costDelta: "$0 (Internal)",
-            riskReduction: "-58%",
-            overtimeHours: "8.0h",
-            feasibility: "88% Feasible",
-            affectedResources: parsed.slice(0, 3).map((m: any) => m.name),
-            affectedTasks: parsed.slice(0, 3).map((m: any) => m.project || "Critical Task"),
-            assumptions: "All team members commit focused sprint hours for milestone freeze.",
-            blurb: "Pulls forward the critical path by parallelizing module integration. Maximum delivery speed.",
-          },
-          {
-            key: "cost",
-            title: "Strict Scope Prioritization",
-            tag: "Scope-Lean",
-            timeGain: "+1.2 days",
-            costDelta: "$0 (Internal)",
-            riskReduction: "-22%",
-            overtimeHours: "0.0h",
-            feasibility: "98% High",
-            affectedResources: [overloaded.name],
-            affectedTasks: [overloaded.project || "Project Deliverable"],
-            assumptions: "Postpone optional polish items to focus strictly on MVP core requirements.",
-            blurb: "Uses existing member capacity only. Defers low-priority non-critical features.",
-          },
-        ];
-      }
+      if (Array.isArray(parsed)) team = parsed;
     }
+
+    const hasPeers = team.length > 1;
+    const overloaded = team.find((m: any) => (m.utilization || 0) > 80) || team[0] || { name: "Contributor", role: "Specialist", project: "Sprint Deliverable" };
+    const helper = team.find((m: any) => m.id !== overloaded.id) || (hasPeers ? team[1] : null);
+
+    const ovName = overloaded?.name || "Teammate";
+    const hpName = helper?.name || "Peer";
+
+    return {
+      hasPeers,
+      teamCount: team.length,
+      options: [
+        {
+          key: "balanced",
+          title: "50/50 Equal Workload Split",
+          tag: "Recommended",
+          timeGain: hasPeers ? "+2.0 days" : "0.0 days",
+          costDelta: "$0 (Internal)",
+          riskReduction: hasPeers ? "-42%" : "0%",
+          overtimeHours: "0.0h",
+          feasibility: hasPeers ? "95% High" : "Requires Teammates",
+          affectedResources: hasPeers ? [ovName, hpName] : [ovName],
+          affectedTasks: [overloaded?.project || "Deliverable"],
+          assumptions: hasPeers
+            ? `${hpName} absorbs 50% of the deliverable load to avoid milestone bottlenecks.`
+            : "Invite or add teammates using your Team Code to enable automated 50/50 deliverable balancing.",
+          blurb: hasPeers
+            ? `Rebalances ${ovName}’s deliverable equally with ${hpName} to avoid bottlenecking milestones.`
+            : `Invite or add teammates using your Team Code to enable automated 50/50 deliverable balancing across peers.`,
+        },
+        {
+          key: "deadline",
+          title: "Accelerate Milestone Delivery",
+          tag: "Speed-First",
+          timeGain: hasPeers ? "+3.5 days" : "+1.5 days",
+          costDelta: "$0 (Internal)",
+          riskReduction: "-58%",
+          overtimeHours: "0.0h",
+          feasibility: "88% Feasible",
+          affectedResources: team.slice(0, 3).map((m: any) => m.name),
+          affectedTasks: team.slice(0, 3).map((m: any) => m.project || "Deliverable"),
+          assumptions: "Pulls forward the critical path by parallelizing module integration.",
+          blurb: "Pulls forward the critical path by parallelizing module integration. Maximum delivery speed.",
+        },
+        {
+          key: "cost",
+          title: "Strict Scope Prioritization",
+          tag: "Scope-Lean",
+          timeGain: "+1.2 days",
+          costDelta: "$0 (Internal)",
+          riskReduction: "-22%",
+          overtimeHours: "0.0h",
+          feasibility: "98% High",
+          affectedResources: [ovName],
+          affectedTasks: [overloaded?.project || "Deliverable"],
+          assumptions: "Focuses strictly on critical path deliverables and defers non-essential items.",
+          blurb: "Uses existing member capacity only. Defers low-priority non-critical features.",
+        },
+      ],
+    };
   } catch {}
-  return [];
+
+  return {
+    hasPeers: false,
+    teamCount: 1,
+    options: [],
+  };
 };
 
 export function ScenariosView({
@@ -81,12 +109,13 @@ export function ScenariosView({
 }: {
   onNavigateToApprovals?: () => void;
   onOpenLiveSimulation?: () => void;
+  onNavigateToResources?: () => void;
 }) {
-  const scenarioOptions = useMemo(() => getDynamicScenarioOptions(), []);
+  const { options: scenarioOptions, hasPeers, teamCount } = useMemo(() => getDynamicScenarioOptions(), []);
   const [selectedScenarioKey, setSelectedScenarioKey] = useState("balanced");
-  const [whatIfUnavailable, setWhatIfUnavailable] = useState(2);
+  const [whatIfUnavailable, setWhatIfUnavailable] = useState(1);
   const [whatIfDelayDays, setWhatIfDelayDays] = useState(3);
-  const [whatIfBudgetCap, setWhatIfBudgetCap] = useState(3500);
+  const [whatIfDeliveryDays, setWhatIfDeliveryDays] = useState(14);
   const [isSimulating, setIsSimulating] = useState(false);
 
   const selectedScenario = scenarioOptions.find((s) => s.key === selectedScenarioKey) ?? scenarioOptions[0];
@@ -97,21 +126,21 @@ export function ScenariosView({
       return;
     }
     setIsSimulating(true);
-    toast.info("Running What-If Monte Carlo Simulation", {
-      description: `Testing ${whatIfUnavailable} unavailable personnel, +${whatIfDelayDays}d buffer, and $${whatIfBudgetCap.toLocaleString()} budget ceiling...`,
+    toast.info("Running What-If Dynamic Simulation", {
+      description: `Testing capacity with ${whatIfUnavailable} unavailable member(s) and +${whatIfDelayDays}d buffer...`,
     });
 
     setTimeout(() => {
       setIsSimulating(false);
       toast.success("Simulation Complete", {
-        description: `Generated optimal recovery trade-off. Confidence score evaluated at 92.8%.`,
+        description: "Optimal workload rebalancing synthesized with $0 internal cost.",
       });
-    }, 1200);
+    }, 900);
   };
 
   const handleSubmitApproval = (scenario: ScenarioOption) => {
     toast.success(`Scenario "${scenario.title}" submitted`, {
-      description: "Queued in the Approval Center for Lead Operations review.",
+      description: "Queued in the Approval Center for review.",
     });
     if (onNavigateToApprovals) onNavigateToApprovals();
   };
@@ -121,15 +150,31 @@ export function ScenariosView({
       <div className="module-header">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="status-pill chip-blue">4 Feasible Strategies Generated</span>
-            <span className="mono text-xs text-slate-400">Zero Unconstrained Bottlenecks</span>
+            <span className="status-pill chip-blue font-mono font-bold" style={{ color: "#38bdf8", borderColor: "rgba(56,189,248,0.4)", background: "rgba(14,165,233,0.12)" }}>
+              {scenarioOptions.length} Recovery Strategies Available
+            </span>
+            <span className="mono text-xs text-slate-400">
+              {hasPeers ? `${teamCount} Active Team Members` : "1 Active Team Member"}
+            </span>
           </div>
           <h1>Scenario Simulation & Trade-Off Matrix</h1>
           <p>
-            Evaluate multi-dimensional recovery strategies. The system does not dictate a universal "best" plan; compare trade-offs across time, cost, and risk.
+            Evaluate recovery strategies for your team. Compare trade-offs across schedule, internal allocation, and risk reduction.
           </p>
         </div>
       </div>
+
+      {!hasPeers && (
+        <div className="p-4 rounded-xl bg-sky-950/40 border border-sky-800/40 mb-6 flex items-start gap-3">
+          <Sparkles className="text-sky-400 shrink-0 mt-0.5" size={18} />
+          <div>
+            <strong className="text-sm text-sky-200 block">Single-Member Workspace Detected</strong>
+            <p className="text-xs text-slate-300 mt-0.5">
+              Automated 50/50 workload distribution requires at least 2 team members. Share your Team Code or Invite Link from Resources so teammates can join and unlock peer rebalancing.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Scenario Cards Grid */}
       <div className="scenarios-grid-view">
@@ -150,7 +195,7 @@ export function ScenariosView({
                       scenario.key === "balanced"
                         ? "bg-sky-950 text-sky-400 border border-sky-800/40"
                         : scenario.key === "deadline"
-                        ? "bg-rose-950 text-rose-400 border border-rose-800/40"
+                        ? "bg-emerald-950 text-emerald-400 border border-emerald-800/40"
                         : "bg-indigo-950 text-indigo-400 border border-indigo-800/40"
                     }`}
                   >
@@ -183,7 +228,7 @@ export function ScenariosView({
               </div>
 
               <div className="pt-3 border-t border-sky-900/20 flex items-center justify-between">
-                <span className="text-[10px] font-mono text-slate-400">Feasibility: {scenario.feasibility}</span>
+                <span className="text-[10px] font-mono text-slate-400">Status: {scenario.feasibility}</span>
                 <button
                   className="px-3 py-1.5 rounded-md text-xs font-semibold bg-sky-500/10 text-sky-300 hover:bg-sky-500/20 transition-colors"
                   onClick={(e) => {
@@ -202,7 +247,7 @@ export function ScenariosView({
       {/* Side-by-Side Trade-off Comparison Table */}
       <div className="comparison-table-wrap">
         <h3 className="text-sm font-bold text-white mb-1 flex items-center gap-2">
-          <Layers3 size={16} className="text-sky-400" /> Transparent Scenario Comparison Table
+          <Layers3 size={16} className="text-sky-400" /> Scenario Comparison Table
         </h3>
         <p className="text-xs text-slate-400 mb-4">
           Compare key decision criteria without hidden ranking algorithms.
@@ -213,47 +258,43 @@ export function ScenariosView({
             <thead>
               <tr>
                 <th>Decision Attribute</th>
-                <th>Balanced Recovery</th>
-                <th>Protect Deadline</th>
-                <th>Minimize Cost</th>
-                <th>Utilization Leveling</th>
+                <th>50/50 Equal Split</th>
+                <th>Accelerate Delivery</th>
+                <th>Strict Scope Prioritization</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td className="font-semibold text-slate-300">Time Recovered (Days)</td>
-                <td className="text-sky-400 font-bold">+2.4 Days</td>
-                <td className="text-emerald-400 font-bold">+4.1 Days</td>
+                <td className="font-semibold text-slate-300">Time Recovered</td>
+                <td className="text-sky-400 font-bold">{hasPeers ? "+2.0 Days" : "0.0 Days"}</td>
+                <td className="text-emerald-400 font-bold">{hasPeers ? "+3.5 Days" : "+1.5 Days"}</td>
                 <td className="text-slate-300">+1.2 Days</td>
-                <td className="text-slate-300">+2.0 Days</td>
               </tr>
               <tr>
-                <td className="font-semibold text-slate-300">Financial Spend / Overtime</td>
-                <td className="text-slate-300 font-mono">$1,200</td>
-                <td className="text-rose-400 font-mono font-bold">$3,800</td>
-                <td className="text-emerald-400 font-mono font-bold">$400</td>
-                <td className="text-slate-300 font-mono">$950</td>
+                <td className="font-semibold text-slate-300">Financial Spend</td>
+                <td className="text-slate-300 font-mono">$0 (Internal)</td>
+                <td className="text-slate-300 font-mono">$0 (Internal)</td>
+                <td className="text-slate-300 font-mono">$0 (Internal)</td>
               </tr>
               <tr>
                 <td className="font-semibold text-slate-300">Deadline Risk Reduction</td>
-                <td className="text-sky-400 font-bold">-38% Risk</td>
-                <td className="text-emerald-400 font-bold">-61% Risk</td>
-                <td className="text-amber-400 font-bold">-19% Risk</td>
-                <td className="text-sky-400 font-bold">-30% Risk</td>
+                <td className="text-sky-400 font-bold">{hasPeers ? "-42% Risk" : "0%"}</td>
+                <td className="text-emerald-400 font-bold">-58% Risk</td>
+                <td className="text-amber-400 font-bold">-22% Risk</td>
               </tr>
               <tr>
                 <td className="font-semibold text-slate-300">Overtime Burden</td>
-                <td className="text-slate-300">6.5 hrs total</td>
-                <td className="text-rose-400 font-bold">24.0 hrs (High)</td>
-                <td className="text-emerald-400 font-bold">0.0 hrs (None)</td>
-                <td className="text-slate-300">3.0 hrs total</td>
+                <td className="text-slate-300">0.0 hrs (Internal rebalance)</td>
+                <td className="text-slate-300">0.0 hrs (Parallel sprint)</td>
+                <td className="text-slate-300">0.0 hrs (Scope deferred)</td>
               </tr>
               <tr>
                 <td className="font-semibold text-slate-300">Core Assumptions</td>
-                <td className="text-xs text-slate-400">Teammate absorbs 50% deliverable split</td>
-                <td className="text-xs text-slate-400">Pair programming during lab sessions</td>
-                <td className="text-xs text-slate-400">Non-critical polish moved to next milestone</td>
-                <td className="text-xs text-slate-400">Task review distributed across roster</td>
+                <td className="text-xs text-slate-400">
+                  {hasPeers ? "Deliverable split equally across registered peers" : "Single contributor; add peers with Team Code"}
+                </td>
+                <td className="text-xs text-slate-400">Parallel milestone focus on critical deliverables</td>
+                <td className="text-xs text-slate-400">Non-essential polish deferred to subsequent milestone</td>
               </tr>
             </tbody>
           </table>
@@ -268,7 +309,7 @@ export function ScenariosView({
             <div>
               <h3 className="text-sm font-bold text-white">Interactive What-If Simulation Sandbox</h3>
               <p className="text-xs text-slate-400">
-                Adjust resource constraints and see real-time recalculations. Changes in this sandbox do not affect live allocations.
+                Adjust capacity constraints and see real-time recalculations. Changes in this sandbox do not affect live allocations.
               </p>
             </div>
           </div>
@@ -281,22 +322,22 @@ export function ScenariosView({
           </button>
         </div>
 
-        <div className="grid grid-cols-3 gap-6 mt-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-5">
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
-              <span className="text-slate-300 font-semibold">Simulate Unavailable Engineers</span>
-              <span className="mono text-sky-400 font-bold">{whatIfUnavailable} people</span>
+              <span className="text-slate-300 font-semibold">Simulate Unavailable Members</span>
+              <span className="mono text-sky-400 font-bold">{whatIfUnavailable} member(s)</span>
             </div>
             <input
               type="range"
               min="1"
-              max="5"
+              max={Math.max(2, teamCount)}
               value={whatIfUnavailable}
               onChange={(e) => setWhatIfUnavailable(Number(e.target.value))}
               className="w-full accent-sky-400"
             />
             <p className="text-[10px] text-slate-400">
-              Evaluates capacity drop and tests replacement skills in reserve pools.
+              Evaluates capacity drop and tests rebalancing across remaining peers.
             </p>
           </div>
 
@@ -314,26 +355,26 @@ export function ScenariosView({
               className="w-full accent-sky-400"
             />
             <p className="text-[10px] text-slate-400">
-              Permits slack in non-critical dependency paths.
+              Permits slack in non-critical deliverable paths.
             </p>
           </div>
 
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
-              <span className="text-slate-300 font-semibold">Budget Ceiling</span>
-              <span className="mono text-sky-400 font-bold">${whatIfBudgetCap.toLocaleString()}</span>
+              <span className="text-slate-300 font-semibold">Target Milestone Window</span>
+              <span className="mono text-sky-400 font-bold">{whatIfDeliveryDays} days</span>
             </div>
             <input
               type="range"
-              min="500"
-              max="8000"
-              step="500"
-              value={whatIfBudgetCap}
-              onChange={(e) => setWhatIfBudgetCap(Number(e.target.value))}
+              min="5"
+              max="30"
+              step="1"
+              value={whatIfDeliveryDays}
+              onChange={(e) => setWhatIfDeliveryDays(Number(e.target.value))}
               className="w-full accent-sky-400"
             />
             <p className="text-[10px] text-slate-400">
-              Caps contractor spend and discretionary overtime allowance.
+              Target completion horizon for active team deliverables.
             </p>
           </div>
         </div>

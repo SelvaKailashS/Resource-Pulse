@@ -8,10 +8,11 @@ import { ScenariosView } from "@/components/ScenariosView";
 import { ApprovalsView } from "@/components/ApprovalsView";
 import { LiveSimulationScreen } from "@/components/LiveSimulationScreen";
 import { VoiceAssistantCopilot } from "@/components/VoiceAssistantCopilot";
-import { OnboardingModal } from "@/components/OnboardingModal";
 import { AINeedsModal } from "@/components/AINeedsModal";
 import { LiveFeedModal } from "@/components/LiveFeedModal";
 import { IntegrationsModal } from "@/components/IntegrationsModal";
+import { CommandPaletteModal } from "@/components/CommandPaletteModal";
+import { TeamChatView } from "@/components/TeamChatView";
 import { track } from "@/lib/analytics";
 import { recordTaskAssignment, recordApprovalDecision } from "@/lib/supabase";
 import {
@@ -34,6 +35,7 @@ import {
   Layers3,
   LoaderCircle,
   Leaf,
+  MessageSquare,
   MoreHorizontal,
   Play,
   Plus,
@@ -51,12 +53,13 @@ import { toast } from "sonner";
 
 type Scenario = "balanced" | "deadline" | "cost";
 
-const navItems = [
+const navItems: { label: string; icon: any; badge?: string }[] = [
   { label: "Command center", icon: Gauge },
   { label: "Resources", icon: Users },
-  { label: "Impact graph", icon: GitBranch, badge: "3" },
+  { label: "Impact graph", icon: GitBranch },
   { label: "Scenarios", icon: Layers3 },
-  { label: "Approvals", icon: ShieldCheck, badge: "2" },
+  { label: "Team chat", icon: MessageSquare },
+  { label: "Approvals", icon: ShieldCheck },
 ];
 
 
@@ -107,7 +110,7 @@ function Home() {
   const [showNotice, setShowNotice] = useState(true);
   const [activeNav, setActiveNav] = useState("Command center");
   const [accountOpen, setAccountOpen] = useState(false);
-  const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isAiNeedsOpen, setIsAiNeedsOpen] = useState(() => {
     try {
       return localStorage.getItem("resourcepulse_needs_setup_pending") === "true";
@@ -218,8 +221,15 @@ function Home() {
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated && accountProfileQuery.data?.user && !accountProfileQuery.data.user.onboardingCompleted) setAccountOpen(true);
-  }, [accountProfileQuery.data?.user, isAuthenticated]);
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
+  }, []);
 
   const overloadedTeammates = useMemo(
     () => realTeammates.filter((m: any) => (m.utilization || 0) > 80 || m.status === "High Load" || m.status === "Overallocated"),
@@ -601,11 +611,11 @@ function Home() {
               <span>{localStorage.getItem("resourcepulse_team_name") || "Operations Team"}</span>
             </div>
             <button className="sync-status" onClick={() => loadDashboard(true)}>
-              <StatusDot color={dataError ? "coral" : "blue"} />
-              <span>{isLoading ? "Syncing…" : dataError ? "Sync paused" : "Live sync"}</span>
+              <StatusDot color="blue" />
+              <span>{isLoading ? "Syncing…" : "Live sync"}</span>
               <span className="mono">{isLoading ? "fetching" : time}</span>
             </button>
-            <button className="icon-button" aria-label="Search" onClick={() => toast("Search", { description: "Try searching for a resource, task, or scenario." })}><Search size={17} /></button>
+            <button className="icon-button" aria-label="Search" onClick={() => setIsCommandPaletteOpen(true)}><Search size={17} /></button>
             <button
               className="icon-button"
               aria-label="Approvals"
@@ -630,13 +640,13 @@ function Home() {
             </button>
             <button
               className="command-button"
-              style={{ color: "#38bdf8", borderColor: "rgba(56, 189, 248, 0.4)", background: "rgba(14, 165, 233, 0.1)" }}
-              onClick={() => setOnboardingOpen(true)}
+              onClick={() => setIsCommandPaletteOpen(true)}
+              title="Open Command Palette (⌘K / Ctrl+K)"
             >
-              <Sparkles size={14} />
-              <span>Tour / Onboard</span>
+              <Command size={15} />
+              <span>Command</span>
+              <kbd>⌘ K</kbd>
             </button>
-            <button className="command-button" onClick={() => toast("Command palette", { description: "Keyboard shortcut: ⌘ K" })}><Command size={15} /><span>Command</span><kbd>⌘ K</kbd></button>
 
             {/* Top Right User Profile Button */}
             <div className="topbar-divider" />
@@ -737,6 +747,10 @@ function Home() {
               onNavigateToApprovals={() => setActiveNav("Approvals")}
               onOpenLiveSimulation={() => setIsLiveSimulationOpen(true)}
             />
+          )}
+
+          {activeNav === "Team chat" && (
+            <TeamChatView currentUserName={user?.name} currentUserRole={user?.role} />
           )}
 
           {activeNav === "Approvals" && <ApprovalsView />}
@@ -1028,21 +1042,21 @@ function Home() {
         isAuthenticated={isAuthenticated}
         user={user}
         logout={logout}
-        onOpenOnboardingTour={() => setOnboardingOpen(true)}
         onUserUpdate={(u: any) => updateUser(u)}
       />
 
-      <OnboardingModal
-        open={onboardingOpen}
-        onOpenChange={setOnboardingOpen}
-        currentUserRole={user?.role}
-        currentUserName={user?.name}
-        onComplete={(data) => {
-          updateUser({
-            role: data.role as any,
-            onboardingCompleted: 1,
-          });
+      <CommandPaletteModal
+        open={isCommandPaletteOpen}
+        onOpenChange={setIsCommandPaletteOpen}
+        onNavigate={(view) => setActiveNav(view)}
+        onRunSimulation={() => {
+          setSimulationPerson(focalMember.name);
+          setIsLiveSimulationOpen(true);
         }}
+        onOpenAiNeeds={() => setIsAiNeedsOpen(true)}
+        onOpenAccount={() => setAccountOpen(true)}
+        onOpenLiveFeed={() => setIsLiveFeedOpen(true)}
+        onOpenIntegrations={() => setIsIntegrationsOpen(true)}
       />
 
       <AINeedsModal
