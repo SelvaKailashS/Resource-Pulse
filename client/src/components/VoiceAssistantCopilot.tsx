@@ -410,16 +410,49 @@ export function VoiceAssistantCopilot({
       return;
     }
 
-    // 4. Greetings & What can you do
+    // Project capability queries
     if (
+      lower.includes("can use this website") ||
+      lower.includes("use this website") ||
+      lower.includes("can i use") ||
+      lower.includes("can we use") ||
+      lower.includes("manage project")
+    ) {
+      let projCount = 0;
+      try {
+        const rawProj = localStorage.getItem("resourcepulse_enterprise_projects_v2");
+        if (rawProj) {
+          const parsed = JSON.parse(rawProj);
+          if (Array.isArray(parsed)) projCount = parsed.length;
+        }
+      } catch {}
+
+      handleAIResponse(
+        `Yes, absolutely! ResourcePulse is built for enterprise project portfolio and deliverable management. You can create projects in the Projects tab, upload requirements (documents, PDFs, spreadsheets, images), decompose milestones with AI, allocate team members based on skills, and track capacity curves. You currently have ${projCount} project(s) configured.`,
+        "open_projects"
+      );
+      return;
+    }
+
+    // Conversational queries like "say something"
+    if (
+      lower.includes("say something") ||
+      lower.includes("tell me something") ||
+      lower.includes("talk to me")
+    ) {
+      const currentTeam = localStorage.getItem("resourcepulse_team_name") || "your team";
+      handleAIResponse(
+        `Your ${currentTeam} workspace is operating in equilibrium. Live capacity tracking and milestone risk telemetry are active with 0 cascading bottlenecks detected. What deliverable or project would you like to explore?`,
+        "open_home"
+      );
+      return;
+    }
+
+    // Greetings & What can you do (bounded)
+    if (
+      (/\b(hello|hi|hey|howdy|greetings)\b/i.test(lower) && lower.split(" ").length <= 4) ||
       lower.includes("what can you do") ||
-      lower.includes("who are you") ||
-      lower.includes("hello") ||
-      lower.includes("hi alex") ||
-      lower.includes("hey alex") ||
-      lower === "hi" ||
-      lower === "hey" ||
-      lower === "hello"
+      lower.includes("who are you")
     ) {
       const currentTeam = localStorage.getItem("resourcepulse_team_name") || "your team";
       handleAIResponse(

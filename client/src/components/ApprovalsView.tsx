@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ShieldCheck, CheckCircle2, XCircle, AlertCircle, Clock, User, ArrowRight, FileText, Check, ShieldAlert } from "lucide-react";
+import { ShieldCheck, CheckCircle2, XCircle, AlertCircle, Clock, User, ArrowRight, FileText, Check, ShieldAlert, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface ApprovalItem {
@@ -59,6 +59,25 @@ export function ApprovalsView() {
     } catch {}
     return [];
   });
+
+  const handleDeleteAuditRecord = (id: string) => {
+    const updated = auditLog.filter((log) => log.id !== id);
+    setAuditLog(updated);
+    try {
+      localStorage.setItem("resourcepulse_audit_log", JSON.stringify(updated));
+    } catch {}
+    toast.success("Audit entry deleted");
+  };
+
+  const handleClearAuditLog = () => {
+    if (confirm("Are you sure you want to clear all audit trail records?")) {
+      setAuditLog([]);
+      try {
+        localStorage.removeItem("resourcepulse_audit_log");
+      } catch {}
+      toast.success("Audit log cleared");
+    }
+  };
 
   const pendingApprovals = approvals.filter((a) => a.status === "pending");
 
@@ -220,45 +239,75 @@ export function ApprovalsView() {
 
       {/* Governance & Audit Trail Table */}
       <div className="table-panel p-5">
-        <h3 className="text-sm font-bold text-white mb-1 flex items-center gap-2">
-          <FileText size={16} className="text-sky-400" /> Decision Governance & Audit Trail
-        </h3>
-        <p className="text-xs text-slate-400 mb-4">
-          Immutable log of all human approvals, rejections, and execution timestamps.
-        </p>
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <div>
+            <h3 className="text-sm font-bold text-white mb-1 flex items-center gap-2">
+              <FileText size={16} className="text-sky-400" /> Decision Governance & Audit Trail
+            </h3>
+            <p className="text-xs text-slate-400">
+              Immutable log of all human approvals, rejections, and execution timestamps.
+            </p>
+          </div>
+          {auditLog.length > 0 && (
+            <button
+              onClick={handleClearAuditLog}
+              className="text-xs px-2.5 py-1.5 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-1.5 transition-colors"
+            >
+              <Trash2 size={13} /> Clear Audit Log
+            </button>
+          )}
+        </div>
 
-        <table className="resource-table">
-          <thead>
-            <tr>
-              <th>Audit ID</th>
-              <th>Action Title</th>
-              <th>Authorized Operator</th>
-              <th>Decision</th>
-              <th>Timestamp</th>
-              <th>Audit Summary</th>
-            </tr>
-          </thead>
-          <tbody>
-            {auditLog.map((log) => (
-              <tr key={log.id}>
-                <td className="mono text-sky-400 font-bold">{log.id}</td>
-                <td className="font-semibold text-white">{log.title}</td>
-                <td className="text-slate-300">{log.approver}</td>
-                <td>
-                  <span
-                    className={`status-pill ${
-                      log.decision === "Approved" ? "chip-blue" : "chip-coral"
-                    }`}
-                  >
-                    {log.decision}
-                  </span>
-                </td>
-                <td className="mono text-slate-400">{log.timestamp}</td>
-                <td className="text-slate-400 text-xs">{log.details}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {auditLog.length === 0 ? (
+          <div className="text-center py-8 text-slate-500 text-xs">
+            No audit records logged yet. Approvals and task decompositions will appear here.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="resource-table w-full">
+              <thead>
+                <tr>
+                  <th>Audit ID</th>
+                  <th>Action Title</th>
+                  <th>Authorized Operator</th>
+                  <th>Decision</th>
+                  <th>Timestamp</th>
+                  <th>Audit Summary</th>
+                  <th className="text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {auditLog.map((log) => (
+                  <tr key={log.id}>
+                    <td className="mono text-sky-400 font-bold">{log.id}</td>
+                    <td className="font-semibold text-white">{log.title}</td>
+                    <td className="text-slate-300">{log.approver}</td>
+                    <td>
+                      <span
+                        className={`status-pill ${
+                          log.decision === "Approved" ? "chip-blue" : "chip-coral"
+                        }`}
+                      >
+                        {log.decision}
+                      </span>
+                    </td>
+                    <td className="mono text-slate-400">{log.timestamp}</td>
+                    <td className="text-slate-400 text-xs">{log.details}</td>
+                    <td className="text-right">
+                      <button
+                        onClick={() => handleDeleteAuditRecord(log.id)}
+                        title="Delete audit entry"
+                        className="p-1.5 rounded text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

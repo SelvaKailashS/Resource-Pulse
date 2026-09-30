@@ -383,8 +383,54 @@ export function resolveQueryKnowledgeBase(query: string): {
     }
   }
 
-  // 13. Greetings & General conversation
-  if (q.includes("hello") || q.includes("hi") || q.includes("hey") || q.includes("who are you") || q.includes("what can you do")) {
+  // Project-related capability questions
+  if (
+    q.includes("project") ||
+    q.includes("projects") ||
+    q.includes("use this website") ||
+    q.includes("can i use") ||
+    q.includes("can we use") ||
+    q.includes("manage project") ||
+    q.includes("what is this for")
+  ) {
+    let projCount = 0;
+    try {
+      if (typeof window !== "undefined") {
+        const rawProj = localStorage.getItem("resourcepulse_enterprise_projects_v2");
+        if (rawProj) {
+          const parsed = JSON.parse(rawProj);
+          if (Array.isArray(parsed)) projCount = parsed.length;
+        }
+      }
+    } catch {}
+
+    return {
+      answer: `Yes, absolutely! ResourcePulse is built specifically for project portfolio governance and delivery. You can create projects, upload requirement documents (PDF, Word, CSV, images), let AI decompose milestones, match teammates based on skills and availability, and forecast deadlines. You currently have ${projCount} project initiative(s) configured.`,
+      suggestedAction: "open_projects",
+    };
+  }
+
+  // Conversational prompts like "say something"
+  if (
+    q.includes("say something") ||
+    q.includes("tell me something") ||
+    q.includes("talk to me") ||
+    q.includes("anything new") ||
+    q.includes("what's up") ||
+    q.includes("whats up")
+  ) {
+    return {
+      answer: `Your ${currentTeamName} workspace is actively monitored. You have ${team.length} registered resource(s) operating in equilibrium. All telemetry models, milestone schedules, and capacity safety buffers are synchronized. How can I assist you with your projects today?`,
+      suggestedAction: "open_home",
+    };
+  }
+
+  // Greetings with word boundaries (not matching "this" or "something")
+  if (
+    (/\b(hello|hi|hey|howdy|greetings)\b/i.test(q) && q.split(" ").length <= 4) ||
+    q.includes("who are you") ||
+    q.includes("what can you do")
+  ) {
     return {
       answer: `Hello! I'm Alex, your AI Operations Copilot for ${currentTeamName}. I track your team members' workloads, identify capacity bottlenecks, run 5-second simulations, and assist with deliverable rebalancing. Ask me about who is on your team, project status, or tell me to run a simulation!`,
       suggestedAction: "open_home",

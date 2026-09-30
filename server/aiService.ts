@@ -54,120 +54,15 @@ export interface SimulationAIResponse {
 // Complete Ground-Truth Knowledge Base of Resource Pulse
 export const SITE_KNOWLEDGE_BASE = {
   organization: {
-    name: "Northstar Ops / ResourceFlow AI",
-    systemHealth: "87.4% (Optimal band, +4.8% this week)",
+    name: "ResourcePulse Workspace",
+    systemHealth: "Active",
     uptime: "99.98% nominal",
-    atRiskCapacity: "12.6 hours (concentrated in Mobile Testing, -18.2%)",
-    forecastConfidence: "94.2% (validated via ML Monte-Carlo simulations)",
-    openDecisions: "4 total decisions, 2 urgent requiring Admin & Team Lead sign-off",
+    atRiskCapacity: "0 hours",
+    forecastConfidence: "95.0%",
+    openDecisions: "0 pending decisions",
     currency: "USD ($)",
   },
-  resources: [
-    {
-      id: "RES-01",
-      name: "Arjun Rao",
-      role: "Senior QA Automation Engineer",
-      team: "Quality Engineering / Support Pod",
-      hourlyRate: 85,
-      load: "96% (Heavy Load)",
-      status: "6.5h open tomorrow",
-      skills: ["Appium", "Jest", "CI/CD Pipeline", "Regression Harness", "Mobile Testing"],
-      currentProject: "Support Pod & Mobile Core E2E Testing",
-      suitability: "Optimal replacement candidate (94% match) for unblocking Mobile Release Train.",
-      notes: "Support pod can buffer non-critical queue for 48 hours without any SLA breach.",
-    },
-    {
-      id: "RES-02",
-      name: "Priya Sharma",
-      role: "Staff Backend Engineer",
-      team: "Platform Core",
-      hourlyRate: 110,
-      load: "88% (Healthy/Optimal)",
-      status: "4.0h buffer open",
-      skills: ["Go", "gRPC", "PostgreSQL", "High-Concurrency APIs", "Distributed Systems"],
-      currentProject: "Northstar Core API & Payment Gateway v2.4",
-      suitability: "Key architecture owner for Payment Gateway; escalations go to her.",
-      notes: "Maintains core microservices. Available for critical backend architecture reviews.",
-    },
-    {
-      id: "RES-03",
-      name: "Marcus Vance",
-      role: "Cloud DevOps Architect",
-      team: "Infrastructure & Reliability",
-      hourlyRate: 105,
-      load: "64% (Balanced)",
-      status: "2.0h open, on-call Friday",
-      skills: ["Kubernetes (EKS)", "AWS", "Terraform", "Docker", "CI/CD Gateways"],
-      currentProject: "Northstar Onboarding & Cloud Architecture",
-      suitability: "Not feasible to reassign to QA (42% match).",
-      notes: "CRITICAL: Pulling Marcus away introduces severe infrastructure downtime risk on the EKS cluster.",
-    },
-    {
-      id: "RES-04",
-      name: "Elena Rostova",
-      role: "Senior UI/UX Specialist",
-      team: "Design & Product Experience",
-      hourlyRate: 90,
-      load: "70% (Balanced)",
-      status: "4.0h open tomorrow",
-      skills: ["Figma Design Specs", "Design Systems", "React", "Tailwind CSS", "UI Acceptance"],
-      currentProject: "Design System 2.0",
-      suitability: "Alternative candidate (68% match) for manual UI validation only.",
-      notes: "Can verify visual design and manual UI paths, but cannot maintain automated CI pipeline.",
-    },
-    {
-      id: "RES-05",
-      name: "GPU Cluster Alpha",
-      role: "AI Hardware Acceleration Cluster",
-      team: "Machine Learning Platform",
-      hourlyRate: 24,
-      load: "98% (High Demand)",
-      status: "Scheduled maintenance in 72h",
-      skills: ["4x NVIDIA H100 SXM5 80GB", "PyTorch", "vLLM", "Embedding Inference"],
-      currentProject: "Predictive Analytics & Real-time Reallocation Engine",
-      suitability: "Infrastructure resource powering ResourceFlow AI's Monte-Carlo simulations.",
-      notes: "Maintenance cycle scheduled in 72 hours; failover to secondary GPU cluster prepared.",
-    },
-    {
-      id: "RES-06",
-      name: "Test Lab Alpha",
-      role: "Mobile Device Farm",
-      team: "QA Automation",
-      hourlyRate: 15,
-      load: "52% (Available)",
-      status: "16 device slots currently free",
-      skills: ["32 Physical Devices (iOS 18 & Android 15)", "Appium Grid", "Battery Profiling"],
-      currentProject: "Automated Device Acceptance Suite",
-      suitability: "Ready to run automated regression runs immediately once scripts are unblocked.",
-      notes: "Has 16 free slots available for instant parallel testing execution.",
-    },
-    {
-      id: "RES-07",
-      name: "Sprint Contingency Reserve",
-      role: "Emergency Budget Pool",
-      team: "Finance & Operations Governance",
-      hourlyRate: 0,
-      load: "42% ($504 spent of $1,200)",
-      status: "$696 buffer remaining",
-      skills: ["Overtime Authorization", "Contractor Burst Financing"],
-      currentProject: "Sprint 44 Buffer",
-      suitability: "Sufficient budget ($696 open) to fund Arjun Rao's $1,200 shift with approved reallocation.",
-      notes: "Authorized by Maya Chen; reserves are in a healthy band.",
-    },
-    {
-      id: "RES-08",
-      name: "Shared Redis Cache Cluster",
-      role: "Distributed In-Memory Cache",
-      team: "Platform Core",
-      hourlyRate: 8,
-      load: "84% (Moderate/Watch)",
-      status: "Memory ceiling at 85%",
-      skills: ["64GB In-Memory Cache", "Session Store", "Rate Limiting"],
-      currentProject: "Northstar Microservices Core",
-      suitability: "Monitored shared infrastructure pool.",
-      notes: "Operating within safe boundaries; alert fires if memory exceeds 90%.",
-    },
-  ],
+  resources: [],
   cascadingImpactChain: {
     rootDeficit: "60% QA testing capacity drop due to absence / bandwidth deficit",
     stage1Blocked: "Mobile Core E2E Automated Test Suite stalls (+18h delay)",
@@ -697,8 +592,39 @@ function resolveFromLiveKnowledgeBase(
     };
   }
 
-  // 9. Greetings & General conversation
-  if (q.includes("hello") || q.includes("hi") || q.includes("hey") || q.includes("who are you") || q.includes("what can you do")) {
+  // Project capabilities questions
+  if (
+    q.includes("project") ||
+    q.includes("projects") ||
+    q.includes("use this website") ||
+    q.includes("can i use") ||
+    q.includes("can we use") ||
+    q.includes("manage project")
+  ) {
+    return {
+      answer: `Yes, absolutely! ResourcePulse is built for enterprise project portfolio and deliverable management. You can create projects, upload requirement documents (PDF, Word, CSV, images), decompose milestones with AI, allocate team members based on skills, and track capacity curves.`,
+      suggestedAction: "open_projects",
+    };
+  }
+
+  // Conversational prompts like "say something"
+  if (
+    q.includes("say something") ||
+    q.includes("tell me something") ||
+    q.includes("talk to me")
+  ) {
+    return {
+      answer: `Your ${teamName} workspace is actively monitored. Live capacity tracking and milestone risk telemetry are active with 0 cascading bottlenecks detected. How can I assist you with your projects today?`,
+      suggestedAction: "open_home",
+    };
+  }
+
+  // 9. Greetings & General conversation (bounded)
+  if (
+    (/\b(hello|hi|hey|howdy|greetings)\b/i.test(q) && q.split(" ").length <= 4) ||
+    q.includes("who are you") ||
+    q.includes("what can you do")
+  ) {
     return {
       answer: `Hello! I'm Alex, your AI Operations Copilot for ${teamName}. I track your team members' workloads, identify capacity bottlenecks, run 5-second simulations, and assist with deliverable rebalancing. Ask me about who is on your team, project status, or tell me to run a simulation!`,
       suggestedAction: "open_home",
