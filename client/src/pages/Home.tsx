@@ -14,6 +14,17 @@ import { IntegrationsModal } from "@/components/IntegrationsModal";
 import { CommandPaletteModal } from "@/components/CommandPaletteModal";
 import { TeamChatView } from "@/components/TeamChatView";
 import { TaskSplitModal } from "@/components/TaskSplitModal";
+import { DataIntakeView } from "@/components/DataIntakeView";
+import { ProjectsView } from "@/components/ProjectsView";
+import { AllocationView } from "@/components/AllocationView";
+import { WorkloadCapacityView } from "@/components/WorkloadCapacityView";
+import { ForecastingView } from "@/components/ForecastingView";
+import { AIInsightsView } from "@/components/AIInsightsView";
+import { AlertsView } from "@/components/AlertsView";
+import { ReportsView } from "@/components/ReportsView";
+import { DataSourcesView } from "@/components/DataSourcesView";
+import { SettingsView } from "@/components/SettingsView";
+import { loadInitialResources, loadInitialProjects, computeOrgMetrics, loadThresholds } from "@/lib/orgStore";
 import { track } from "@/lib/analytics";
 import { recordTaskAssignment, recordApprovalDecision } from "@/lib/supabase";
 import {
@@ -30,9 +41,13 @@ import {
   CircleAlert,
   Clock3,
   Command,
+  Database,
+  FileText,
   Filter,
+  FolderGit2,
   Gauge,
   GitBranch,
+  GitMerge,
   Layers3,
   LoaderCircle,
   Leaf,
@@ -43,9 +58,12 @@ import {
   RotateCcw,
   Search,
   ShieldCheck,
+  Sliders,
   Sparkles,
   Target,
   TrendingDown,
+  TrendingUp,
+  UploadCloud,
   Users,
   X,
   Zap,
@@ -54,13 +72,46 @@ import { toast } from "sonner";
 
 type Scenario = "balanced" | "deadline" | "cost";
 
-const navItems: { label: string; icon: any; badge?: string }[] = [
-  { label: "Command center", icon: Gauge },
-  { label: "Resources", icon: Users },
-  { label: "Impact graph", icon: GitBranch },
-  { label: "Scenarios", icon: Layers3 },
-  { label: "Team chat", icon: MessageSquare },
-  { label: "Approvals", icon: ShieldCheck },
+const navSections: {
+  section: string;
+  items: { label: string; icon: any; badge?: string }[];
+}[] = [
+  {
+    section: "Operations",
+    items: [
+      { label: "Command center", icon: Gauge },
+      { label: "Resources", icon: Users },
+      { label: "Projects", icon: FolderGit2 },
+      { label: "Allocation", icon: GitMerge },
+      { label: "Workload & Capacity", icon: Activity },
+    ],
+  },
+  {
+    section: "Intelligence",
+    items: [
+      { label: "Analytics & Forecasting", icon: TrendingUp },
+      { label: "AI Insights", icon: Sparkles },
+      { label: "Scenarios", icon: Layers3 },
+      { label: "Impact graph", icon: GitBranch },
+    ],
+  },
+  {
+    section: "Governance",
+    items: [
+      { label: "Alerts", icon: Bell },
+      { label: "Reports", icon: FileText },
+      { label: "Approvals", icon: ShieldCheck },
+    ],
+  },
+  {
+    section: "Data & Config",
+    items: [
+      { label: "Data Intake", icon: UploadCloud },
+      { label: "Data Sources", icon: Database },
+      { label: "Team chat", icon: MessageSquare },
+      { label: "Settings", icon: Sliders },
+    ],
+  },
 ];
 
 
@@ -126,24 +177,12 @@ function Home() {
     time: string;
   } | null>(null);
 
-  // Load real teammates from localStorage
+  // Load real teammates & projects from enterprise orgStore
   const [realTeammates, setRealTeammates] = useState<any[]>(() => {
-    try {
-      const stored = localStorage.getItem("resourcepulse_student_resources");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          // If stored has stale corporate demo names, purge it
-          const hasStale = parsed.some((p: any) => p.name === "Alex Rivera" || p.name === "Maya Chen" || p.name === "Arjun Rao" || p.name === "Jordan Patel");
-          if (hasStale) {
-            localStorage.removeItem("resourcepulse_student_resources");
-            return [];
-          }
-          return parsed;
-        }
-      }
-    } catch {}
-    return [];
+    return loadInitialResources();
+  });
+  const [realProjects, setRealProjects] = useState<any[]>(() => {
+    return loadInitialProjects();
   });
 
   const teamName = localStorage.getItem("resourcepulse_team_name") || user?.teamName || "Operations Team";
@@ -151,22 +190,11 @@ function Home() {
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem("resourcepulse_student_resources");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          const hasStale = parsed.some((p: any) => p.name === "Alex Rivera" || p.name === "Maya Chen" || p.name === "Arjun Rao" || p.name === "Jordan Patel");
-          if (hasStale) {
-            localStorage.removeItem("resourcepulse_student_resources");
-            setRealTeammates([]);
-            return;
-          }
-          setRealTeammates(parsed);
-          if (parsed[0]?.name) setSimulationPerson(parsed[0].name);
-          return;
-        }
-      }
-      setRealTeammates([]);
+      const res = loadInitialResources();
+      setRealTeammates(res);
+      const prj = loadInitialProjects();
+      setRealProjects(prj);
+      if (res[0]?.name) setSimulationPerson(res[0].name);
     } catch {}
   }, [activeNav]);
 
@@ -544,46 +572,32 @@ function Home() {
           </div>
           <ChevronDown size={15} className="muted-icon" />
         </button>
-        <div className="sidebar-label">Operations</div>
-        <nav className="main-nav" aria-label="Primary navigation">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeNav === item.label;
-            return (
-              <button
-                key={item.label}
-                onClick={() => {
-                  setActiveNav(item.label);
-                  toast.info(`${item.label} opened`, { description: `Switched view to ${item.label}.` });
-                }}
-                className={`nav-item ${isActive ? "active" : ""}`}
-              >
-                <Icon size={17} strokeWidth={isActive ? 2.2 : 1.7} />
-                <span>{item.label}</span>
-                {item.badge && <span className="nav-badge">{item.badge}</span>}
-              </button>
-            );
-          })}
-        </nav>
-        <div className="sidebar-label sidebar-label-spaced">Monitor</div>
-        <nav className="main-nav">
-          <button
-            className={`nav-item ${isLiveFeedOpen ? "active" : ""}`}
-            onClick={() => setIsLiveFeedOpen(true)}
-          >
-            <Activity size={17} strokeWidth={1.7} />
-            <span>Live feed</span>
-            <span className="live-ping" />
-          </button>
-          <button
-            className={`nav-item ${isIntegrationsOpen ? "active" : ""}`}
-            onClick={() => setIsIntegrationsOpen(true)}
-          >
-            <Boxes size={17} strokeWidth={1.7} />
-            <span>Integrations</span>
-            <span className="nav-badge" style={{ background: "rgba(14, 165, 233, 0.2)", color: "#38bdf8" }}>8</span>
-          </button>
-        </nav>
+        <div className="sidebar-scrollable flex-1 overflow-y-auto space-y-4 pr-1">
+          {navSections.map((sec) => (
+            <div key={sec.section}>
+              <div className="sidebar-label">{sec.section}</div>
+              <nav className="main-nav" aria-label={sec.section}>
+                {sec.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeNav === item.label;
+                  return (
+                    <button
+                      key={item.label}
+                      onClick={() => {
+                        setActiveNav(item.label);
+                      }}
+                      className={`nav-item ${isActive ? "active" : ""}`}
+                    >
+                      <Icon size={16} strokeWidth={isActive ? 2.2 : 1.7} />
+                      <span>{item.label}</span>
+                      {item.badge && <span className="nav-badge">{item.badge}</span>}
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+          ))}
+        </div>
         <div className="sidebar-bottom">
           <div className="sidebar-health"><span><StatusDot color="blue" /> System nominal</span><span className="mono">99.98%</span></div>
         </div>
@@ -759,13 +773,91 @@ function Home() {
             />
           )}
 
+          {activeNav === "Projects" && (
+            <ProjectsView onOpenDataIntake={() => setActiveNav("Data Intake")} />
+          )}
+
+          {activeNav === "Allocation" && <AllocationView />}
+
+          {activeNav === "Workload & Capacity" && (
+            <WorkloadCapacityView
+              onSimulate={handleSimulation}
+              onNavigateToDataIntake={() => setActiveNav("Data Intake")}
+            />
+          )}
+
+          {activeNav === "Analytics & Forecasting" && <ForecastingView />}
+
+          {activeNav === "AI Insights" && (
+            <AIInsightsView onNavigateToAllocation={() => setActiveNav("Allocation")} />
+          )}
+
+          {activeNav === "Alerts" && (
+            <AlertsView onNavigateToAllocation={() => setActiveNav("Allocation")} />
+          )}
+
+          {activeNav === "Reports" && <ReportsView />}
+
+          {activeNav === "Data Intake" && (
+            <DataIntakeView
+              onImportComplete={() => {
+                void loadDashboard(true);
+              }}
+              onNavigateToResources={() => setActiveNav("Resources")}
+            />
+          )}
+
+          {activeNav === "Data Sources" && (
+            <DataSourcesView onOpenDataIntake={() => setActiveNav("Data Intake")} />
+          )}
+
+          {activeNav === "Settings" && (
+            <SettingsView
+              onSettingsSaved={() => {
+                void loadDashboard(true);
+              }}
+            />
+          )}
+
           {activeNav === "Team chat" && (
             <TeamChatView currentUserName={user?.name} currentUserRole={user?.role} />
           )}
 
           {activeNav === "Approvals" && <ApprovalsView />}
 
-          {activeNav === "Command center" && (
+          {activeNav === "Command center" && realTeammates.length === 0 && (
+            <div className="border border-dashed border-border/60 rounded-2xl p-12 text-center bg-card/40 max-w-2xl mx-auto my-12 shadow-sm space-y-4">
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-2 border border-primary/20">
+                <Database size={30} />
+              </div>
+              <h2 className="text-2xl font-bold text-foreground">No organizational data available yet.</h2>
+              <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+                ResourcePulse derives all dashboards, telemetry, and forecasts directly from actual workforce and deliverable records. Ingest your organization's data to begin.
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                <button
+                  onClick={() => setActiveNav("Data Intake")}
+                  className="px-4 py-2.5 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                >
+                  <UploadCloud size={15} /> Import Data
+                </button>
+                <button
+                  onClick={() => setActiveNav("Resources")}
+                  className="px-4 py-2.5 text-xs font-semibold rounded-lg border border-border bg-card hover:bg-accent text-foreground transition-all shadow-xs flex items-center gap-2 cursor-pointer"
+                >
+                  <Users size={15} /> Add Resource
+                </button>
+                <button
+                  onClick={() => setActiveNav("Data Sources")}
+                  className="px-4 py-2.5 text-xs font-semibold rounded-lg border border-border bg-card hover:bg-accent text-foreground transition-all shadow-xs flex items-center gap-2 cursor-pointer"
+                >
+                  <Database size={15} /> Connect Data Source
+                </button>
+              </div>
+            </div>
+          )}
+
+          {activeNav === "Command center" && realTeammates.length > 0 && (
             <>
               {showNotice && overloadedTeammates.length > 0 && (
                 <div className="incident-banner">

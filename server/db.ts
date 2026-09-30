@@ -72,29 +72,17 @@ export async function getUserByOpenId(openId: string) {
   return result[0];
 }
 
-const fallbackDashboard = {
-  metrics: { resourceHealth: "87.4%", resourceHealthDelta: "+4.8%", atRiskCapacity: "12.6h", atRiskCapacityDelta: "-18.2%", forecastConfidence: "94.2%", forecastConfidenceDelta: "+2.1%", openDecisions: 4, urgentDecisions: 2 },
-  signals: [
-    { id: 1, title: "Mobile release train", detail: "QA capacity drops below threshold", severity: "high", horizon: "in 9h", status: "active", ownersNotified: 3 },
-    { id: 2, title: "Northstar onboarding", detail: "Dependency chain is compressing", severity: "medium", horizon: "in 2d", status: "active", ownersNotified: 3 },
-    { id: 3, title: "Shared infra pool", detail: "Utilization trending above 82%", severity: "watch", horizon: "in 4d", status: "active", ownersNotified: 3 },
-  ],
-  scenarios: [
-    { id: 1, scenarioKey: "balanced", title: "Balanced recovery", subtitle: "Best overall outcome", timeRecovered: "+2.4 days", estimatedCost: "$1.2k", riskReduction: "−38%", blurb: "Rebalances 4 resources while protecting the launch milestone.", feasible: 1 },
-    { id: 2, scenarioKey: "deadline", title: "Protect deadline", subtitle: "Time-first objective", timeRecovered: "+4.1 days", estimatedCost: "$3.8k", riskReduction: "−61%", blurb: "Adds temporary capacity and pulls forward the critical path.", feasible: 1 },
-    { id: 3, scenarioKey: "cost", title: "Minimize cost", subtitle: "Efficiency-first objective", timeRecovered: "+1.2 days", estimatedCost: "$0.4k", riskReduction: "−19%", blurb: "Uses internal capacity and delays two low-priority tasks.", feasible: 1 },
-  ],
-  recommendation: { id: 1, title: "Give QA a safe landing", recommendation: "Move Arjun Rao from Support pod to the release train for one test cycle. This is the highest-confidence recovery path that protects the milestone without adding external capacity.", confidence: 94, expectedOutcome: "−2.4 days", expectedOutcomeLabel: "milestone slip avoided", riskChange: "−38%", riskChangeLabel: "deadline risk reduced", status: "pending", recommendedResource: "Arjun Rao", skillMatch: "mobile QA", availability: "6.5h tomorrow", sourceProjectImpact: "low" },
-  activity: [
-    { id: 1, eventType: "signal", title: "QA availability changed", detail: "14m ago · Source: PeopleOps" },
-    { id: 2, eventType: "prediction", title: "Forecast updated", detail: "32m ago · 7-day horizon" },
-    { id: 3, eventType: "decision", title: "Scenario approved", detail: "1h ago · Platform team" },
-  ],
+const emptyDashboard = {
+  metrics: null,
+  signals: [],
+  scenarios: [],
+  recommendation: null,
+  activity: [],
 };
 
 export async function getDashboardSnapshot() {
   const db = await getDb();
-  if (!db) return { ...fallbackDashboard, fetchedAt: Date.now(), storage: "fallback" as const };
+  if (!db) return { ...emptyDashboard, fetchedAt: Date.now(), storage: "empty" as const };
 
   const [metrics] = await db.select().from(dashboardMetrics).orderBy(desc(dashboardMetrics.updatedAt)).limit(1);
   const signals = await db.select().from(resourceSignals).where(eq(resourceSignals.status, "active")).orderBy(desc(resourceSignals.createdAt)).limit(10);
@@ -102,8 +90,8 @@ export async function getDashboardSnapshot() {
   const [recommendation] = await db.select().from(recommendations).where(eq(recommendations.status, "pending")).orderBy(desc(recommendations.createdAt)).limit(1);
   const activity = await db.select().from(activityEvents).orderBy(desc(activityEvents.createdAt)).limit(10);
 
-  if (!metrics || signals.length === 0 || scenarios.length === 0 || !recommendation) {
-    return { ...fallbackDashboard, fetchedAt: Date.now(), storage: "starter" as const };
+  if (!metrics) {
+    return { ...emptyDashboard, fetchedAt: Date.now(), storage: "empty" as const };
   }
 
   return { metrics, signals, scenarios, recommendation, activity, fetchedAt: Date.now(), storage: "database" as const };
@@ -121,22 +109,13 @@ export async function approveRecommendation(id: number, userId: number) {
 
 const memStore = {
   users: new Map<number, any>([
-    [1, { id: 1, openId: "demo-maya-chen", name: "Maya Chen", email: "mc@northstar.ops", role: "admin", emailVerified: 1, onboardingCompleted: 0, permissionSet: "system.admin,approvals.write,dashboard.read" }],
-    [2, { id: 2, openId: "demo-arjun-rao", name: "Arjun Rao", email: "arjun@northstar.ops", role: "operator", emailVerified: 1, onboardingCompleted: 1, permissionSet: "approvals.write,dashboard.read" }],
-    [3, { id: 3, openId: "demo-priya-sharma", name: "Priya Sharma", email: "priya@northstar.ops", role: "viewer", emailVerified: 1, onboardingCompleted: 1, permissionSet: "dashboard.read" }]
+    [1, { id: 1, openId: "owner-user", name: "Workspace Owner", email: "admin@resourcepulse.io", role: "admin", emailVerified: 1, onboardingCompleted: 1, permissionSet: "system.admin,approvals.write,dashboard.read" }],
   ]),
   preferences: new Map<number, any>([
     [1, { emailAlerts: 1, inAppAlerts: 1, analyticsConsent: 1, marketingConsent: 0, reducedMotion: 0 }]
   ]),
-  notifications: [
-    { id: 1, userId: 1, title: "QA Capacity Warning", body: "Mobile Release Train is blocked by QA bandwidth shortage (+18h slip).", type: "signal", readAt: null, createdAt: new Date() },
-    { id: 2, userId: 1, title: "Recommendation Queued", body: "Reallocating Arjun Rao recovers 2.4 days on mobile critical path.", type: "approval", readAt: null, createdAt: new Date() },
-    { id: 3, userId: 1, title: "Infrastructure Alert", body: "GPU cluster alpha load normalized to nominal levels.", type: "system", readAt: null, createdAt: new Date() }
-  ],
-  cashEntries: [
-    { id: 1, userId: 1, project: "Mobile Core QA", direction: "outflow", amountCents: 120000, description: "Arjun Rao test acceleration sprint", occurredAt: new Date(Date.now() - 86400000) },
-    { id: 2, userId: 1, project: "Enterprise ARR", direction: "inflow", amountCents: 450000, description: "Northstar Q3 subscription revenue", occurredAt: new Date(Date.now() - 172800000) }
-  ],
+  notifications: [] as any[],
+  cashEntries: [] as any[],
   tokens: new Map<string, { userId: number; purpose: string; expiresAt: Date }>(),
   betaEnrollments: new Map<number, string>([[1, "active"]]),
   betaFeedback: [] as any[],
