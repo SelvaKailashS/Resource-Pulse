@@ -3,7 +3,6 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { AccountCenter } from "@/components/AccountCenter";
 import { ResourcesView } from "@/components/ResourcesView";
-import { ImpactGraphView } from "@/components/ImpactGraphView";
 import { ScenariosView } from "@/components/ScenariosView";
 import { ApprovalsView } from "@/components/ApprovalsView";
 import { LiveSimulationScreen } from "@/components/LiveSimulationScreen";
@@ -44,6 +43,7 @@ import {
   Calendar,
   Check,
   ChevronDown,
+  ChevronRight,
   CircleAlert,
   Clock3,
   Command,
@@ -102,13 +102,12 @@ const navSections: {
       { label: "Analytics & Forecasting", icon: TrendingUp },
       { label: "AI Insights", icon: Sparkles },
       { label: "Scenarios", icon: Layers3 },
-      { label: "Impact graph", icon: GitBranch },
     ],
   },
   {
     section: "Automation & Governance",
     items: [
-      { label: "Automation Center", icon: Zap, badge: "Make" },
+      { label: "Smart Alerts", icon: BellRing, badge: "Auto" },
       { label: "Alerts", icon: Bell },
       { label: "Reports", icon: FileText },
       { label: "Approvals", icon: ShieldCheck },
@@ -775,10 +774,6 @@ function Home() {
             />
           )}
 
-          {activeNav === "Impact graph" && (
-            <ImpactGraphView onNavigateToScenarios={() => setActiveNav("Scenarios")} />
-          )}
-
           {activeNav === "Scenarios" && (
             <ScenariosView
               onNavigateToApprovals={() => setActiveNav("Approvals")}
@@ -845,7 +840,7 @@ function Home() {
             <TeamChatView currentUserName={user?.name} currentUserRole={user?.role} />
           )}
 
-          {activeNav === "Automation Center" && <AutomationCenter />}
+          {(activeNav === "Smart Alerts" || activeNav === "Automation Center") && <AutomationCenter />}
 
           {activeNav === "Approvals" && <ApprovalsView />}
 
@@ -941,177 +936,340 @@ function Home() {
                 })}
               </div>
 
-              <div className="section-heading"><div><span className="eyebrow">Observe · detect · predict</span><h2>What deserves your attention</h2></div><button className="text-button" onClick={() => setActiveNav("Impact graph")}>View cascading impact <ArrowUpRight size={14} /></button></div>
+              <div className="section-heading">
+                <div>
+                  <span className="eyebrow">Operations & Delivery Telemetry</span>
+                  <h2>Capacity & Active Projects</h2>
+                </div>
+                <button className="text-button" onClick={() => setActiveNav("Smart Alerts")}>
+                  View Smart Alerts <ArrowUpRight size={14} />
+                </button>
+              </div>
 
-              <section className="attention-grid">
-                <div className="panel risk-panel">
-                  <div className="panel-heading"><div><span className="panel-kicker"><span className="signal-bars"><i /><i /><i /></span> PRIORITY QUEUE</span><h3>Signals that may cascade</h3></div><span className="panel-count">03 active</span></div>
-                  <div className="risk-list">
-                    {liveSignals.map((item, index) => <button className="risk-row" key={item.id} onClick={() => setActiveNav("Impact graph")}>
-                      <div className={`risk-number risk-${item.severity === "high" ? "coral" : item.severity === "medium" ? "amber" : "blue"}`}>0{index + 1}</div>
-                      <div className="risk-copy"><strong>{item.title}</strong><span>{item.detail}</span></div>
-                      <div className="risk-meta"><span className={`risk-chip chip-${item.severity === "high" ? "coral" : item.severity === "medium" ? "amber" : "blue"}`}>{item.severity === "high" ? "High" : item.severity === "medium" ? "Medium" : "Watch"}</span><span className="risk-time"><Clock3 size={12} /> {item.horizon}</span></div>
-                      <ArrowUpRight size={15} className="row-arrow" />
-                    </button>)}
+              {/* SECTION 1: RESOURCE UTILIZATION & PROJECT STATUS (Section 10) */}
+              <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+                {/* Resource Capacity & Load Distribution */}
+                <div className="p-5 rounded-2xl border border-border/70 bg-card/60 shadow-xs flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-3 pb-2 border-b border-border/40">
+                      <div>
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-sky-400 font-bold">
+                          Resource Workload
+                        </span>
+                        <h3 className="text-sm font-bold text-foreground">Capacity & Utilization</h3>
+                      </div>
+                      <button
+                        onClick={() => setActiveNav("Resources")}
+                        className="text-xs text-primary hover:underline flex items-center gap-1 font-medium"
+                      >
+                        Manage Resources <ChevronRight size={13} />
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {realTeammates.slice(0, 5).map((m: any, idx: number) => {
+                        const util = Number(m.utilization || 0);
+                        const assignedH = Number(m.assignedHours || Math.round((util / 100) * 40));
+                        const capacityH = Number(m.weeklyCapacityHours || 40);
+                        const isOver = util > 100;
+                        const isHeavy = util >= 80 && util <= 100;
+
+                        return (
+                          <div
+                            key={m.id || idx}
+                            className="p-3 rounded-xl bg-background/60 border border-border/40 flex flex-col gap-2 hover:border-border transition-all"
+                          >
+                            <div className="flex items-center justify-between text-xs">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-7 h-7 rounded-lg bg-sky-500/15 border border-sky-400/30 text-sky-400 flex items-center justify-center font-bold text-[11px] font-mono">
+                                  {(m.name || "TM").slice(0, 2).toUpperCase()}
+                                </div>
+                                <div>
+                                  <strong className="text-foreground block">{m.name}</strong>
+                                  <span className="text-[10px] text-muted-foreground">{m.role || "Specialist"} • {m.department || "Operations"}</span>
+                                </div>
+                              </div>
+
+                              <div className="text-right">
+                                <span
+                                  className={`text-[11px] font-bold font-mono px-2 py-0.5 rounded-full ${
+                                    isOver
+                                      ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                                      : isHeavy
+                                      ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                                      : "bg-sky-500/20 text-sky-400 border border-sky-500/30"
+                                  }`}
+                                >
+                                  {util}% load
+                                </span>
+                                <span className="text-[10px] text-muted-foreground block mt-0.5 font-mono">
+                                  {assignedH}h / {capacityH}h
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="w-full bg-slate-800/80 rounded-full h-1.5 overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all duration-500 ${
+                                  isOver ? "bg-rose-500" : isHeavy ? "bg-amber-400" : "bg-sky-400"
+                                }`}
+                                style={{ width: `${Math.min(util, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="panel-footer">
-                    <span>
-                      {realTeammates.length > 0 ? (
-                        realTeammates.slice(0, 3).map((m: any, idx: number) => {
-                          const initials = (m.name || "TM")
-                            .split(" ")
-                            .map((n: string) => n[0])
-                            .join("")
-                            .slice(0, 2)
-                            .toUpperCase();
-                          const colors = ["avatar-blue", "avatar-violet", "avatar-sky"];
-                          return (
-                            <span key={m.id || idx} className={`mini-avatar ${colors[idx % colors.length]}`}>
-                              {initials}
-                            </span>
-                          );
-                        })
-                      ) : (
-                        <span className="text-xs text-slate-500">None</span>
-                      )}
-                    </span>
-                    <span>
-                      {realTeammates.length > 0
-                        ? `${realTeammates.length} ${realTeammates.length === 1 ? "owner" : "owners"} notified`
-                        : "0 owners notified"}
-                    </span>
-                    <button className="icon-button small" onClick={() => setActiveNav("Resources")}>
-                      <Plus size={14} />
+
+                  <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>Tracking {realTeammates.length} active resources</span>
+                    <button
+                      onClick={() => setActiveNav("Workload & Capacity")}
+                      className="text-primary hover:underline flex items-center gap-1 font-semibold"
+                    >
+                      Capacity Matrix →
                     </button>
                   </div>
                 </div>
 
-                <div className="panel forecast-panel">
-                  <div className="panel-heading">
-                    <div><span className="panel-kicker"><TrendingDown size={13} /> FORECAST</span><h3>Capacity pressure</h3></div>
-                    <button className="period-select" onClick={() => toast("Forecast range", { description: "Showing the next 7 days." })}>Next 7 days <ChevronDown size={13} /></button>
-                  </div>
-                  <div className="forecast-value">
-                    <strong>{overloadedTeammates.length > 0 ? `−${(overloadedTeammates.length * 6.5).toFixed(1)}` : "0.0"}</strong>
-                    <span>hours at risk</span>
-                    <div className="forecast-badge">
-                      {overloadedTeammates.length > 0 ? <TrendingDown size={13} /> : null}{" "}
-                      {overloadedTeammates.length > 0 ? `${(overloadedTeammates.length * 18.2).toFixed(1)}%` : "0.0%"}
+                {/* Active Projects & Deliverables */}
+                <div className="p-5 rounded-2xl border border-border/70 bg-card/60 shadow-xs flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-3 pb-2 border-b border-border/40">
+                      <div>
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-indigo-400 font-bold">
+                          Deliverables & Milestones
+                        </span>
+                        <h3 className="text-sm font-bold text-foreground">Active Projects</h3>
+                      </div>
+                      <button
+                        onClick={() => setActiveNav("Projects")}
+                        className="text-xs text-primary hover:underline flex items-center gap-1 font-medium"
+                      >
+                        Manage Projects <ChevronRight size={13} />
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {realProjects.length === 0 ? (
+                        <div className="text-center py-8 text-xs text-muted-foreground">
+                          No active projects yet. Add your first project in the Projects view.
+                        </div>
+                      ) : (
+                        realProjects.slice(0, 5).map((p: any, idx: number) => {
+                          const progress = Number(p.progress || 0);
+                          const isRisk = p.status === "At Risk" || (p.deadline && progress < 60);
+
+                          return (
+                            <div
+                              key={p.id || idx}
+                              className="p-3 rounded-xl bg-background/60 border border-border/40 flex flex-col gap-2 hover:border-border transition-all"
+                            >
+                              <div className="flex items-center justify-between text-xs">
+                                <div>
+                                  <strong className="text-foreground block">{p.name}</strong>
+                                  <span className="text-[10px] text-muted-foreground">
+                                    Lead: {p.lead || "Project Lead"} • {p.deadline || "No deadline"}
+                                  </span>
+                                </div>
+
+                                <div className="text-right">
+                                  <span
+                                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                                      isRisk
+                                        ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                                        : progress === 100
+                                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                        : "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30"
+                                    }`}
+                                  >
+                                    {p.status || "In Progress"}
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground block mt-0.5 font-mono">
+                                    {progress}% completed
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="w-full bg-slate-800/80 rounded-full h-1.5 overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all duration-500 ${
+                                    isRisk ? "bg-rose-500" : progress === 100 ? "bg-emerald-400" : "bg-indigo-400"
+                                  }`}
+                                  style={{ width: `${Math.min(progress, 100)}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
                     </div>
                   </div>
-                  <div className="chart-wrap">
-                    <div className="chart-y-labels"><span>100%</span><span>75%</span><span>50%</span><span>25%</span></div>
-                    <svg viewBox="0 0 500 138" className="forecast-chart" preserveAspectRatio="none" aria-label="Capacity pressure forecast chart">
-                      <defs><linearGradient id="chartFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#38bdf8" stopOpacity=".25" /><stop offset="1" stopColor="#38bdf8" stopOpacity="0" /></linearGradient></defs>
-                      <path d="M0 112 C38 109 45 91 78 99 S114 110 142 84 S177 68 204 81 S241 85 269 61 S305 38 330 61 S365 78 393 45 S430 31 458 39 S484 17 500 20 L500 138 L0 138Z" fill="url(#chartFill)" />
-                      <path d="M0 112 C38 109 45 91 78 99 S114 110 142 84 S177 68 204 81 S241 85 269 61 S305 38 330 61 S365 78 393 45 S430 31 458 39 S484 17 500 20" fill="none" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" />
-                      <line x1="0" x2="500" y1="83" y2="83" stroke="#f3bd6b" strokeDasharray="5 6" strokeOpacity=".7" />
-                      <circle cx="393" cy="45" r="4" fill="#38bdf8" stroke="#081225" strokeWidth="3" /><circle cx="500" cy="20" r="4" fill="#38bdf8" stroke="#081225" strokeWidth="3" />
-                    </svg>
-                    <div className="chart-x-labels"><span>Today</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span><span>Mon</span></div>
+
+                  <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>{realProjects.length} projects registered</span>
+                    <button
+                      onClick={() => setActiveNav("Projects")}
+                      className="text-primary hover:underline flex items-center gap-1 font-semibold"
+                    >
+                      Project Timeline →
+                    </button>
                   </div>
-                  <div className="forecast-note"><span className="legend-line legend-blue" /> forecast <span className="legend-line legend-amber" /> safe capacity threshold</div>
                 </div>
               </section>
 
-              <section className="workspace-grid" id="impact-map">
-                <div className="panel impact-panel">
-                  <div className="panel-heading">
-                    <div>
-                      <span className="panel-kicker"><GitBranch size={13} /> CASCADING IMPACT PREVIEW</span>
-                      <h3>{teamName} Critical Path</h3>
+              {/* SECTION 2: OPERATIONAL SIGNALS & EXPLAINABLE RECOMMENDATION */}
+              <div className="section-heading">
+                <div>
+                  <span className="eyebrow">Observe · Detect · Predict</span>
+                  <h2>Signals & Decision Governance</h2>
+                </div>
+                <button className="text-button" onClick={() => setActiveNav("Smart Alerts")}>
+                  Manage Alerts <ArrowUpRight size={14} />
+                </button>
+              </div>
+
+              <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+                {/* Priority Telemetry Signals */}
+                <div className="p-5 rounded-2xl border border-border/70 bg-card/60 shadow-xs flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-3 pb-2 border-b border-border/40">
+                      <div>
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold">
+                          Priority Telemetry Queue
+                        </span>
+                        <h3 className="text-sm font-bold text-foreground">Signals Deserving Attention</h3>
+                      </div>
+                      <span className="text-xs text-muted-foreground font-mono">
+                        {liveSignals.length} active
+                      </span>
                     </div>
-                    <div className="impact-controls">
-                      <span className="status-pill"><StatusDot color="coral" /> Live analysis</span>
-                      <button className="icon-button small" onClick={() => setActiveNav("Impact graph")}><RotateCcw size={14} /></button>
+
+                    <div className="space-y-2.5">
+                      {liveSignals.map((item, index) => (
+                        <div
+                          key={item.id}
+                          className="p-3 rounded-xl bg-background/60 border border-border/40 flex items-center justify-between gap-3 text-xs"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-[11px] font-mono shrink-0 ${
+                                item.severity === "high"
+                                  ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                                  : "bg-sky-500/20 text-sky-400 border border-sky-500/30"
+                              }`}
+                            >
+                              0{index + 1}
+                            </div>
+                            <div>
+                              <strong className="text-foreground block">{item.title}</strong>
+                              <span className="text-[11px] text-muted-foreground">{item.detail}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                                item.severity === "high"
+                                  ? "bg-rose-500/20 text-rose-400"
+                                  : "bg-sky-500/20 text-sky-400"
+                              }`}
+                            >
+                              {item.severity === "high" ? "High Risk" : "Watch"}
+                            </span>
+                            <button
+                              onClick={() => setActiveNav("Smart Alerts")}
+                              className="p-1 text-muted-foreground hover:text-foreground"
+                              title="View signal"
+                            >
+                              <ArrowUpRight size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                  <div className="impact-summary">
-                    <span><strong>{realTeammates.length * 3 || 3}</strong> dependent tasks</span>
-                    <span><strong>{String(realTeammates.length || 1).padStart(2, "0")}</strong> resources tracked</span>
-                    <span><strong>{overloadedTeammates.length > 0 ? "+2.0d" : "0.0d"}</strong> milestone shift</span>
-                  </div>
-                  <div className="impact-canvas">
-                    <div className="graph-grid" />
-                    <svg className="graph-lines" viewBox="0 0 760 280" preserveAspectRatio="none" aria-hidden="true">
-                      <path d="M145 140 C205 140 198 78 265 78 S325 78 372 103" />
-                      <path d="M145 140 C215 140 200 200 265 200 S325 200 372 177" />
-                      <path d="M440 103 C510 103 520 69 600 69" />
-                      <path d="M440 177 C510 177 520 221 600 221" />
-                      <path d="M440 103 C515 103 515 140 600 140" />
-                      <path d="M440 177 C515 177 515 140 600 140" />
-                      <circle cx="145" cy="140" r="5" />
-                      <circle cx="372" cy="103" r="4" />
-                      <circle cx="372" cy="177" r="4" />
-                      <circle cx="600" cy="69" r="4" />
-                      <circle cx="600" cy="140" r="4" />
-                      <circle cx="600" cy="221" r="4" />
-                    </svg>
-                    <div className="graph-node node-origin">
-                      <div className="node-icon node-coral"><CircleAlert size={14} /></div>
-                      <div>
-                        <strong>{focalMember.name}</strong>
-                        <span>{focalMember.utilization}% load</span>
-                      </div>
-                    </div>
-                    <div className="graph-node node-a">
-                      <div className="node-icon node-amber"><Clock3 size={14} /></div>
-                      <div>
-                        <strong>{focalMember.project || "Sprint Deliverable"}</strong>
-                        <span>{overloadedTeammates.length > 0 ? "+1.5d slip" : "On schedule"}</span>
-                      </div>
-                    </div>
-                    <div className="graph-node node-b">
-                      <div className="node-icon node-amber"><GitBranch size={14} /></div>
-                      <div>
-                        <strong>Integration Gate</strong>
-                        <span>{overloadedTeammates.length > 0 ? "Blocked" : "Clear"}</span>
-                      </div>
-                    </div>
-                    <div className="graph-node node-c">
-                      <div className="node-icon node-blue"><Target size={14} /></div>
-                      <div>
-                        <strong>{teamName} Submission</strong>
-                        <span>{overloadedTeammates.length > 0 ? "At risk" : "Protected"}</span>
-                      </div>
-                    </div>
-                    <div className="graph-node node-d">
-                      <div className="node-icon node-violet"><Users size={14} /></div>
-                      <div>
-                        <strong>{helperMember.name}</strong>
-                        <span>{helperMember.weeklyHours || 20}h buffer</span>
-                      </div>
-                    </div>
-                    <div className="graph-node node-e">
-                      <div className="node-icon node-coral"><Zap size={14} /></div>
-                      <div>
-                        <strong>Workload Pressure</strong>
-                        <span>{overloadedTeammates.length > 0 ? "High stress" : "Equilibrium"}</span>
-                      </div>
-                    </div>
-                    <div className="graph-tooltip">
-                      <span className="eyebrow">Predicted impact</span>
-                      <strong>{overloadedTeammates.length > 0 ? "Workload rebalance required" : "Sprint in equilibrium"}</strong>
-                      <span>Discipline: {userField}</span>
-                    </div>
-                  </div>
-                  <div className="impact-footer">
-                    <span><StatusDot color="coral" /> Direct impact</span>
-                    <span><StatusDot color="amber" /> Dependent task</span>
-                    <span><StatusDot color="blue" /> Recoverable path</span>
-                    <button className="text-button" onClick={() => setActiveNav("Impact graph")}>
-                      Open full interactive graph <ArrowUpRight size={14} />
+
+                  <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>Autonomous monitoring active</span>
+                    <button
+                      onClick={() => setActiveNav("Smart Alerts")}
+                      className="text-primary hover:underline flex items-center gap-1 font-semibold"
+                    >
+                      All Smart Alerts →
                     </button>
                   </div>
                 </div>
 
-                <div className="panel recommendation-panel">
-                  <div className="recommendation-top"><div className="ai-orb"><Sparkles size={16} /></div><div><span className="panel-kicker">EXPLAINABLE RECOMMENDATION</span><h3>{liveRecommendation.title}</h3></div><span className="confidence">{liveRecommendation.confidence}% <span>confidence</span></span></div>
-                  <p className="recommendation-copy">{liveRecommendation.recommendation}</p>
-                  <div className="reason-list"><div><Check size={13} /><span>Skill match: <strong>{liveRecommendation.skillMatch}</strong></span></div><div><Check size={13} /><span>Available: <strong>{liveRecommendation.availability}</strong></span></div><div><Check size={13} /><span>Source project impact: <strong>{liveRecommendation.sourceProjectImpact}</strong></span></div></div>
-                  <div className="recommendation-impact"><div><span className="eyebrow">EXPECTED OUTCOME</span><strong>{liveRecommendation.expectedOutcome}</strong><span>{liveRecommendation.expectedOutcomeLabel}</span></div><div><span className="eyebrow">RISK CHANGE</span><strong className="blue-text">{liveRecommendation.riskChange}</strong><span>{liveRecommendation.riskChangeLabel}</span></div></div>
-                  <div className="recommendation-actions">{approved || liveRecommendation.status === "approved" ? <div className="approved-state"><Check size={15} /> Approved · queued for execution</div> : <><button className="secondary-button" onClick={() => setActiveNav("Approvals")}>Review in Approvals</button><button className="primary-button" onClick={handleApprove} disabled={approvalMutation.isPending}><ShieldCheck size={14} /> {approvalMutation.isPending ? "Recording..." : isAuthenticated ? "Approve plan" : "Sign in to approve"}</button></>}</div>
-                  <div className="explain-footer"><Bot size={14} /><span>Why this recommendation?</span><button onClick={() => toast("Explainability", { description: "The model weighed skills, availability, source-project impact, and milestone criticality." })}><ArrowUpRight size={13} /></button></div>
+                {/* Explainable AI Decision & Recommendation */}
+                <div className="p-5 rounded-2xl border border-indigo-500/30 bg-indigo-950/20 shadow-xs flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-3 pb-2 border-b border-indigo-500/30">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                          <Sparkles size={14} />
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-indigo-400 font-bold">
+                            Explainable Decision Support
+                          </span>
+                          <h3 className="text-sm font-bold text-foreground">{liveRecommendation.title}</h3>
+                        </div>
+                      </div>
+                      <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
+                        {liveRecommendation.confidence}% Confidence
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+                      {liveRecommendation.recommendation}
+                    </p>
+
+                    <div className="space-y-1.5 text-[11px] mb-3 p-3 rounded-xl bg-background/50 border border-indigo-500/20">
+                      <div className="flex items-center gap-1.5 text-foreground">
+                        <Check size={12} className="text-emerald-400" />
+                        <span>Skill Alignment: <strong>{liveRecommendation.skillMatch}</strong></span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-foreground">
+                        <Check size={12} className="text-emerald-400" />
+                        <span>Resource Availability: <strong>{liveRecommendation.availability}</strong></span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-foreground">
+                        <Check size={12} className="text-emerald-400" />
+                        <span>Collateral Impact: <strong>{liveRecommendation.sourceProjectImpact}</strong></span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs p-2.5 rounded-xl bg-background/30 border border-border/40">
+                      <div>
+                        <span className="text-[10px] font-mono text-muted-foreground uppercase block">Expected Outcome</span>
+                        <strong className="text-foreground">{liveRecommendation.expectedOutcome}</strong>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-mono text-muted-foreground uppercase block">Risk Change</span>
+                        <strong className="text-sky-400">{liveRecommendation.riskChange}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-indigo-500/20 flex items-center justify-between">
+                    <button
+                      onClick={() => setActiveNav("Approvals")}
+                      className="text-xs text-muted-foreground hover:text-foreground underline"
+                    >
+                      Review in Approvals
+                    </button>
+
+                    <button
+                      className="primary-button text-xs"
+                      onClick={handleApprove}
+                      disabled={approvalMutation.isPending}
+                    >
+                      <ShieldCheck size={13} />
+                      {approvalMutation.isPending ? "Recording..." : "Approve Plan"}
+                    </button>
+                  </div>
                 </div>
               </section>
 

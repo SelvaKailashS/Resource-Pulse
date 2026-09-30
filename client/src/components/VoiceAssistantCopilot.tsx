@@ -347,13 +347,13 @@ export function VoiceAssistantCopilot({
     }
 
     if (
-      lower.startsWith("go to impact") ||
-      lower.startsWith("open impact") ||
-      lower.startsWith("view impact") ||
-      lower === "impact graph"
+      lower.startsWith("go to ai insights") ||
+      lower.startsWith("open ai insights") ||
+      lower.startsWith("view ai insights") ||
+      lower === "ai insights"
     ) {
-      onNavigate("Impact graph");
-      handleAIResponse("Switched to Cascading Impact Analysis. Tracing 5 stages from QA deficit to release delay.", "open_impact");
+      onNavigate("AI Insights");
+      handleAIResponse("Navigated to AI Insights and Operational Analysis.", "open_insights");
       return;
     }
 
@@ -911,9 +911,9 @@ export function VoiceAssistantCopilot({
       replyText.toLowerCase().includes("blocked")
     ) {
       quickActions.push({
-        label: "Open Impact Graph",
-        action: () => onNavigate("Impact graph"),
-        icon: GitBranch,
+        label: "View AI Insights",
+        action: () => onNavigate("AI Insights"),
+        icon: Sparkles,
       });
     }
 

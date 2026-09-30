@@ -141,14 +141,6 @@ export function CommandPaletteModal({
           </CommandItem>
 
           <CommandItem
-            onSelect={() => handleSelect(() => onNavigate("Impact graph"))}
-            className="flex items-center gap-2 cursor-pointer"
-          >
-            <GitBranch size={15} className="text-amber-400" />
-            <span>Cascading Impact Graph</span>
-          </CommandItem>
-
-          <CommandItem
             onSelect={() => handleSelect(() => onNavigate("Scenarios"))}
             className="flex items-center gap-2 cursor-pointer"
           >

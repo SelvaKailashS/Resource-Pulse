@@ -310,13 +310,13 @@ export function resolveQueryKnowledgeBase(query: string): {
     const overloaded = team.filter((m: any) => (m.utilization || 50) > 85);
     if (overloaded.length > 0) {
       return {
-        answer: `Potential bottleneck detected on ${overloaded[0].name}'s deliverable ("${overloaded[0].project || "Core Project"}"). Open the Impact Graph to trace dependencies.`,
-        suggestedAction: "open_impact",
+        answer: `Potential bottleneck detected on ${overloaded[0].name}'s deliverable ("${overloaded[0].project || "Core Project"}"). Review Smart Alerts and AI Insights to rebalance dependencies.`,
+        suggestedAction: "open_insights",
       };
     }
     return {
       answer: `All active deliverables in ${currentTeamName} are operating in equilibrium with 0 cascading bottlenecks detected.`,
-      suggestedAction: "open_impact",
+      suggestedAction: "open_insights",
     };
   }
 

@@ -1149,7 +1149,7 @@ export function AccountCenter({
                       >
                         <option value="Command center">Command Center & KPIs</option>
                         <option value="Simulation">5-Second Live Simulation</option>
-                        <option value="Impact graph">Cascading Impact Graph</option>
+                        <option value="Analytics">Analytics & Forecasting</option>
                         <option value="Resources">Resources & Workload Balancing</option>
                         <option value="Copilot">Samantha AI Voice Copilot</option>
                       </select>

@@ -91,7 +91,10 @@ button:focus-visible, a:focus-visible { outline: 2px solid #38bdf8; outline-offs
 }
 
 .app-shell {
-  min-height: 100vh;
+  height: 100vh;
+  max-height: 100vh;
+  width: 100vw;
+  max-width: 100%;
   display: flex;
   position: relative;
   overflow: hidden;
@@ -108,16 +111,34 @@ button:focus-visible, a:focus-visible { outline: 2px solid #38bdf8; outline-offs
 }
 
 .sidebar {
-  width: 242px;
-  min-width: 242px;
-  min-height: 100vh;
-  padding: 25px 14px 15px;
+  width: 250px;
+  min-width: 250px;
+  max-width: 250px;
+  height: 100vh;
+  max-height: 100vh;
+  padding: 20px 14px 14px;
   border-right: 1px solid rgba(147, 197, 253, .08);
   background: linear-gradient(180deg, rgba(9, 15, 29, .98), rgba(8, 13, 26, .95));
   display: flex;
   flex-direction: column;
-  position: relative;
-  z-index: 3;
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 20;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(56, 189, 248, 0.2) transparent;
+}
+.sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.2);
+  border-radius: 4px;
+}
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
 }
 .brand-mark {
   display: flex;
@@ -241,19 +262,45 @@ button:focus-visible, a:focus-visible { outline: 2px solid #38bdf8; outline-offs
 .user-row strong { font-size: 11px; color: #f0f6fc; }
 .user-row span { font-size: 10px; color: #728aa8; }
 
-.main-content { flex: 1; min-width: 0; position: relative; z-index: 1; }
+.main-content {
+  flex: 1;
+  min-width: 0;
+  height: 100vh;
+  max-height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(147, 197, 253, 0.2) transparent;
+}
+.main-content::-webkit-scrollbar {
+  width: 6px;
+}
+.main-content::-webkit-scrollbar-thumb {
+  background: rgba(147, 197, 253, 0.2);
+  border-radius: 6px;
+}
+.main-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 .topbar {
-  height: 69px;
+  height: 64px;
+  min-height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 34px;
+  padding: 0 32px;
   border-bottom: 1px solid rgba(147, 197, 253, .08);
-  background: rgba(9, 15, 29, .75);
-  backdrop-filter: blur(17px);
+  background: rgba(9, 15, 29, .88);
+  backdrop-filter: blur(16px);
   position: sticky;
   top: 0;
-  z-index: 4;
+  z-index: 10;
+  width: 100%;
 }
 .breadcrumb { display: flex; align-items: center; gap: 10px; color: #7189a8; font-size: 11px; }
 .breadcrumb strong { color: #dbeafe; font-weight: 600; }
@@ -881,67 +928,56 @@ h1 { font-family: 'Space Grotesk', sans-serif; font-size: clamp(30px, 3vw, 40px)
 .fill-warning { background: #f3bd6b; }
 .fill-critical { background: #ff806f; }
 
-/* Impact Graph View */
-.impact-workspace {
-  display: grid;
-  grid-template-columns: 1fr 340px;
-  gap: 16px;
+/* Enterprise Responsive Layout System & Tokens */
+.enterprise-container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
 }
-.impact-main-panel {
-  border: 1px solid rgba(147, 197, 253, .12);
-  border-radius: 11px;
-  background: linear-gradient(145deg, rgba(17, 27, 49, .9), rgba(12, 19, 36, .92));
-  padding: 20px;
+
+.table-responsive-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--card);
 }
-.cascade-flow {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-top: 16px;
-  position: relative;
+
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 220px;
+    min-width: 220px;
+  }
+  .content-wrap {
+    padding: 20px 20px 36px;
+  }
 }
-.cascade-step-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px 18px;
-  border-radius: 10px;
-  border: 1px solid rgba(147, 197, 253, .12);
-  background: rgba(15, 23, 42, .7);
-  transition: all 160ms ease;
-}
-.cascade-step-card:hover, .cascade-step-card.active {
-  border-color: rgba(56, 189, 248, .4);
-  background: rgba(56, 189, 248, .08);
-  box-shadow: 0 4px 20px rgba(0,0,0,.2);
-}
-.cascade-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  display: grid;
-  place-items: center;
-  font-size: 16px;
-}
-.cascade-info {
-  flex: 1;
-}
-.cascade-info strong {
-  display: block;
-  font-size: 13px;
-  color: #f0f6fc;
-}
-.cascade-info span {
-  display: block;
-  font-size: 11px;
-  color: #8da4c5;
-  margin-top: 2px;
-}
-.cascade-arrow {
-  display: flex;
-  justify-content: center;
-  color: #38bdf8;
-  margin: -8px 0;
+
+@media (max-width: 768px) {
+  .app-shell {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    min-width: 100%;
+    height: auto;
+    max-height: 280px;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .content-wrap {
+    padding: 16px 14px 28px;
+  }
+  .topbar {
+    padding: 0 16px;
+  }
+  .hero-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
 }
 
 /* Scenarios Comparison View */
