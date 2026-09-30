@@ -1,6 +1,28 @@
 export type EmploymentType = "Full-Time" | "Part-Time" | "Contractor" | "Intern";
 
-export type ResourceStatus = "Available" | "Allocated" | "Overallocated" | "On Leave";
+export type ResourceStatus = "Available" | "Allocated" | "Overallocated" | "On Leave" | "Maintenance" | "Reserved" | "Retired";
+
+export type ResourceType =
+  | "People"
+  | "Equipment"
+  | "Machine"
+  | "Vehicle"
+  | "Material"
+  | "Facility"
+  | "Budget"
+  | "Software"
+  | "Custom";
+
+export type ResourceLifecycleStatus =
+  | "Created"
+  | "Available"
+  | "Assigned"
+  | "In Use"
+  | "Unavailable"
+  | "Maintenance"
+  | "Reserved"
+  | "Retired"
+  | "Archived";
 
 export type ProjectPriority = "Critical" | "High" | "Medium" | "Low";
 
@@ -9,6 +31,8 @@ export type ProjectStatus = "Planning" | "In Progress" | "At Risk" | "Completed"
 export interface Resource {
   id: string;
   name: string;
+  type?: ResourceType;
+  category?: string;
   email?: string;
   phone?: string;
   role: string;
@@ -19,12 +43,24 @@ export interface Resource {
   location?: string;
   employmentType: EmploymentType;
   status: ResourceStatus;
+  lifecycleStatus?: ResourceLifecycleStatus;
   weeklyCapacityHours: number;
   assignedHours: number;
   utilization: number; // percentage (assigned / weeklyCapacity) * 100
   costPerHour: number;
   currentProjects: string[];
+  assignedWork?: string[];
+  owner?: string;
+  futureAvailability?: string;
+  maintenanceStatus?: {
+    lastMaintained?: string;
+    nextMaintenanceDue?: string;
+    operatingHours?: number;
+    failureCount?: number;
+    healthScore?: number;
+  };
   notes?: string;
+  customFields?: Record<string, any>;
 }
 
 export interface Project {
@@ -188,4 +224,118 @@ export interface ScenarioImpactResult {
   };
   narrativeSummary: string;
   tradeoffs: string[];
+}
+
+export type UserRole =
+  | "Super Admin"
+  | "Organization Admin"
+  | "Resource Manager"
+  | "Project Manager"
+  | "Analyst"
+  | "Employee/User"
+  | "Viewer";
+
+export interface CustomResourceType {
+  id: string;
+  name: string;
+  category: string;
+  icon?: string;
+  unitOfMeasure: string; // e.g. "Hours", "Units", "Licenses", "Miles"
+  costUnit: string; // e.g. "$/hr", "$/unit", "$/month"
+  customFields?: Array<{
+    name: string;
+    type: "string" | "number" | "boolean" | "date";
+    required?: boolean;
+  }>;
+}
+
+export interface CustomMetric {
+  id: string;
+  name: string;
+  formula: string; // e.g. "Production Output / Available Production Capacity"
+  description: string;
+  targetValue?: number;
+  unit?: string;
+  category?: string;
+}
+
+export interface AssetItem {
+  id: string;
+  name: string;
+  type: "Machine" | "Equipment" | "Vehicle" | "Facility" | "Server" | "Tool" | "Hardware";
+  category: string;
+  serialNumber?: string;
+  location: string;
+  status: "In Use" | "Available" | "Maintenance" | "Reserved" | "Retired";
+  operatingHours: number;
+  maxHours?: number;
+  healthScore: number; // 0-100%
+  lastMaintenanceDate: string;
+  nextMaintenanceDate: string;
+  assignedProjectId?: string;
+  assignedOperatorId?: string;
+  costPerHour: number;
+  oee?: number; // Overall Equipment Effectiveness %
+  notes?: string;
+}
+
+export interface InventoryItem {
+  id: string;
+  name: string;
+  category: "Raw Material" | "Consumable" | "Spare Part" | "Fuel" | "Chemical" | "Supplies" | "Equipment";
+  currentStock: number;
+  minimumThreshold: number;
+  unit: string; // "kg", "tons", "liters", "units", "meters"
+  unitCost: number;
+  location: string;
+  reorderStatus: "Normal" | "Low Stock" | "Critical" | "Reordered";
+  consumptionRatePerWeek: number;
+  projectedStockoutDays: number;
+  assignedProjectId?: string;
+  notes?: string;
+}
+
+export interface ScheduleItem {
+  id: string;
+  title: string;
+  resourceId: string;
+  resourceName: string;
+  projectId?: string;
+  projectName?: string;
+  startTime: string; // YYYY-MM-DD or ISO
+  endTime: string;
+  type: "Task" | "Shift" | "Maintenance" | "Milestone" | "Meeting" | "Time Off";
+  status: "Confirmed" | "Tentative" | "Conflict";
+  location?: string;
+  hours?: number;
+}
+
+export interface ScheduleConflict {
+  id: string;
+  type: "double_booking" | "capacity_overload" | "leave_overlap" | "maintenance_window";
+  severity: "Critical" | "Warning";
+  resourceId: string;
+  resourceName: string;
+  conflictingItemIds: string[];
+  description: string;
+  recommendedResolution: string;
+}
+
+export interface OrganizationSectorConfig {
+  selectedSectorIds: string[];
+  customIndustryName?: string;
+  primarySector: string;
+  enabledModules: {
+    schedule: boolean;
+    assets: boolean;
+    inventory: boolean;
+    predictiveMaintenance: boolean;
+    shiftManagement: boolean;
+    siteAllocation: boolean;
+    workload: boolean;
+    analytics: boolean;
+    forecasting: boolean;
+    scenarios: boolean;
+    pulseAI: boolean;
+  };
 }

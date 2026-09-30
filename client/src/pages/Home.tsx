@@ -24,7 +24,11 @@ import { AlertsView } from "@/components/AlertsView";
 import { ReportsView } from "@/components/ReportsView";
 import { DataSourcesView } from "@/components/DataSourcesView";
 import { SettingsView } from "@/components/SettingsView";
-import { loadInitialResources, loadInitialProjects, computeOrgMetrics, loadThresholds } from "@/lib/orgStore";
+import { ScheduleView } from "@/components/ScheduleView";
+import { AssetsView } from "@/components/AssetsView";
+import { InventoryView } from "@/components/InventoryView";
+import { SectorModal } from "@/components/SectorModal";
+import { loadInitialResources, loadInitialProjects, computeOrgMetrics, loadThresholds, loadSectorConfig } from "@/lib/orgStore";
 import { track } from "@/lib/analytics";
 import { recordTaskAssignment, recordApprovalDecision } from "@/lib/supabase";
 import {
@@ -36,11 +40,13 @@ import {
   Boxes,
   Briefcase,
   Bot,
+  Calendar,
   Check,
   ChevronDown,
   CircleAlert,
   Clock3,
   Command,
+  Cpu,
   Database,
   FileText,
   Filter,
@@ -83,7 +89,10 @@ const navSections: {
       { label: "Resources", icon: Users },
       { label: "Projects", icon: FolderGit2 },
       { label: "Allocation", icon: GitMerge },
+      { label: "Schedule", icon: Calendar },
       { label: "Workload & Capacity", icon: Activity },
+      { label: "Assets", icon: Cpu },
+      { label: "Inventory", icon: Boxes },
     ],
   },
   {
@@ -164,6 +173,7 @@ function Home() {
   const [accountOpen, setAccountOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isTaskSplitOpen, setIsTaskSplitOpen] = useState(false);
+  const [isSectorModalOpen, setIsSectorModalOpen] = useState(false);
   const [isAiNeedsOpen, setIsAiNeedsOpen] = useState(() => {
     try {
       return localStorage.getItem("resourcepulse_needs_setup_pending") === "true";
@@ -185,8 +195,9 @@ function Home() {
     return loadInitialProjects();
   });
 
+  const [sectorConfig, setSectorConfig] = useState(() => loadSectorConfig());
   const teamName = localStorage.getItem("resourcepulse_team_name") || user?.teamName || "Operations Team";
-  const userField = localStorage.getItem("resourcepulse_selected_field") || user?.field || "Operations & Cloud Systems";
+  const userField = sectorConfig.primarySector || localStorage.getItem("resourcepulse_selected_field") || user?.field || "Universal Multi-Sector";
 
   useEffect(() => {
     try {
@@ -550,8 +561,8 @@ function Home() {
         </div>
         <button
           className="workspace-switcher"
-          onClick={() => setAccountOpen(true)}
-          title="Team Workspace & Settings"
+          onClick={() => setIsSectorModalOpen(true)}
+          title="Switch Industry Sector & Active Modules"
           style={{ cursor: "pointer", width: "calc(100% - 6px)", textAlign: "left" }}
         >
           <div
@@ -779,12 +790,20 @@ function Home() {
 
           {activeNav === "Allocation" && <AllocationView />}
 
+          {activeNav === "Schedule" && (
+            <ScheduleView onNavigateToResources={() => setActiveNav("Resources")} />
+          )}
+
           {activeNav === "Workload & Capacity" && (
             <WorkloadCapacityView
               onSimulate={handleSimulation}
               onNavigateToDataIntake={() => setActiveNav("Data Intake")}
             />
           )}
+
+          {activeNav === "Assets" && <AssetsView />}
+
+          {activeNav === "Inventory" && <InventoryView />}
 
           {activeNav === "Analytics & Forecasting" && <ForecastingView />}
 
@@ -816,6 +835,7 @@ function Home() {
               onSettingsSaved={() => {
                 void loadDashboard(true);
               }}
+              onOpenSectorModal={() => setIsSectorModalOpen(true)}
             />
           )}
 
@@ -830,9 +850,9 @@ function Home() {
               <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-2 border border-primary/20">
                 <Database size={30} />
               </div>
-              <h2 className="text-2xl font-bold text-foreground">No organizational data available yet.</h2>
+              <h2 className="text-2xl font-bold text-foreground">Welcome to ResourcePulse.</h2>
               <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-                ResourcePulse derives all dashboards, telemetry, and forecasts directly from actual workforce and deliverable records. Ingest your organization's data to begin.
+                Your workspace doesn't contain any resource data yet.
               </p>
               <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
                 <button
@@ -1204,6 +1224,16 @@ function Home() {
       <IntegrationsModal
         open={isIntegrationsOpen}
         onOpenChange={setIsIntegrationsOpen}
+      />
+
+      <SectorModal
+        open={isSectorModalOpen}
+        onOpenChange={setIsSectorModalOpen}
+        activeSectorId={sectorConfig.primarySector}
+        onConfigUpdated={(newCfg) => {
+          setSectorConfig(newCfg);
+          void loadDashboard(true);
+        }}
       />
 
 

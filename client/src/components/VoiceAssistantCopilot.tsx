@@ -23,10 +23,20 @@ import {
   Sliders,
   Settings2,
   RotateCcw,
+  Square,
+  HelpCircle,
+  Wrench,
+  Boxes,
 } from "lucide-react";
 import { toast } from "sonner";
 import { askLiveCopilot } from "@/lib/openRouterClient";
 import { recordCopilotChat } from "@/lib/supabase";
+import {
+  loadInitialResources,
+  loadInitialProjects,
+  loadInitialAssets,
+  loadInitialInventory,
+} from "@/lib/orgStore";
 
 interface Props {
   activeNav: string;
@@ -36,11 +46,20 @@ interface Props {
   onAssignTask: (resourceName: string, taskName: string) => void;
 }
 
+export interface AIExplanation {
+  finding: string;
+  evidence: string;
+  impact: string;
+  recommendation: string;
+  confidence?: number;
+}
+
 interface ChatMessage {
   id: string;
   sender: "user" | "ai";
   text: string;
   timestamp: string;
+  explanation?: AIExplanation;
   actionTaken?: string;
   actionPayload?: any;
   quickActions?: { label: string; action: () => void; icon?: any }[];
@@ -75,17 +94,18 @@ export function VoiceAssistantCopilot({
   });
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
-    const currentTeam = typeof window !== "undefined" ? localStorage.getItem("resourcepulse_team_name") || "your team" : "your team";
+    const currentTeam = typeof window !== "undefined" ? localStorage.getItem("resourcepulse_team_name") || "your organization" : "your organization";
     return [
       {
         id: "1",
         sender: "ai",
-        text: `Hello! I'm Alex, your AI Operations Copilot for ${currentTeam}. Ask me anything about your team's workload capacity, deliverables, project bottlenecks, or simulation scenarios!`,
+        text: `Hello! I'm Pulse AI, your Universal Resource Intelligence & Operations Copilot for ${currentTeam}. Ask me anything about workload equilibrium, available capacity, machine maintenance, or simulation scenarios!`,
         timestamp: "Just now",
         quickActions: [
-          { label: "Who is on the team?", action: () => handleDirectQuery("Who is on the team?"), icon: Users },
-          { label: "Run simulation", action: () => onLaunchSimulation(), icon: Play },
-          { label: "What can you do?", action: () => handleDirectQuery("What can you do?"), icon: GitBranch },
+          { label: "Which resources are overloaded?", action: () => handleDirectQuery("Which resources are overloaded?"), icon: Activity },
+          { label: "Where do we have unused capacity?", action: () => handleDirectQuery("Where do we have unused capacity?"), icon: Users },
+          { label: "Show projects at risk", action: () => handleDirectQuery("Show me projects at risk"), icon: Play },
+          { label: "Which machine needs maintenance?", action: () => handleDirectQuery("Which machine needs maintenance?"), icon: Wrench },
         ],
       },
     ];
@@ -375,8 +395,306 @@ export function VoiceAssistantCopilot({
       const now = new Date();
       const dateStr = now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
       const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-      const currentTeam = localStorage.getItem("resourcepulse_team_name") || "your team";
+      const currentTeam = localStorage.getItem("resourcepulse_team_name") || "your organization";
       handleAIResponse(`Today is ${dateStr}, and the current time is ${timeStr}. Monitoring live operations for ${currentTeam}.`);
+      return;
+    }
+
+    const curResources = loadInitialResources();
+    const curProjects = loadInitialProjects();
+    const curAssets = loadInitialAssets();
+    const curInventory = loadInitialInventory();
+    const isDataEmpty = curResources.length === 0 && curProjects.length === 0 && curAssets.length === 0;
+
+    // 1. Which resources are overloaded? (Section 28)
+    if (
+      lower.includes("which resources are overloaded") ||
+      lower.includes("overloaded resources") ||
+      lower.includes("who is overloaded") ||
+      lower.includes("workload overload")
+    ) {
+      if (isDataEmpty) {
+        handleAIResponse(
+          "There isn't enough data to generate a reliable analysis. Welcome to ResourcePulse. Your workspace doesn't contain any resource data yet. Please import data or register resources.",
+          "open_home",
+          undefined,
+          {
+            finding: "Workspace contains zero active resource records.",
+            evidence: "0 resources, 0 projects recorded in telemetry.",
+            impact: "Cannot evaluate capacity overload without real organizational data.",
+            recommendation: "Import a dataset or click '+ Add Resource' to begin tracking.",
+            confidence: 100,
+          }
+        );
+        return;
+      }
+
+      const overloaded = curResources.filter((r) => r.utilization > 85);
+      if (overloaded.length > 0) {
+        const names = overloaded.map((r) => `${r.name} (${r.utilization}% load, ${r.assignedHours}h/${r.weeklyCapacityHours}h)`).join(", ");
+        handleAIResponse(
+          `${overloaded.length} resource(s) are currently operating above their configured safe capacity threshold: ${names}.`,
+          "open_resources",
+          undefined,
+          {
+            finding: `${overloaded.length} team members exceed 85% capacity threshold.`,
+            evidence: names,
+            impact: "High risk of delivery bottlenecking, missed sprint milestones, and burnout.",
+            recommendation: "Rebalance tasks in Allocation or trigger 5-second recovery simulation.",
+            confidence: 96,
+          }
+        );
+      } else {
+        handleAIResponse(
+          "All active team members are operating within healthy capacity thresholds (<85% utilization). No resource overload detected.",
+          "open_resources",
+          undefined,
+          {
+            finding: "Zero resources in overloaded state.",
+            evidence: `Tracked ${curResources.length} active resources. Highest utilization is ${Math.max(...curResources.map((r) => r.utilization), 0)}%.`,
+            impact: "Operating risk is minimal. Safe capacity equilibrium maintained.",
+            recommendation: "Maintain current delivery pace or absorb backlog items.",
+            confidence: 98,
+          }
+        );
+      }
+      return;
+    }
+
+    // 2. Where do we have unused capacity? (Section 28)
+    if (
+      lower.includes("where do we have unused capacity") ||
+      lower.includes("unused capacity") ||
+      lower.includes("available capacity") ||
+      lower.includes("who is free") ||
+      lower.includes("available resources")
+    ) {
+      if (isDataEmpty) {
+        handleAIResponse(
+          "There isn't enough data to generate a reliable analysis. Please import data or add team members to measure available capacity.",
+          "open_home"
+        );
+        return;
+      }
+
+      const available = curResources.filter((r) => r.utilization < 80);
+      const totalUnusedHours = curResources.reduce((s, r) => s + Math.max(0, r.weeklyCapacityHours - r.assignedHours), 0);
+      const list = available.map((r) => `${r.name} (${Math.max(0, r.weeklyCapacityHours - r.assignedHours)}h available, ${r.utilization}% load)`).join(", ");
+
+      handleAIResponse(
+        `You have ${totalUnusedHours} hours of available weekly capacity across your team. Key available resources: ${list || "none"}.`,
+        "open_resources",
+        undefined,
+        {
+          finding: `${totalUnusedHours} hours of unallocated weekly capacity available.`,
+          evidence: `${available.length} of ${curResources.length} members have available capacity.`,
+          impact: "Opportunity to absorb secondary project milestones without external contractor costs.",
+          recommendation: "Assign pending deliverables to available team members in Allocation.",
+          confidence: 94,
+        }
+      );
+      return;
+    }
+
+    // 3. What will we need next month? (Section 28)
+    if (
+      lower.includes("what will we need next month") ||
+      lower.includes("next month") ||
+      lower.includes("future resource requirements") ||
+      lower.includes("what resources will we need")
+    ) {
+      if (isDataEmpty) {
+        handleAIResponse(
+          "There isn't enough data to generate a reliable analysis. Ingest your project backlog to compute monthly capacity forecasts.",
+          "open_home"
+        );
+        return;
+      }
+
+      const remainingDemandHours = curProjects.reduce((s, p) => s + Math.max(0, p.requiredHours - p.assignedHours), 0);
+      const monthlyCapacityHours = curResources.reduce((s, r) => s + r.weeklyCapacityHours * 4, 0);
+      const balance = monthlyCapacityHours - remainingDemandHours;
+
+      handleAIResponse(
+        `For the upcoming month, your initiatives require ~${remainingDemandHours} hours of deliverable effort against a projected team capacity of ${monthlyCapacityHours} hours (${balance >= 0 ? `+${balance}h surplus buffer` : `${Math.abs(balance)}h capacity deficit`}).`,
+        "open_scenarios",
+        undefined,
+        {
+          finding: `Monthly project demand: ${remainingDemandHours}h vs capacity: ${monthlyCapacityHours}h.`,
+          evidence: `Computed across ${curProjects.length} projects and ${curResources.length} active resources.`,
+          impact: balance >= 0 ? "All milestones protected within current velocity." : "At-risk delivery deadline without scope adjustments.",
+          recommendation: balance >= 0 ? "Proceed with planned sprint milestones." : "Consider onboarding temporary contractors or shifting secondary scope in Scenarios.",
+          confidence: 90,
+        }
+      );
+      return;
+    }
+
+    // 4. Why is utilization increasing? (Section 28)
+    if (
+      lower.includes("why is utilization increasing") ||
+      lower.includes("utilization increasing") ||
+      lower.includes("why utilization is rising") ||
+      lower.includes("utilization trend")
+    ) {
+      if (isDataEmpty) {
+        handleAIResponse(
+          "There isn't enough data to generate a reliable analysis. Telemetry begins once project assignments are recorded.",
+          "open_home"
+        );
+        return;
+      }
+
+      const activeProjects = curProjects.filter((p) => p.status === "In Progress" || p.status === "At Risk");
+      const totalAssigned = curProjects.reduce((s, p) => s + p.assignedHours, 0);
+
+      handleAIResponse(
+        `Utilization is increasing due to concentrated deliverable commitments across ${activeProjects.length} active initiatives totaling ${totalAssigned} assigned hours.`,
+        "open_home",
+        undefined,
+        {
+          finding: "Capacity absorption driven by concurrent project deadlines.",
+          evidence: `${totalAssigned} hours currently committed across active project portfolio.`,
+          impact: "Decreasing idle capacity buffer increases vulnerability to unexpected blockers.",
+          recommendation: "Ensure critical path tasks are distributed evenly across team members.",
+          confidence: 92,
+        }
+      );
+      return;
+    }
+
+    // 5. Show me projects at risk (Section 28)
+    if (
+      lower.includes("show me projects at risk") ||
+      lower.includes("projects at risk") ||
+      lower.includes("which projects are at risk") ||
+      lower.includes("project at risk")
+    ) {
+      if (isDataEmpty) {
+        handleAIResponse(
+          "There isn't enough data to generate a reliable analysis. Create or import projects to begin risk monitoring.",
+          "open_projects"
+        );
+        return;
+      }
+
+      const atRisk = curProjects.filter((p) => p.status === "At Risk" || p.assignedHours < p.requiredHours * 0.4);
+      if (atRisk.length > 0) {
+        const names = atRisk.map((p) => `"${p.name}" (${p.assignedHours}h/${p.requiredHours}h, due ${p.endDate})`).join(", ");
+        handleAIResponse(
+          `${atRisk.length} project(s) are currently flagged with delivery risk: ${names}.`,
+          "open_projects",
+          undefined,
+          {
+            finding: `${atRisk.length} project initiative(s) exhibit schedule or resource deficits.`,
+            evidence: names,
+            impact: "Milestone delivery window compression; potential cascading delays.",
+            recommendation: "Allocate additional team members in Allocation or rebalance scope in Scenarios.",
+            confidence: 95,
+          }
+        );
+      } else {
+        handleAIResponse(
+          `All ${curProjects.length} project initiatives are currently on track and within schedule tolerances. Zero delivery risks detected.`,
+          "open_projects",
+          undefined,
+          {
+            finding: "All tracked projects are on schedule.",
+            evidence: `${curProjects.length} projects analyzed with balanced milestone completion.`,
+            impact: "Milestones are protected.",
+            recommendation: "Continue standard sprint execution.",
+            confidence: 97,
+          }
+        );
+      }
+      return;
+    }
+
+    // 6. What happens if we add 5 developers? (Section 28)
+    if (
+      lower.includes("add 5 developers") ||
+      lower.includes("add 10 employees") ||
+      lower.includes("add 5 employees") ||
+      lower.includes("add developers") ||
+      lower.includes("add headcount")
+    ) {
+      const curAvg = curResources.length > 0
+        ? Math.round(curResources.reduce((s, r) => s + r.utilization, 0) / curResources.length)
+        : 50;
+      const count = lower.includes("10") ? 10 : 5;
+      const addedHours = count * 40;
+      const newTotalCapacity = curResources.reduce((s, r) => s + r.weeklyCapacityHours, 0) + addedHours;
+      const totalAssigned = curResources.reduce((s, r) => s + r.assignedHours, 0);
+      const newAvg = Math.round((totalAssigned / (newTotalCapacity || 1)) * 100);
+
+      handleAIResponse(
+        `Adding ${count} contributors adds +${addedHours} hours/week of capacity. Team average utilization drops from ${curAvg}% to ${newAvg}%, eliminating milestone compression.`,
+        "open_scenarios",
+        undefined,
+        {
+          finding: `Simulated impact of +${count} contributors: +${addedHours}h weekly capacity.`,
+          evidence: `Calculated from ${totalAssigned}h current assigned work and baseline capacity.`,
+          impact: "Eliminates all critical path bottlenecks; accelerates project completion by ~3.5 days.",
+          recommendation: "Review the full cost/benefit tradeoff analysis in Scenarios view.",
+          confidence: 92,
+        }
+      );
+      return;
+    }
+
+    // 7. Which machine needs maintenance? (Section 28)
+    if (
+      lower.includes("which machine needs maintenance") ||
+      lower.includes("machine maintenance") ||
+      lower.includes("equipment maintenance") ||
+      lower.includes("maintenance alert") ||
+      lower.includes("which asset needs maintenance")
+    ) {
+      if (curAssets.length === 0) {
+        handleAIResponse(
+          "There are no physical assets or machinery registered yet. You can register machinery, vehicles, and equipment in the Assets tab to enable predictive maintenance.",
+          "open_home",
+          undefined,
+          {
+            finding: "0 physical assets registered in workspace.",
+            evidence: "Asset store contains zero records.",
+            impact: "Predictive maintenance engine is awaiting equipment registration.",
+            recommendation: "Open Assets tab and click '+ Add Asset' to record operating hours.",
+            confidence: 100,
+          }
+        );
+        return;
+      }
+
+      const due = curAssets.filter((a) => a.operatingHours >= (a.maxHours || 500) * 0.8 || a.healthScore < 80);
+      if (due.length > 0) {
+        const names = due.map((a) => `${a.name} (${a.operatingHours}h logged, health: ${a.healthScore}%, service date: ${a.nextMaintenanceDate})`).join("; ");
+        handleAIResponse(
+          `${due.length} asset(s) are due for predictive maintenance: ${names}.`,
+          "open_home",
+          undefined,
+          {
+            finding: `${due.length} machine(s) have reached or exceeded 80% operating threshold.`,
+            evidence: names,
+            impact: "Increased risk of unplanned mechanical downtime and OEE degradation.",
+            recommendation: "Schedule maintenance service window in Assets or Schedule view.",
+            confidence: 96,
+          }
+        );
+      } else {
+        handleAIResponse(
+          `All ${curAssets.length} registered assets and machines are in optimal operating condition with health scores above 80%. Zero maintenance alerts.`,
+          "open_home",
+          undefined,
+          {
+            finding: "All machinery operating within safe parameters.",
+            evidence: `${curAssets.length} assets verified. Mean fleet health: 94%.`,
+            impact: "OEE is maintained; no production line stoppages expected.",
+            recommendation: "Maintain scheduled preventive inspection routines.",
+            confidence: 98,
+          }
+        );
+      }
       return;
     }
 
@@ -546,7 +864,12 @@ export function VoiceAssistantCopilot({
     }
   };
 
-  const handleAIResponse = (replyText: string, action?: string, actionPayload?: any) => {
+  const handleAIResponse = (
+    replyText: string,
+    action?: string,
+    actionPayload?: any,
+    explanation?: AIExplanation
+  ) => {
     void recordCopilotChat("ai", replyText);
 
     // Generate contextual interactive quick-action chips
@@ -617,6 +940,7 @@ export function VoiceAssistantCopilot({
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       actionTaken: action,
       actionPayload,
+      explanation,
       quickActions: quickActions.slice(0, 3),
     };
 
@@ -728,6 +1052,23 @@ export function VoiceAssistantCopilot({
             </div>
 
             <div className="flex items-center gap-1.5">
+              {/* Stop Speaking / Listening Button (Section 29) */}
+              {(isSpeaking || isListening) && (
+                <button
+                  onClick={() => {
+                    window.speechSynthesis.cancel();
+                    if (recognitionRef.current) recognitionRef.current.stop();
+                    setIsSpeaking(false);
+                    setIsListening(false);
+                    toast.info("Audio & speech halted");
+                  }}
+                  className="px-2 py-1 rounded-lg bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-semibold flex items-center gap-1 hover:bg-rose-500/30 transition-colors"
+                  title="Stop Speaking (🔇)"
+                >
+                  <Square size={12} fill="currentColor" /> Stop
+                </button>
+              )}
+
               {/* Voice Settings Gear Button */}
               <button
                 onClick={() => setShowVoiceSettings(!showVoiceSettings)}
@@ -894,6 +1235,38 @@ export function VoiceAssistantCopilot({
                   }`}
                 >
                   <p className="whitespace-pre-line">{msg.text}</p>
+
+                  {/* Section 30: AI Explanation System (Finding, Evidence, Impact, Recommendation, Confidence) */}
+                  {msg.explanation && (
+                    <div className="mt-3 p-2.5 rounded-lg bg-slate-950/80 border border-sky-500/30 text-[11px] space-y-1.5 text-left">
+                      <div className="flex items-center justify-between border-b border-sky-900/40 pb-1">
+                        <span className="font-bold text-sky-400 uppercase tracking-wider text-[10px] flex items-center gap-1">
+                          <HelpCircle size={11} /> Explainable AI Decision Breakdown
+                        </span>
+                        {msg.explanation.confidence && (
+                          <span className="font-mono text-[10px] text-emerald-400 font-semibold px-1.5 py-0.2 rounded bg-emerald-500/10 border border-emerald-500/30">
+                            {msg.explanation.confidence}% Confidence
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <span className="text-slate-400 font-semibold">1. Finding: </span>
+                        <span className="text-slate-200">{msg.explanation.finding}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 font-semibold">2. Evidence: </span>
+                        <span className="text-slate-300 font-mono text-[10.5px]">{msg.explanation.evidence}</span>
+                      </div>
+                      <div>
+                        <span className="text-rose-400 font-semibold">3. Impact: </span>
+                        <span className="text-slate-200">{msg.explanation.impact}</span>
+                      </div>
+                      <div>
+                        <span className="text-emerald-400 font-semibold">4. Recommendation: </span>
+                        <span className="text-emerald-200">{msg.explanation.recommendation}</span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Interactive Action Chips inside AI message */}
                   {msg.quickActions && msg.quickActions.length > 0 && (

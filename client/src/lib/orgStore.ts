@@ -9,6 +9,14 @@ import {
   ForecastPoint,
   ScenarioDefinition,
   ScenarioImpactResult,
+  AssetItem,
+  InventoryItem,
+  ScheduleItem,
+  ScheduleConflict,
+  CustomResourceType,
+  CustomMetric,
+  OrganizationSectorConfig,
+  UserRole,
 } from "@shared/orgTypes";
 import { recordTeamMember, recordTaskAssignment } from "./supabase";
 
@@ -28,6 +36,13 @@ const STORAGE_KEYS = {
   HISTORICAL: "resourcepulse_enterprise_historical_v2",
   SCENARIOS: "resourcepulse_enterprise_scenarios_v2",
   AUDIT: "resourcepulse_audit_log",
+  ASSETS: "resourcepulse_enterprise_assets_v2",
+  INVENTORY: "resourcepulse_enterprise_inventory_v2",
+  SCHEDULE: "resourcepulse_enterprise_schedule_v2",
+  CUSTOM_TYPES: "resourcepulse_enterprise_custom_types_v2",
+  CUSTOM_METRICS: "resourcepulse_enterprise_custom_metrics_v2",
+  SECTOR_CONFIG: "resourcepulse_enterprise_sector_config_v2",
+  ROLES: "resourcepulse_enterprise_roles_v2",
 };
 
 // Migrate legacy roster into enterprise resources if present, without inventing fake employees
@@ -739,4 +754,302 @@ export function evaluateRawDataQuality(rows: any[], mapping: Record<string, stri
     totalRecords: rows.length,
     issues,
   };
+}
+
+// ----------------------------------------------------
+// PHYSICAL ASSETS & EQUIPMENT STORE (Section 5, 6, 7, 22)
+// ----------------------------------------------------
+export function loadInitialAssets(): AssetItem[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.ASSETS);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    console.error("Error loading assets:", e);
+  }
+  return [];
+}
+
+export function saveAssets(assets: AssetItem[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.ASSETS, JSON.stringify(assets));
+  } catch (e) {
+    console.error("Error saving assets:", e);
+  }
+}
+
+// ----------------------------------------------------
+// MATERIALS & INVENTORY STORE (Section 5, 6, 8, 9, 10, 14)
+// ----------------------------------------------------
+export function loadInitialInventory(): InventoryItem[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.INVENTORY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    console.error("Error loading inventory:", e);
+  }
+  return [];
+}
+
+export function saveInventory(items: InventoryItem[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(items));
+  } catch (e) {
+    console.error("Error saving inventory:", e);
+  }
+}
+
+// ----------------------------------------------------
+// UNIVERSAL SCHEDULE & CONFLICT DETECTION (Section 24)
+// ----------------------------------------------------
+export function loadInitialSchedule(): ScheduleItem[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.SCHEDULE);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    console.error("Error loading schedule:", e);
+  }
+  return [];
+}
+
+export function saveSchedule(schedule: ScheduleItem[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.SCHEDULE, JSON.stringify(schedule));
+  } catch (e) {
+    console.error("Error saving schedule:", e);
+  }
+}
+
+export function detectScheduleConflicts(
+  schedule: ScheduleItem[],
+  resources: Resource[]
+): ScheduleConflict[] {
+  const conflicts: ScheduleConflict[] = [];
+
+  // Group by resource
+  const byResource: Record<string, ScheduleItem[]> = {};
+  schedule.forEach((item) => {
+    if (!byResource[item.resourceId]) byResource[item.resourceId] = [];
+    byResource[item.resourceId].push(item);
+  });
+
+  // 1. Double Booking & Time Overlaps
+  Object.entries(byResource).forEach(([resId, items]) => {
+    const res = resources.find((r) => r.id === resId);
+    const resName = res?.name || items[0]?.resourceName || "Resource";
+
+    for (let i = 0; i < items.length; i++) {
+      for (let j = i + 1; j < items.length; j++) {
+        const a = items[i];
+        const b = items[j];
+
+        // Check if on same date or overlapping
+        if (a.startTime.slice(0, 10) === b.startTime.slice(0, 10)) {
+          conflicts.push({
+            id: `CONF-${a.id}-${b.id}`,
+            type: "double_booking",
+            severity: "Critical",
+            resourceId: resId,
+            resourceName: resName,
+            conflictingItemIds: [a.id, b.id],
+            description: `Double booking detected: "${a.title}" and "${b.title}" overlap on ${a.startTime.slice(0, 10)}.`,
+            recommendedResolution: `Reassign "${b.title}" to an available peer or reschedule to another window.`,
+          });
+        }
+      }
+    }
+
+    // 2. Capacity Overload Conflict (>100% capacity)
+    if (res && res.utilization > 100) {
+      conflicts.push({
+        id: `CAP-OVERLOAD-${res.id}`,
+        type: "capacity_overload",
+        severity: "Critical",
+        resourceId: res.id,
+        resourceName: res.name,
+        conflictingItemIds: items.map((it) => it.id),
+        description: `Capacity threshold exceeded: ${res.name} is allocated at ${res.utilization}% (${res.assignedHours}h / ${res.weeklyCapacityHours}h).`,
+        recommendedResolution: `Split tasks or shift secondary deliverable to reduce workload to ≤ 85%.`,
+      });
+    }
+  });
+
+  return conflicts;
+}
+
+// ----------------------------------------------------
+// CUSTOM RESOURCE TYPES STORE (Section 37)
+// ----------------------------------------------------
+export function loadCustomResourceTypes(): CustomResourceType[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.CUSTOM_TYPES);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    console.error("Error loading custom types:", e);
+  }
+  return [
+    {
+      id: "CRT-3DPRINTER",
+      name: "3D Printer / Rapid Prototyper",
+      category: "Equipment",
+      unitOfMeasure: "Operating Hours",
+      costUnit: "$/hour",
+    },
+    {
+      id: "CRT-CLOUDCLUSTER",
+      name: "GPU Compute Cluster",
+      category: "Computing",
+      unitOfMeasure: "Node Hours",
+      costUnit: "$/node-hr",
+    },
+  ];
+}
+
+export function saveCustomResourceTypes(types: CustomResourceType[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.CUSTOM_TYPES, JSON.stringify(types));
+  } catch (e) {
+    console.error("Error saving custom types:", e);
+  }
+}
+
+// ----------------------------------------------------
+// CUSTOM METRICS & FORMULAS STORE (Section 38)
+// ----------------------------------------------------
+export function loadCustomMetrics(): CustomMetric[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.CUSTOM_METRICS);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    console.error("Error loading custom metrics:", e);
+  }
+  return [
+    {
+      id: "CM-OEE",
+      name: "Overall Equipment Efficiency (OEE)",
+      formula: "Availability × Performance × Quality",
+      description: "Standard industrial efficiency formula tracking availability and defect-free line throughput.",
+      targetValue: 85,
+      unit: "%",
+      category: "Production",
+    },
+    {
+      id: "CM-SUPPORT-EFF",
+      name: "Support Capacity Velocity",
+      formula: "Resolved Deliverables / Total Scheduled Hours",
+      description: "Tracks throughput velocity across allocated member hours.",
+      targetValue: 1.2,
+      unit: "deliverables/hr",
+      category: "Operations",
+    },
+  ];
+}
+
+export function saveCustomMetrics(metrics: CustomMetric[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.CUSTOM_METRICS, JSON.stringify(metrics));
+  } catch (e) {
+    console.error("Error saving custom metrics:", e);
+  }
+}
+
+// ----------------------------------------------------
+// ORGANIZATION SECTOR & MODULE CONFIG STORE (Section 2)
+// ----------------------------------------------------
+export function loadSectorConfig(): OrganizationSectorConfig {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.SECTOR_CONFIG);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.selectedSectorIds)) return parsed;
+    }
+  } catch (e) {
+    console.error("Error loading sector config:", e);
+  }
+  return {
+    selectedSectorIds: ["it_software"],
+    primarySector: "it_software",
+    enabledModules: {
+      schedule: true,
+      assets: true,
+      inventory: true,
+      predictiveMaintenance: true,
+      shiftManagement: true,
+      siteAllocation: true,
+      workload: true,
+      analytics: true,
+      forecasting: true,
+      scenarios: true,
+      pulseAI: true,
+    },
+  };
+}
+
+export function saveSectorConfig(config: OrganizationSectorConfig): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.SECTOR_CONFIG, JSON.stringify(config));
+  } catch (e) {
+    console.error("Error saving sector config:", e);
+  }
+}
+
+// ----------------------------------------------------
+// ROLE MANAGEMENT STORE (Section 33)
+// ----------------------------------------------------
+export function loadOrganizationRoles(): Array<{
+  role: UserRole;
+  description: string;
+  permissions: string[];
+}> {
+  return [
+    {
+      role: "Super Admin",
+      description: "Platform-level administration across all organizational partitions and security policies.",
+      permissions: ["*"],
+    },
+    {
+      role: "Organization Admin",
+      description: "Organization configuration, module enablement, sector settings, and member access.",
+      permissions: ["org.configure", "roles.manage", "data.import", "modules.toggle", "audit.view"],
+    },
+    {
+      role: "Resource Manager",
+      description: "Resource allocation, capacity planning, schedule balancing, and conflict resolution.",
+      permissions: ["resources.create", "resources.edit", "allocation.assign", "schedule.manage"],
+    },
+    {
+      role: "Project Manager",
+      description: "Project management, milestone delivery, deliverable tracking, and budget control.",
+      permissions: ["projects.create", "projects.edit", "tasks.assign", "milestones.update"],
+    },
+    {
+      role: "Analyst",
+      description: "Analytics, forecasting, simulations, custom KPI formulation, and report exports.",
+      permissions: ["analytics.view", "forecasting.run", "reports.export", "metrics.create"],
+    },
+    {
+      role: "Employee/User",
+      description: "View own resource allocation, assigned deliverables, schedule calendar, and team chat.",
+      permissions: ["self.view", "schedule.view", "tasks.update_status", "chat.send"],
+    },
+    {
+      role: "Viewer",
+      description: "Read-only access to organizational telemetry and published reports.",
+      permissions: ["reports.view", "dashboard.view"],
+    },
+  ];
 }

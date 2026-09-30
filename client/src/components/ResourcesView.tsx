@@ -85,6 +85,24 @@ export function ResourcesView({
   // Save changes to localStorage whenever resources array changes
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(resources));
+    try {
+      const enterprise = resources.map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        role: r.role,
+        department: r.type || "Engineering",
+        type: "People",
+        skills: r.skills || [],
+        status: r.status === "Overallocated" ? "Overallocated" : r.status === "Unavailable" ? "On Leave" : "Available",
+        weeklyCapacityHours: r.weeklyHours || 40,
+        assignedHours: Math.round(((r.weeklyHours || 40) * (r.utilization || 50)) / 100),
+        utilization: r.utilization || 50,
+        costPerHour: 50,
+        currentProjects: r.project ? [r.project] : [],
+        employmentType: "Full-Time",
+      }));
+      localStorage.setItem("resourcepulse_enterprise_resources_v2", JSON.stringify(enterprise));
+    } catch {}
   }, [resources]);
 
   const [search, setSearch] = useState("");
