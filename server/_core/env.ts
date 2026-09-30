@@ -8,4 +8,6 @@ export const ENV = {
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
   openRouterApiKey: process.env.OPENROUTER_API_KEY ?? "",
+  makeWebhookUrl: process.env.MAKE_WEBHOOK_URL ?? "",
+  makeWebhookApiKey: process.env.MAKE_WEBHOOK_API_KEY ?? "",
 };

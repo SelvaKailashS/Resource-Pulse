@@ -28,6 +28,7 @@ import { ScheduleView } from "@/components/ScheduleView";
 import { AssetsView } from "@/components/AssetsView";
 import { InventoryView } from "@/components/InventoryView";
 import { SectorModal } from "@/components/SectorModal";
+import { AutomationCenter } from "@/components/AutomationCenter";
 import { loadInitialResources, loadInitialProjects, computeOrgMetrics, loadThresholds, loadSectorConfig } from "@/lib/orgStore";
 import { track } from "@/lib/analytics";
 import { recordTaskAssignment, recordApprovalDecision } from "@/lib/supabase";
@@ -105,8 +106,9 @@ const navSections: {
     ],
   },
   {
-    section: "Governance",
+    section: "Automation & Governance",
     items: [
+      { label: "Automation Center", icon: Zap, badge: "Make" },
       { label: "Alerts", icon: Bell },
       { label: "Reports", icon: FileText },
       { label: "Approvals", icon: ShieldCheck },
@@ -842,6 +844,8 @@ function Home() {
           {activeNav === "Team chat" && (
             <TeamChatView currentUserName={user?.name} currentUserRole={user?.role} />
           )}
+
+          {activeNav === "Automation Center" && <AutomationCenter />}
 
           {activeNav === "Approvals" && <ApprovalsView />}
 

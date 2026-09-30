@@ -380,6 +380,21 @@ export function VoiceAssistantCopilot({
     }
 
     if (
+      lower.startsWith("go to automation") ||
+      lower.startsWith("open automation") ||
+      lower.startsWith("view automation") ||
+      lower.includes("automation center") ||
+      lower === "automations" ||
+      lower === "automation" ||
+      lower.includes("make webhook") ||
+      lower.includes("make.com")
+    ) {
+      onNavigate("Automation Center");
+      handleAIResponse("Opened the Automation Center. Monitoring universal event triggers, Make.com webhook dispatches, and deadline monitoring.", "open_automations");
+      return;
+    }
+
+    if (
       lower.startsWith("go home") ||
       lower.startsWith("open command center") ||
       lower === "home" ||
