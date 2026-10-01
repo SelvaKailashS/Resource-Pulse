@@ -18,23 +18,12 @@ import {
   Link,
 } from "lucide-react";
 import { toast } from "sonner";
+import { SECTORS } from "@shared/sectorsData";
+import { saveSectorConfig, lockSectorConfig } from "@/lib/orgStore";
 
 interface LoginPageProps {
   onLoginSuccess: (user: AuthUser) => void;
 }
-
-const FIELD_OPTIONS = [
-  { id: "software", name: "Software, Cloud & IT Systems" },
-  { id: "ai_data", name: "AI, Machine Learning & Data Science" },
-  { id: "biomedical", name: "Healthcare, Medical & Biotech" },
-  { id: "robotics", name: "Robotics, IoT & Autonomous Systems" },
-  { id: "finance", name: "Finance, Banking & Fintech" },
-  { id: "energy", name: "Renewable Energy & Sustainability" },
-  { id: "mechanical", name: "Manufacturing & Aerospace Engineering" },
-  { id: "creative", name: "Media, Creative & Product Design" },
-  { id: "consulting", name: "Corporate Strategy & Consulting" },
-  { id: "academic", name: "Education, University & Research Labs" },
-];
 
 const ROLE_OPTIONS = [
   "Team Lead / Project Coordinator",
@@ -56,7 +45,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
   const [name, setName] = useState("");
   const [teamName, setTeamName] = useState("Operations Team Alpha");
   const [teamCode, setTeamCode] = useState("");
-  const [field, setField] = useState(FIELD_OPTIONS[0].name);
+  const [field, setField] = useState(SECTORS[0].name);
   const [roleTitle, setRoleTitle] = useState(ROLE_OPTIONS[0]);
   const [primaryTask, setPrimaryTask] = useState("");
   const [weeklyHours, setWeeklyHours] = useState(40);
@@ -119,6 +108,9 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         localStorage.setItem("resourcepulse_team_name", user.teamName || teamName.trim());
         localStorage.setItem("resourcepulse_selected_field", user.field || field);
         if (teamCode.trim()) localStorage.setItem("resourcepulse_team_code", teamCode.trim());
+        const userFieldResolved = user.field || field || "IT & Software";
+        const matched = SECTORS.find((s) => s.name === userFieldResolved || s.id === userFieldResolved) || SECTORS[0];
+        lockSectorConfig(matched.id, matched.name);
       } catch {}
 
       // Persist to connected Supabase database
@@ -197,6 +189,27 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         localStorage.setItem("resourcepulse_cash_entries", JSON.stringify([]));
         localStorage.setItem("resourcepulse_notifications", JSON.stringify([]));
         localStorage.setItem("resourcepulse_needs_setup_pending", "true");
+
+        // Permanently bind & lock sector configuration for this organization
+        const matchedSector = SECTORS.find((s) => s.name === field || s.id === field) || SECTORS[0];
+        saveSectorConfig({
+          selectedSectorIds: [matchedSector.id],
+          primarySector: matchedSector.id,
+          enabledModules: {
+            schedule: matchedSector.enabledModules.schedule,
+            assets: matchedSector.enabledModules.assets,
+            inventory: matchedSector.enabledModules.inventory,
+            predictiveMaintenance: matchedSector.enabledModules.predictiveMaintenance,
+            shiftManagement: matchedSector.enabledModules.shiftManagement,
+            siteAllocation: matchedSector.enabledModules.siteAllocation,
+            workload: true,
+            analytics: true,
+            forecasting: true,
+            scenarios: true,
+            pulseAI: true,
+          },
+        });
+        lockSectorConfig(matchedSector.id, matchedSector.name);
       } catch {}
 
       // Persist user account and initial teammate to Supabase
@@ -288,6 +301,8 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         localStorage.setItem("resourcepulse_team_code", finalTeamCode);
         localStorage.setItem("resourcepulse_selected_field", field);
         localStorage.setItem("resourcepulse_student_resources", JSON.stringify(updatedTeam));
+        const matched = SECTORS.find((s) => s.name === field || s.id === field) || SECTORS[0];
+        lockSectorConfig(matched.id, matched.name);
       } catch {}
 
       // Record in Supabase
@@ -464,20 +479,23 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
               {/* Field / Sector Selection */}
               <div>
                 <label className="text-[10px] font-mono text-sky-400 uppercase font-bold flex items-center justify-between mb-0.5">
-                  <span className="flex items-center gap-1"><Briefcase size={12} /> Select Industry / Sector Theme</span>
-                  <span className="text-[9px] text-slate-400 font-normal">Theme only · No prefilled data</span>
+                  <span className="flex items-center gap-1"><Briefcase size={12} /> Select Organization Sector</span>
+                  <span className="text-[9px] text-amber-400 font-semibold flex items-center gap-1">🔒 Locked upon registration</span>
                 </label>
                 <select
                   value={field}
                   onChange={(e) => handleFieldChange(e.target.value)}
                   className="w-full bg-slate-950/95 border border-sky-500/50 focus:border-sky-400 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none cursor-pointer"
                 >
-                  {FIELD_OPTIONS.map((f) => (
-                    <option key={f.id} value={f.name}>
-                      {f.name}
+                  {SECTORS.map((s) => (
+                    <option key={s.id} value={s.name}>
+                      {s.icon} {s.name} — {s.category}
                     </option>
                   ))}
                 </select>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  🔒 Note: Once registered, your organization sector cannot be changed to ensure consistency across data models and AI predictions.
+                </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">

@@ -17,6 +17,7 @@ import {
   Trash2,
   Lock,
   Sparkles,
+  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -240,12 +241,18 @@ export function SettingsView({ onSettingsSaved, onOpenSectorModal }: SettingsVie
 
               <div>
                 <label className="font-medium text-foreground block mb-1">Primary Discipline / Sector</label>
-                <input
-                  type="text"
-                  value={selectedField}
-                  onChange={(e) => setSelectedField(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={selectedField}
+                    disabled
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-muted/40 text-muted-foreground cursor-not-allowed pr-8 font-medium"
+                  />
+                  <Lock className="w-3.5 h-3.5 text-muted-foreground absolute right-2.5 top-1/2 -translate-y-1/2" />
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                  🔒 Locked: Organization sector was established upon workspace registration.
+                </p>
               </div>
             </div>
           </div>
@@ -374,14 +381,18 @@ export function SettingsView({ onSettingsSaved, onOpenSectorModal }: SettingsVie
                   Currently configured sectors: {sectorConfig.selectedSectorIds.length} enabled.
                 </p>
               </div>
-              {onOpenSectorModal && (
-                <button
-                  onClick={onOpenSectorModal}
-                  className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-xs"
-                >
-                  Change Sectors (21 Supported)
-                </button>
-              )}
+              <div className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-sky-950/40 border border-sky-500/30 text-sky-300">
+                <Lock className="w-3.5 h-3.5 text-sky-400" />
+                <span>Permanent Sector (Locked)</span>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-lg bg-sky-950/20 border border-sky-500/20 text-xs text-slate-300 flex items-start gap-2">
+              <ShieldCheck className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
+              <div>
+                <strong>Immutable Organization Sector:</strong> This workspace is permanently bound to the{" "}
+                <span className="text-sky-300 font-semibold">{selectedField}</span> sector. To maintain data schema integrity, asset definitions, and AI prediction consistency, the organization sector cannot be changed after registration.
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-2 pt-2">

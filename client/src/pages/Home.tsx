@@ -29,6 +29,7 @@ import { InventoryView } from "@/components/InventoryView";
 import { SectorModal } from "@/components/SectorModal";
 import { AutomationCenter } from "@/components/AutomationCenter";
 import { loadInitialResources, loadInitialProjects, computeOrgMetrics, loadThresholds, loadSectorConfig } from "@/lib/orgStore";
+import { SECTORS } from "@shared/sectorsData";
 import { track } from "@/lib/analytics";
 import { recordTaskAssignment, recordApprovalDecision } from "@/lib/supabase";
 import {
@@ -43,6 +44,7 @@ import {
   Calendar,
   Check,
   ChevronDown,
+  Lock,
   ChevronRight,
   CircleAlert,
   Clock3,
@@ -197,8 +199,14 @@ function Home() {
   });
 
   const [sectorConfig, setSectorConfig] = useState(() => loadSectorConfig());
-  const [teamName, setTeamName] = useState(() => localStorage.getItem("resourcepulse_team_name") || user?.teamName || "Operations Team");
-  const userField = sectorConfig.primarySector || localStorage.getItem("resourcepulse_selected_field") || user?.field || "Universal Multi-Sector";
+  const teamName = localStorage.getItem("resourcepulse_team_name") || user?.teamName || "Operations Team";
+  const userField = localStorage.getItem("resourcepulse_selected_field") || user?.field || sectorConfig.primarySector || "IT & Software";
+  const activeSectorDef = useMemo(() => {
+    return (
+      SECTORS.find((s) => s.id === sectorConfig.primarySector || s.name.toLowerCase() === userField.toLowerCase() || s.id.toLowerCase() === userField.toLowerCase()) ||
+      SECTORS[0]
+    );
+  }, [sectorConfig.primarySector, userField]);
 
   useEffect(() => {
     try {
@@ -560,11 +568,10 @@ function Home() {
           <div className="brand-icon"><Zap size={16} strokeWidth={2.5} /></div>
           <span>Resource<span className="brand-accent">Pulse</span></span>
         </div>
-        <button
+        <div
           className="workspace-switcher"
-          onClick={() => setIsSectorModalOpen(true)}
-          title="Switch Industry Sector & Active Modules"
-          style={{ cursor: "pointer", width: "calc(100% - 6px)", textAlign: "left" }}
+          title={`${userField} — Organization Sector Locked`}
+          style={{ cursor: "default", width: "calc(100% - 6px)", textAlign: "left", userSelect: "none" }}
         >
           <div
             className="workspace-avatar text-sm"
@@ -574,16 +581,16 @@ function Home() {
               border: "1px solid rgba(56, 189, 248, 0.4)",
             }}
           >
-            🏢
+            {activeSectorDef?.icon || "🏢"}
           </div>
           <div className="workspace-copy">
-            <span className="eyebrow" style={{ color: "#38bdf8" }}>
-              {userField || "Team Workspace"}
+            <span className="eyebrow" style={{ color: "#38bdf8", display: "flex", alignItems: "center", gap: "4px" }}>
+              <span>{userField || "Team Workspace"}</span>
+              <span title="Sector locked upon registration" style={{ fontSize: "11px", opacity: 0.85 }}>🔒</span>
             </span>
-            <strong>{teamName}</strong>
+            <strong>{localStorage.getItem("resourcepulse_team_name") || "Operations Team"}</strong>
           </div>
-          <ChevronDown size={15} className="muted-icon" />
-        </button>
+        </div>
         <div className="sidebar-scrollable flex-1 overflow-y-auto space-y-4 pr-1">
           {navSections.map((sec) => (
             <div key={sec.section}>
@@ -832,7 +839,6 @@ function Home() {
               onSettingsSaved={() => {
                 void loadDashboard(true);
               }}
-              onOpenSectorModal={() => setIsSectorModalOpen(true)}
             />
           )}
 
@@ -1394,7 +1400,6 @@ function Home() {
         activeSectorId={sectorConfig.primarySector}
         onConfigUpdated={(newCfg) => {
           setSectorConfig(newCfg);
-          setTeamName(localStorage.getItem("resourcepulse_team_name") || "Operations Team");
           void loadDashboard(true);
         }}
       />

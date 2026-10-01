@@ -999,6 +999,24 @@ export function loadSectorConfig(): OrganizationSectorConfig {
   };
 }
 
+export function isSectorLocked(): boolean {
+  try {
+    return localStorage.getItem("resourcepulse_sector_locked") === "true";
+  } catch {
+    return false;
+  }
+}
+
+export function lockSectorConfig(sectorId: string, sectorName: string): void {
+  try {
+    localStorage.setItem("resourcepulse_sector_locked", "true");
+    localStorage.setItem("resourcepulse_selected_field", sectorName);
+    localStorage.setItem("resourcepulse_primary_sector_id", sectorId);
+  } catch (e) {
+    console.error("Error locking sector config:", e);
+  }
+}
+
 export function saveSectorConfig(config: OrganizationSectorConfig): void {
   try {
     localStorage.setItem(STORAGE_KEYS.SECTOR_CONFIG, JSON.stringify(config));
