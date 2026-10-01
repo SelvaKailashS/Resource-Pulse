@@ -159,8 +159,6 @@ export default defineConfig({
       "@": path.resolve(import.meta.dirname, "client", "src"),
       "@shared": path.resolve(import.meta.dirname, "shared"),
       "@assets": path.resolve(import.meta.dirname, "attached_assets"),
-      "@designcodeio/threeui/style.css": path.resolve(import.meta.dirname, "client", "src", "shaders", "threeui.css"),
-      "@designcodeio/threeui": path.resolve(import.meta.dirname, "client", "src", "shaders", "get-started-button", "GetStartedButton.tsx"),
     },
   },
   envDir: path.resolve(import.meta.dirname),

@@ -17,9 +17,7 @@
     "types": ["node", "vite/client"],
     "paths": {
       "@/*": ["./client/src/*"],
-      "@shared/*": ["./shared/*"],
-      "@designcodeio/threeui": ["./client/src/shaders/get-started-button/GetStartedButton.tsx"],
-      "@designcodeio/threeui/style.css": ["./client/src/shaders/threeui.css"]
+      "@shared/*": ["./shared/*"]
     }
   }
 }
