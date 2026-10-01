@@ -197,7 +197,7 @@ function Home() {
   });
 
   const [sectorConfig, setSectorConfig] = useState(() => loadSectorConfig());
-  const teamName = localStorage.getItem("resourcepulse_team_name") || user?.teamName || "Operations Team";
+  const [teamName, setTeamName] = useState(() => localStorage.getItem("resourcepulse_team_name") || user?.teamName || "Operations Team");
   const userField = sectorConfig.primarySector || localStorage.getItem("resourcepulse_selected_field") || user?.field || "Universal Multi-Sector";
 
   useEffect(() => {
@@ -580,7 +580,7 @@ function Home() {
             <span className="eyebrow" style={{ color: "#38bdf8" }}>
               {userField || "Team Workspace"}
             </span>
-            <strong>{localStorage.getItem("resourcepulse_team_name") || "Operations Team"}</strong>
+            <strong>{teamName}</strong>
           </div>
           <ChevronDown size={15} className="muted-icon" />
         </button>
@@ -1394,6 +1394,7 @@ function Home() {
         activeSectorId={sectorConfig.primarySector}
         onConfigUpdated={(newCfg) => {
           setSectorConfig(newCfg);
+          setTeamName(localStorage.getItem("resourcepulse_team_name") || "Operations Team");
           void loadDashboard(true);
         }}
       />

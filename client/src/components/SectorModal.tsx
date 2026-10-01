@@ -42,8 +42,50 @@ export function SectorModal({
   const [search, setSearch] = useState("");
   const [isCustomMode, setIsCustomMode] = useState(false);
   const [customName, setCustomName] = useState("");
+  const [orgName, setOrgName] = useState(() => localStorage.getItem("resourcepulse_team_name") || "Operations Team");
+  const [teamCode, setTeamCode] = useState(() => localStorage.getItem("resourcepulse_team_code") || "RP-TEAM");
+  const [isSwitchingOrg, setIsSwitchingOrg] = useState(false);
+  const [newOrgCodeInput, setNewOrgCodeInput] = useState("");
+  const [copiedCode, setCopiedCode] = useState(false);
 
   const selectedSet = new Set(config.selectedSectorIds);
+
+  const handleCopyCode = () => {
+    navigator.clipboard.writeText(teamCode);
+    setCopiedCode(true);
+    toast.success("Team invite code copied to clipboard!", { description: teamCode });
+    setTimeout(() => setCopiedCode(false), 2000);
+  };
+
+  const handleJoinDifferentOrg = () => {
+    if (!newOrgCodeInput.trim()) {
+      toast.error("Please enter a valid organization invite code or name");
+      return;
+    }
+    const cleanCode = newOrgCodeInput.trim().toUpperCase();
+    const newName = cleanCode.startsWith("RP-") ? `Workspace ${cleanCode}` : newOrgCodeInput.trim();
+    localStorage.setItem("resourcepulse_team_name", newName);
+    localStorage.setItem("resourcepulse_team_code", cleanCode);
+    setOrgName(newName);
+    setTeamCode(cleanCode);
+    setIsSwitchingOrg(false);
+    setNewOrgCodeInput("");
+    
+    // Update session user if present
+    try {
+      const stored = localStorage.getItem("resourcepulse_session_user");
+      if (stored) {
+        const u = JSON.parse(stored);
+        u.teamName = newName;
+        localStorage.setItem("resourcepulse_session_user", JSON.stringify(u));
+      }
+    } catch {}
+
+    toast.success(`Switched active workspace to "${newName}"!`, {
+      description: `Team code: ${cleanCode}`,
+    });
+    if (onConfigUpdated) onConfigUpdated(config);
+  };
 
   const filteredSectors = SECTORS.filter(
     (s) =>
@@ -91,6 +133,19 @@ export function SectorModal({
   };
 
   const handleApply = () => {
+    const finalOrgName = orgName.trim() || "Operations Team";
+    localStorage.setItem("resourcepulse_team_name", finalOrgName);
+    localStorage.setItem("resourcepulse_team_code", teamCode);
+
+    try {
+      const stored = localStorage.getItem("resourcepulse_session_user");
+      if (stored) {
+        const u = JSON.parse(stored);
+        u.teamName = finalOrgName;
+        localStorage.setItem("resourcepulse_session_user", JSON.stringify(u));
+      }
+    } catch {}
+
     const finalConfig: OrganizationSectorConfig = {
       ...config,
       customIndustryName: isCustomMode && customName.trim() ? customName.trim() : undefined,
@@ -103,8 +158,8 @@ export function SectorModal({
     if (onSelectSector) onSelectSector(primaryDef);
     if (onConfigUpdated) onConfigUpdated(finalConfig);
 
-    toast.success("Organization sector profile applied!", {
-      description: `Active sectors: ${finalConfig.selectedSectorIds.length} enabled. Modules synchronized.`,
+    toast.success("Organization profile updated!", {
+      description: `Workspace: ${finalOrgName} • Sectors: ${finalConfig.selectedSectorIds.length} enabled.`,
     });
     onOpenChange(false);
   };
@@ -116,21 +171,21 @@ export function SectorModal({
         className="!max-w-[95vw] lg:!max-w-[1100px] !w-[95vw] !max-h-[92vh] !p-0 !gap-0 overflow-hidden bg-slate-950 border border-sky-500/40 text-white shadow-2xl rounded-2xl !flex !flex-col"
       >
         {/* Header */}
-        <DialogHeader className="p-5 px-6 border-b border-sky-900/40 bg-slate-900/90 shrink-0">
+        <DialogHeader className="p-4 px-6 border-b border-sky-900/40 bg-slate-900/90 shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-sky-500/15 border border-sky-400/30 flex items-center justify-center text-sky-400 shadow-sm shadow-sky-950">
                 <Layers size={20} />
               </div>
               <div>
-                <DialogTitle className="text-lg font-bold text-white flex items-center gap-2">
-                  What type of organization are you managing?
+                <DialogTitle className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                  Organization Workspace & Sector Configuration
                   <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30">
                     21 Sectors Supported
                   </span>
                 </DialogTitle>
                 <DialogDescription className="text-xs text-slate-400">
-                  Select one or multiple sectors to dynamically enable relevant resource types, KPIs, AI predictions, and operational modules.
+                  Update your organization name, view team invite code, and configure active industry modules & AI models.
                 </DialogDescription>
               </div>
             </div>
@@ -142,6 +197,79 @@ export function SectorModal({
             </button>
           </div>
         </DialogHeader>
+
+        {/* Organization Details & Switcher Banner */}
+        <div className="p-4 px-6 border-b border-sky-900/30 bg-slate-900/60 flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto flex-1">
+            <div className="flex-1 min-w-[220px] max-w-sm">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                Organization / Team Name
+              </label>
+              <input
+                type="text"
+                value={orgName}
+                onChange={(e) => setOrgName(e.target.value)}
+                placeholder="e.g. Koders Club, Acme Corp"
+                className="w-full px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-700 bg-slate-950 text-sky-300 focus:border-sky-400 focus:outline-none"
+              />
+            </div>
+
+            <div className="min-w-[140px]">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                Team Invite Code
+              </label>
+              <div className="flex items-center gap-1.5">
+                <span className="font-mono text-xs px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-emerald-400 font-bold select-all">
+                  {teamCode}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCopyCode}
+                  className="p-1.5 rounded-lg border border-slate-700 hover:border-slate-600 bg-slate-900 text-slate-300 hover:text-white transition-colors"
+                  title="Copy Team Code to invite colleagues"
+                >
+                  {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Layers className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {!isSwitchingOrg ? (
+              <button
+                type="button"
+                onClick={() => setIsSwitchingOrg(true)}
+                className="text-xs px-3 py-1.5 rounded-lg border border-slate-700 hover:border-sky-500/50 bg-slate-950 text-slate-300 hover:text-sky-300 transition-colors"
+              >
+                Switch / Join Workspace
+              </button>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="text"
+                  value={newOrgCodeInput}
+                  onChange={(e) => setNewOrgCodeInput(e.target.value)}
+                  placeholder="Enter Code or Name..."
+                  className="px-2.5 py-1 text-xs rounded-lg border border-sky-500 bg-slate-950 text-white placeholder:text-slate-500 w-44"
+                />
+                <button
+                  type="button"
+                  onClick={handleJoinDifferentOrg}
+                  className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-sky-600 hover:bg-sky-500 text-white"
+                >
+                  Switch
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsSwitchingOrg(false)}
+                  className="p-1 text-slate-400 hover:text-white"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Toolbar: Search & Custom Industry Toggle */}
         <div className="p-4 px-6 border-b border-border/40 bg-slate-900/40 flex flex-wrap items-center justify-between gap-3 shrink-0">
