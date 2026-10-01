@@ -20,6 +20,8 @@ import {
 import { toast } from "sonner";
 import { SECTORS } from "@shared/sectorsData";
 import { saveSectorConfig, lockSectorConfig } from "@/lib/orgStore";
+import { GetStartedButton } from "@designcodeio/threeui";
+import "@designcodeio/threeui/style.css";
 
 interface LoginPageProps {
   onLoginSuccess: (user: AuthUser) => void;
@@ -38,6 +40,49 @@ const ROLE_OPTIONS = [
   "Consultant / Business Analyst",
 ];
 
+function LiquidChromeAction({
+  isLoading,
+  label,
+  sublabel = "Interact with liquid chrome · Click or press Enter to submit",
+  isOverButton,
+}: {
+  isLoading: boolean;
+  label: string;
+  sublabel?: string;
+  isOverButton: React.MutableRefObject<boolean>;
+}) {
+  return (
+    <div className="space-y-2 pt-1">
+      <div
+        className="shader-frame my-1.5 cursor-pointer relative group"
+        onPointerEnter={() => { isOverButton.current = true; }}
+        onPointerLeave={() => { isOverButton.current = false; }}
+        title="Interactive Liquid Chrome Control — Click to Proceed"
+      >
+        <GetStartedButton />
+      </div>
+      <button
+        type="submit"
+        disabled={isLoading}
+        className="w-full py-2.5 rounded-xl bg-gradient-to-r from-zinc-200 via-white to-zinc-300 hover:from-white hover:to-zinc-100 text-zinc-950 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-black/60 transition-all disabled:opacity-50 cursor-pointer border border-white/20 active:translate-y-0.5 font-mono"
+      >
+        {isLoading ? (
+          <span>Processing…</span>
+        ) : (
+          <>
+            <span>{label}</span>
+            <ArrowRight size={14} className="text-zinc-900" />
+          </>
+        )}
+      </button>
+      <div className="text-center text-[10px] text-zinc-400 font-mono flex items-center justify-center gap-1.5 opacity-80">
+        <Sparkles size={11} className="text-[#ff8a28]" />
+        <span>{sublabel}</span>
+      </div>
+    </div>
+  );
+}
+
 export function LoginPage({ onLoginSuccess }: LoginPageProps) {
   const [mode, setMode] = useState<"register" | "signin" | "join">("register");
   const [email, setEmail] = useState("");
@@ -51,6 +96,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
   const [weeklyHours, setWeeklyHours] = useState(40);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const isOverButton = React.useRef(false);
 
   // Check URL query parameters for join link
   useEffect(() => {
@@ -68,6 +114,20 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
       }
     } catch {}
   }, []);
+
+  // Listen for iframe clicks to submit form
+  useEffect(() => {
+    const handleBlur = () => {
+      if (isOverButton.current) {
+        const fakeEvt = { preventDefault: () => {} } as React.FormEvent;
+        if (mode === "register") handleRegister(fakeEvt);
+        else if (mode === "signin") handleSignIn(fakeEvt);
+        else if (mode === "join") handleJoinTeam(fakeEvt);
+      }
+    };
+    window.addEventListener("blur", handleBlur);
+    return () => window.removeEventListener("blur", handleBlur);
+  }, [mode, name, email, password, teamName, field, roleTitle, weeklyHours, primaryTask]);
 
   const handleFieldChange = (selectedFieldName: string) => {
     setField(selectedFieldName);
@@ -331,40 +391,42 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
   };
 
   return (
-    <div className="h-screen max-h-screen w-full flex flex-col justify-center items-center px-4 py-2 bg-[#060a13] relative overflow-hidden font-sans login-grid-bg select-none">
-      {/* Background ambient lighting */}
-      <div className="absolute top-[-10%] left-[-8%] w-[520px] h-[520px] rounded-full bg-sky-500/15 blur-[140px] pointer-events-none animate-ambient-glow" />
-      <div className="absolute bottom-[-10%] right-[-8%] w-[520px] h-[520px] rounded-full bg-blue-600/15 blur-[150px] pointer-events-none animate-ambient-glow" />
+    <div className="h-screen max-h-screen w-full flex flex-col justify-center items-center px-4 py-2 bg-[#141416] relative overflow-hidden font-sans login-grid-bg select-none">
+      {/* Background ambient lighting matching liquid chrome & crystal glow */}
+      <div className="absolute top-[-10%] right-[-5%] w-[550px] h-[550px] rounded-full bg-[#ff8a28]/10 blur-[150px] pointer-events-none animate-ambient-glow" />
+      <div className="absolute bottom-[-10%] left-[-5%] w-[550px] h-[550px] rounded-full bg-white/[0.04] blur-[150px] pointer-events-none animate-ambient-glow" />
 
       <div className="w-full max-w-xl z-10 animate-opening-card flex flex-col my-auto">
         {/* Brand Header */}
         <div className="text-center mb-2.5">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-400/25 mb-1 shadow-sm shadow-sky-950">
-            <Zap size={13} className="text-sky-400 animate-pulse" />
-            <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-sky-300">
-              Universal Operations & Workload Intelligence
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] mb-1.5 shadow-md shadow-black/50">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#ff8a28] shadow-[0_0_8px_#ff8a28] animate-pulse" />
+            <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-zinc-300">
+              ResourcePulse Core Intelligence
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center justify-center gap-1">
-            <span>Resource</span>
-            <span className="text-sky-400 drop-shadow-[0_0_12px_rgba(56,189,248,0.4)]">Pulse</span>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center justify-center gap-1.5 font-mono">
+            <span className="text-zinc-200">RESOURCE</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-100 via-amber-200 to-[#ff8a28] drop-shadow-[0_0_20px_rgba(255,138,40,0.35)]">
+              PULSE
+            </span>
           </h1>
-          <p className="text-[11px] text-slate-400 mt-0.5 max-w-md mx-auto leading-tight">
-            Register your team & sector. You specify all features and needs — zero mock data assumed.
+          <p className="text-[11px] text-zinc-400 mt-0.5 max-w-md mx-auto leading-tight font-mono">
+            Tactile Liquid-Chrome Operations · Real Data Planning & Forecasting
           </p>
         </div>
 
         {/* Auth Card */}
-        <div className="bg-slate-900/85 backdrop-blur-2xl border border-sky-500/30 rounded-2xl p-4 sm:p-5 shadow-2xl shadow-slate-950 ring-1 ring-sky-500/10">
+        <div className="bg-[#1f1f24]/95 backdrop-blur-2xl border border-white/[0.09] rounded-2xl p-4 sm:p-5 shadow-[0_30px_90px_-20px_rgba(0,0,0,0.95)] ring-1 ring-white/[0.05] max-h-[88vh] overflow-y-auto">
           {/* Mode Switcher Tabs */}
-          <div className="grid grid-cols-3 p-1 bg-slate-950/80 rounded-xl border border-slate-800 mb-3">
+          <div className="grid grid-cols-3 p-1 bg-[#131316] rounded-xl border border-white/[0.08] mb-3">
             <button
               type="button"
               onClick={() => setMode("register")}
-              className={`py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+              className={`py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer font-mono ${
                 mode === "register"
-                  ? "bg-sky-500/20 text-sky-300 border border-sky-400/30 shadow-sm font-bold"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-[#2b2b31] text-white border border-white/20 shadow-md font-bold"
+                  : "text-zinc-400 hover:text-white"
               }`}
             >
               1. Create Team
@@ -372,10 +434,10 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
             <button
               type="button"
               onClick={() => setMode("join")}
-              className={`py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 ${
+              className={`py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 font-mono ${
                 mode === "join"
-                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 shadow-sm font-bold"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-[#2b2b31] text-amber-300 border border-amber-500/30 shadow-md font-bold"
+                  : "text-zinc-400 hover:text-white"
               }`}
             >
               <Link size={12} />
@@ -384,10 +446,10 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
             <button
               type="button"
               onClick={() => setMode("signin")}
-              className={`py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+              className={`py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer font-mono ${
                 mode === "signin"
-                  ? "bg-sky-500/20 text-sky-300 border border-sky-400/30 shadow-sm font-bold"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-[#2b2b31] text-white border border-white/20 shadow-md font-bold"
+                  : "text-zinc-400 hover:text-white"
               }`}
             >
               3. Sign In
@@ -557,20 +619,12 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                 </div>
               )}
 
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full mt-2 py-2.5 rounded-xl bg-gradient-to-r from-sky-400 via-sky-500 to-blue-600 hover:from-sky-300 hover:to-blue-500 text-slate-950 font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-lg shadow-sky-500/25 transition-all disabled:opacity-50 cursor-pointer"
-              >
-                {isLoading ? (
-                  <span>Initializing Workspace…</span>
-                ) : (
-                  <>
-                    <span>Register & Launch Team Workspace</span>
-                    <Sparkles size={14} />
-                  </>
-                )}
-              </button>
+              <LiquidChromeAction
+                isLoading={isLoading}
+                label="Register & Launch Team Workspace"
+                sublabel="Interactive Liquid Chrome Control · Click or Press Enter to Register"
+                isOverButton={isOverButton}
+              />
             </form>
           )}
 
@@ -706,20 +760,12 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                 </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full mt-2 py-2.5 rounded-xl bg-gradient-to-r from-emerald-400 via-teal-500 to-sky-600 hover:from-emerald-300 hover:to-sky-500 text-slate-950 font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/25 transition-all disabled:opacity-50 cursor-pointer"
-              >
-                {isLoading ? (
-                  <span>Joining Workspace…</span>
-                ) : (
-                  <>
-                    <span>Accept Invite & Enter Workspace</span>
-                    <ArrowRight size={14} />
-                  </>
-                )}
-              </button>
+              <LiquidChromeAction
+                isLoading={isLoading}
+                label="Accept Invite & Enter Workspace"
+                sublabel="Interactive Liquid Chrome Control · Click or Press Enter to Join"
+                isOverButton={isOverButton}
+              />
             </form>
           )}
 
@@ -801,20 +847,12 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                 </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full mt-1 py-2.5 rounded-xl bg-gradient-to-r from-sky-400 via-sky-500 to-blue-600 hover:from-sky-300 hover:to-blue-500 text-slate-950 font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-lg shadow-sky-500/25 transition-all disabled:opacity-50 cursor-pointer"
-              >
-                {isLoading ? (
-                  <span>Signing In…</span>
-                ) : (
-                  <>
-                    <span>Enter Workspace</span>
-                    <ArrowRight size={14} />
-                  </>
-                )}
-              </button>
+              <LiquidChromeAction
+                isLoading={isLoading}
+                label="Sign In & Enter Workspace"
+                sublabel="Interactive Liquid Chrome Control · Click or Press Enter to Sign In"
+                isOverButton={isOverButton}
+              />
             </form>
           )}
         </div>
