@@ -1,104 +1,43 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { AuthUser } from "@/_core/hooks/useAuth";
 import { recordUserAccount, recordTeamMember } from "@/lib/supabase";
 import {
-  Zap,
   Lock,
   Mail,
   User,
   Eye,
   EyeOff,
   Sparkles,
-  ArrowRight,
-  Users,
+  Building2,
+  KeyRound,
+  ShieldCheck,
   CheckCircle2,
-  Briefcase,
-  Layers,
-  Clock,
-  Link,
+  ArrowRight,
+  ChevronRight,
+  Flame,
 } from "lucide-react";
 import { toast } from "sonner";
 import { SECTORS } from "@shared/sectorsData";
-import { saveSectorConfig, lockSectorConfig } from "@/lib/orgStore";
-import { GetStartedButton } from "@designcodeio/threeui";
-import "@designcodeio/threeui/style.css";
+import { lockSectorConfig } from "@/lib/orgStore";
+import { Scene } from "@/components/Scene";
 
 interface LoginPageProps {
   onLoginSuccess: (user: AuthUser) => void;
 }
 
-const ROLE_OPTIONS = [
-  "Team Lead / Project Coordinator",
-  "Engineering Lead / Architect",
-  "Product Manager / Delivery Lead",
-  "Senior Developer / Technical Lead",
-  "AI / Machine Learning Specialist",
-  "Operations / Resource Director",
-  "Clinical / Healthcare Lead",
-  "Research Fellow / Academic Lead",
-  "UI/UX & Creative Specialist",
-  "Consultant / Business Analyst",
-];
-
-function LiquidChromeAction({
-  isLoading,
-  label,
-  sublabel = "Interact with liquid chrome · Click or press Enter to submit",
-  isOverButton,
-}: {
-  isLoading: boolean;
-  label: string;
-  sublabel?: string;
-  isOverButton: React.MutableRefObject<boolean>;
-}) {
-  return (
-    <div className="space-y-2 pt-1">
-      <div
-        className="shader-frame my-1.5 cursor-pointer relative group"
-        onPointerEnter={() => { isOverButton.current = true; }}
-        onPointerLeave={() => { isOverButton.current = false; }}
-        title="Interactive Liquid Chrome Control — Click to Proceed"
-      >
-        <GetStartedButton />
-      </div>
-      <button
-        type="submit"
-        disabled={isLoading}
-        className="w-full py-2.5 rounded-xl bg-gradient-to-r from-zinc-200 via-white to-zinc-300 hover:from-white hover:to-zinc-100 text-zinc-950 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-black/60 transition-all disabled:opacity-50 cursor-pointer border border-white/20 active:translate-y-0.5 font-mono"
-      >
-        {isLoading ? (
-          <span>Processing…</span>
-        ) : (
-          <>
-            <span>{label}</span>
-            <ArrowRight size={14} className="text-zinc-900" />
-          </>
-        )}
-      </button>
-      <div className="text-center text-[10px] text-zinc-400 font-mono flex items-center justify-center gap-1.5 opacity-80">
-        <Sparkles size={11} className="text-[#ff8a28]" />
-        <span>{sublabel}</span>
-      </div>
-    </div>
-  );
-}
-
 export function LoginPage({ onLoginSuccess }: LoginPageProps) {
-  const [mode, setMode] = useState<"register" | "signin" | "join">("register");
+  const [mode, setMode] = useState<"signin" | "register" | "join">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [teamName, setTeamName] = useState("Operations Team Alpha");
+  const [teamName, setTeamName] = useState("Alpha Operations");
   const [teamCode, setTeamCode] = useState("");
-  const [field, setField] = useState(SECTORS[0].name);
-  const [roleTitle, setRoleTitle] = useState(ROLE_OPTIONS[0]);
-  const [primaryTask, setPrimaryTask] = useState("");
-  const [weeklyHours, setWeeklyHours] = useState(40);
+  const [selectedSectorId, setSelectedSectorId] = useState(SECTORS[0].id);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const isOverButton = React.useRef(false);
+  const isOverButton = useRef(false);
 
-  // Check URL query parameters for join link
+  // Check URL params for invite code or team
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
@@ -109,7 +48,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         if (teamParam) setTeamName(decodeURIComponent(teamParam));
         setMode("join");
         toast.info("Invite Link Detected", {
-          description: `Welcome! Join team "${teamParam || "Workspace"}" (Team Code: ${joinParam})`,
+          description: `Team code "${joinParam}" loaded. Enter credentials to join.`,
         });
       }
     } catch {}
@@ -118,25 +57,30 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
   // Listen for iframe clicks to submit form
   useEffect(() => {
     const handleBlur = () => {
-      if (isOverButton.current) {
-        const fakeEvt = { preventDefault: () => {} } as React.FormEvent;
-        if (mode === "register") handleRegister(fakeEvt);
-        else if (mode === "signin") handleSignIn(fakeEvt);
-        else if (mode === "join") handleJoinTeam(fakeEvt);
+      if (isOverButton.current && !isLoading) {
+        handleTriggerSubmit();
       }
     };
     window.addEventListener("blur", handleBlur);
     return () => window.removeEventListener("blur", handleBlur);
-  }, [mode, name, email, password, teamName, field, roleTitle, weeklyHours, primaryTask]);
+  }, [mode, email, password, name, teamName, teamCode, selectedSectorId, isLoading]);
 
-  const handleFieldChange = (selectedFieldName: string) => {
-    setField(selectedFieldName);
+  const handleTriggerSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (mode === "signin") {
+      submitSignIn();
+    } else if (mode === "register") {
+      submitRegister();
+    } else {
+      submitJoin();
+    }
   };
 
-  const handleSignIn = (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitSignIn = () => {
     if (!email.trim() || !password.trim()) {
-      toast.error("Missing credentials", { description: "Please enter your email and password." });
+      toast.error("Credentials Required", {
+        description: "Please enter your email and password to proceed.",
+      });
       return;
     }
 
@@ -144,55 +88,56 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
     setTimeout(() => {
       setIsLoading(false);
 
-      // Check if user already registered locally
       let existingUser: AuthUser | null = null;
       try {
         const stored = localStorage.getItem("resourcepulse_session_user");
-        if (stored) existingUser = JSON.parse(stored);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && (parsed.email?.toLowerCase() === email.trim().toLowerCase() || !parsed.email)) {
+            existingUser = parsed;
+          }
+        }
       } catch {}
+
+      const savedTeam = localStorage.getItem("resourcepulse_team_name") || "Operations Core";
+      const savedSector = localStorage.getItem("resourcepulse_selected_field") || SECTORS[0].name;
 
       const user: AuthUser = existingUser || {
         id: Date.now(),
-        name: email.split("@")[0].toUpperCase(),
+        name: email.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
         email: email.trim(),
         role: "admin",
-        field: field,
-        teamName: teamName.trim() || "Operations Team",
+        field: savedSector,
+        teamName: savedTeam,
         emailVerified: 1,
         onboardingCompleted: 1,
-        permissionSet: "system.admin,approvals.write,dashboard.read,cash.write",
+        permissionSet: "dashboard.read,cash.write,team.admin",
       };
 
       try {
         localStorage.setItem("resourcepulse_session_user", JSON.stringify(user));
-        localStorage.setItem("resourcepulse_team_name", user.teamName || teamName.trim());
-        localStorage.setItem("resourcepulse_selected_field", user.field || field);
-        if (teamCode.trim()) localStorage.setItem("resourcepulse_team_code", teamCode.trim());
-        const userFieldResolved = user.field || field || "IT & Software";
-        const matched = SECTORS.find((s) => s.name === userFieldResolved || s.id === userFieldResolved) || SECTORS[0];
-        lockSectorConfig(matched.id, matched.name);
       } catch {}
 
-      // Persist to connected Supabase database
       void recordUserAccount({
         name: user.name || "",
         email: user.email || "",
-        teamName: user.teamName || teamName.trim(),
-        field: user.field || field,
+        teamName: user.teamName || savedTeam,
+        field: user.field || savedSector,
         role: user.role || "admin",
       });
 
-      toast.success(`Welcome back, ${user.name}!`, {
-        description: `Signed in to ${user.teamName || "Operations Team"}.`,
+      toast.success(`Access Granted`, {
+        description: `Welcome back, ${user.name || "Operator"}. Telemetry ready.`,
       });
       onLoginSuccess(user);
     }, 450);
   };
 
-  const handleRegister = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || !email.trim() || !password.trim() || !teamName.trim()) {
-      toast.error("Incomplete registration", { description: "Please fill in all required fields." });
+  const submitRegister = () => {
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      toast.error("Missing Profile Details", {
+        description: "Name, email, and security password are required.",
+      });
       return;
     }
 
@@ -200,107 +145,50 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
     setTimeout(() => {
       setIsLoading(false);
 
-      // Purge any old legacy state
-      try {
-        localStorage.clear();
-      } catch {}
+      const sectorDef = SECTORS.find((s) => s.id === selectedSectorId) || SECTORS[0];
+      const resolvedTeam = teamName.trim() || `${name.trim()}'s Team`;
+      const generatedCode = `RP-${Date.now().toString(36).toUpperCase().slice(-6)}`;
 
       const user: AuthUser = {
         id: Date.now(),
         name: name.trim(),
         email: email.trim(),
         role: "admin",
-        field: field,
-        teamName: teamName.trim(),
+        field: sectorDef.name,
+        teamName: resolvedTeam,
         emailVerified: 1,
         onboardingCompleted: 1,
-        permissionSet: "system.admin,approvals.write,dashboard.read,cash.write",
-      };
-
-      const finalTeamCode = teamCode.trim() || `RP-${Math.floor(1000 + Math.random() * 9000)}`;
-
-      // Create initial teammate record using ONLY user's provided values
-      const initialTeammate = {
-        id: `MEM-01`,
-        name: name.trim(),
-        role: roleTitle,
-        type: "Team Lead" as const,
-        status: "Available" as const,
-        utilization: 50,
-        weeklyHours: Number(weeklyHours) || 40,
-        project: primaryTask.trim() || "Project Lead & Coordination",
-        skills: [roleTitle],
-        costRate: "Internal Resource",
-        risk: "Low" as const,
-        avatarText: name.trim().split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "TL",
-        avatarBg: "from-blue-600 to-cyan-500",
-        upcoming: "Workspace setup & feature definition",
-        constraints: "",
+        permissionSet: "dashboard.read,cash.write,team.admin",
       };
 
       try {
         localStorage.setItem("resourcepulse_session_user", JSON.stringify(user));
-        localStorage.setItem("resourcepulse_team_name", teamName.trim());
-        localStorage.setItem("resourcepulse_team_code", finalTeamCode);
-        localStorage.setItem("resourcepulse_selected_field", field);
-        localStorage.setItem("resourcepulse_student_role_title", roleTitle);
-        localStorage.setItem("resourcepulse_student_resources", JSON.stringify([initialTeammate]));
-        localStorage.setItem("resourcepulse_approvals", JSON.stringify([]));
-        localStorage.setItem("resourcepulse_cash_entries", JSON.stringify([]));
-        localStorage.setItem("resourcepulse_notifications", JSON.stringify([]));
-        localStorage.setItem("resourcepulse_needs_setup_pending", "true");
-
-        // Permanently bind & lock sector configuration for this organization
-        const matchedSector = SECTORS.find((s) => s.name === field || s.id === field) || SECTORS[0];
-        saveSectorConfig({
-          selectedSectorIds: [matchedSector.id],
-          primarySector: matchedSector.id,
-          enabledModules: {
-            schedule: matchedSector.enabledModules.schedule,
-            assets: matchedSector.enabledModules.assets,
-            inventory: matchedSector.enabledModules.inventory,
-            predictiveMaintenance: matchedSector.enabledModules.predictiveMaintenance,
-            shiftManagement: matchedSector.enabledModules.shiftManagement,
-            siteAllocation: matchedSector.enabledModules.siteAllocation,
-            workload: true,
-            analytics: true,
-            forecasting: true,
-            scenarios: true,
-            pulseAI: true,
-          },
-        });
-        lockSectorConfig(matchedSector.id, matchedSector.name);
+        localStorage.setItem("resourcepulse_team_name", resolvedTeam);
+        localStorage.setItem("resourcepulse_team_code", generatedCode);
+        localStorage.setItem("resourcepulse_selected_field", sectorDef.name);
+        lockSectorConfig(sectorDef.id, sectorDef.name);
       } catch {}
 
-      // Persist user account and initial teammate to Supabase
       void recordUserAccount({
         name: user.name || "",
         email: user.email || "",
-        teamName: user.teamName || teamName.trim(),
-        field: user.field || field,
-        role: user.role || "admin",
-      });
-      void recordTeamMember({
-        id: initialTeammate.id,
-        name: initialTeammate.name,
-        role: initialTeammate.role,
-        project: initialTeammate.project,
-        weeklyHours: initialTeammate.weeklyHours,
-        utilization: initialTeammate.utilization,
-        status: initialTeammate.status,
+        teamName: resolvedTeam,
+        field: sectorDef.name,
+        role: "admin",
       });
 
-      toast.success(`Account created for ${user.name}!`, {
-        description: `Team Code: ${finalTeamCode} · Sector: ${field}`,
+      toast.success("Workspace Provisioned", {
+        description: `${resolvedTeam} initialized under ${sectorDef.name}.`,
       });
       onLoginSuccess(user);
-    }, 500);
+    }, 450);
   };
 
-  const handleJoinTeam = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || !email.trim() || !password.trim()) {
-      toast.error("Incomplete information", { description: "Please enter your name, email, and password." });
+  const submitJoin = () => {
+    if (!name.trim() || !email.trim() || !password.trim() || !teamCode.trim()) {
+      toast.error("Incomplete Registration", {
+        description: "Team code, full name, email, and password are required.",
+      });
       return;
     }
 
@@ -308,565 +196,312 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
     setTimeout(() => {
       setIsLoading(false);
 
-      const resolvedTeamName = teamName.trim() || "Operations Team";
-      const finalTeamCode = teamCode.trim() || "RP-JOINED";
+      const sectorDef = SECTORS.find((s) => s.id === selectedSectorId) || SECTORS[0];
+      const resolvedTeam = teamName.trim() || "Operations Team";
 
       const user: AuthUser = {
         id: Date.now(),
         name: name.trim(),
         email: email.trim(),
         role: "user",
-        field: field,
-        teamName: resolvedTeamName,
+        field: sectorDef.name,
+        teamName: resolvedTeam,
         emailVerified: 1,
         onboardingCompleted: 1,
         permissionSet: "dashboard.read,cash.write",
       };
 
-      let existingTeam: any[] = [];
-      try {
-        const stored = localStorage.getItem("resourcepulse_student_resources");
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed)) existingTeam = parsed;
-        }
-      } catch {}
-
-      const newTeammate = {
-        id: `MEM-${Date.now().toString().slice(-4)}`,
-        name: name.trim(),
-        role: roleTitle,
-        type: "Contributor" as const,
-        status: "Available" as const,
-        utilization: 50,
-        weeklyHours: Number(weeklyHours) || 40,
-        project: primaryTask.trim() || "Team Deliverables",
-        skills: [roleTitle],
-        costRate: "Internal Resource",
-        risk: "Low" as const,
-        avatarText: name.trim().split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "TM",
-        avatarBg: "from-emerald-600 to-teal-500",
-        upcoming: "Onboarding and deliverable alignment",
-        constraints: "",
-      };
-
-      const updatedTeam = [
-        ...existingTeam.filter((m: any) => m.name.toLowerCase() !== name.trim().toLowerCase()),
-        newTeammate,
-      ];
-
       try {
         localStorage.setItem("resourcepulse_session_user", JSON.stringify(user));
-        localStorage.setItem("resourcepulse_team_name", resolvedTeamName);
-        localStorage.setItem("resourcepulse_team_code", finalTeamCode);
-        localStorage.setItem("resourcepulse_selected_field", field);
-        localStorage.setItem("resourcepulse_student_resources", JSON.stringify(updatedTeam));
-        const matched = SECTORS.find((s) => s.name === field || s.id === field) || SECTORS[0];
-        lockSectorConfig(matched.id, matched.name);
+        localStorage.setItem("resourcepulse_team_name", resolvedTeam);
+        localStorage.setItem("resourcepulse_team_code", teamCode.trim().toUpperCase());
+        localStorage.setItem("resourcepulse_selected_field", sectorDef.name);
       } catch {}
 
-      // Record in Supabase
       void recordUserAccount({
         name: user.name || "",
         email: user.email || "",
-        teamName: resolvedTeamName,
-        field: field,
+        teamName: resolvedTeam,
+        field: sectorDef.name,
         role: "member",
       });
-      void recordTeamMember({
-        id: newTeammate.id,
-        name: newTeammate.name,
-        role: newTeammate.role,
-        project: newTeammate.project,
-        weeklyHours: newTeammate.weeklyHours,
-        utilization: newTeammate.utilization,
-        status: newTeammate.status,
-      });
 
-      toast.success(`Welcome to ${resolvedTeamName}, ${user.name}!`, {
-        description: `Successfully joined as ${roleTitle}.`,
+      toast.success(`Joined ${resolvedTeam}`, {
+        description: `Welcome aboard, ${user.name}.`,
       });
       onLoginSuccess(user);
     }, 450);
   };
 
-  return (
-    <div className="h-screen max-h-screen w-full flex flex-col justify-center items-center px-4 py-2 bg-[#141416] relative overflow-hidden font-sans login-grid-bg select-none">
-      {/* Background ambient lighting matching liquid chrome & crystal glow */}
-      <div className="absolute top-[-10%] right-[-5%] w-[550px] h-[550px] rounded-full bg-[#ff8a28]/10 blur-[150px] pointer-events-none animate-ambient-glow" />
-      <div className="absolute bottom-[-10%] left-[-5%] w-[550px] h-[550px] rounded-full bg-white/[0.04] blur-[150px] pointer-events-none animate-ambient-glow" />
+  // Quick 1-click Demo Fill
+  const fillDemoAccount = () => {
+    setEmail("operator.alpha@resourcepulse.ai");
+    setPassword("pulse2026!demo");
+    toast.info("Demo Credentials Injected", {
+      description: "Click the liquid chrome button or press Enter to launch.",
+    });
+  };
 
-      <div className="w-full max-w-xl z-10 animate-opening-card flex flex-col my-auto">
-        {/* Brand Header */}
-        <div className="text-center mb-2.5">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] mb-1.5 shadow-md shadow-black/50">
+  return (
+    <div className="min-h-screen w-full flex flex-col justify-center items-center px-4 py-8 bg-[#101012] relative overflow-hidden font-sans text-zinc-100 select-none">
+      {/* Liquid Chrome Atmospheric Radial Backlight */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[720px] h-[720px] rounded-full bg-[radial-gradient(circle,rgba(255,138,40,0.08)_0%,rgba(112,66,248,0.05)_45%,transparent_70%)] pointer-events-none blur-[90px]" />
+      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-white/[0.02] pointer-events-none blur-[120px]" />
+      
+      {/* Subtle fine geometric grid */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff04_1px,transparent_1px),linear-gradient(to_bottom,#ffffff04_1px,transparent_1px)] bg-[size:44px_44px] pointer-events-none" />
+
+      {/* Main Studio Shell */}
+      <div className="w-full max-w-md z-10 flex flex-col items-center gap-6">
+        
+        {/* Header / Brand identity */}
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#18181c] border border-white/[0.08] shadow-inner">
             <span className="w-1.5 h-1.5 rounded-full bg-[#ff8a28] shadow-[0_0_8px_#ff8a28] animate-pulse" />
-            <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-zinc-300">
-              ResourcePulse Core Intelligence
+            <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-400 font-semibold">
+              ThreeUI · Liquid Chrome Core
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center justify-center gap-1.5 font-mono">
-            <span className="text-zinc-200">RESOURCE</span>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-100 via-amber-200 to-[#ff8a28] drop-shadow-[0_0_20px_rgba(255,138,40,0.35)]">
+
+          <h1 className="text-3xl font-extrabold tracking-tight font-mono flex items-center justify-center gap-2 text-white">
+            <span className="text-zinc-100">RESOURCE</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-100 via-amber-200 to-[#ff8a28] drop-shadow-[0_0_24px_rgba(255,138,40,0.4)]">
               PULSE
             </span>
           </h1>
-          <p className="text-[11px] text-zinc-400 mt-0.5 max-w-md mx-auto leading-tight font-mono">
-            Tactile Liquid-Chrome Operations · Real Data Planning & Forecasting
+
+          <p className="text-xs text-zinc-400 font-mono tracking-tight">
+            Universal Telemetry & AI Capacity Orchestration
           </p>
         </div>
 
-        {/* Auth Card */}
-        <div className="bg-[#1f1f24]/95 backdrop-blur-2xl border border-white/[0.09] rounded-2xl p-4 sm:p-5 shadow-[0_30px_90px_-20px_rgba(0,0,0,0.95)] ring-1 ring-white/[0.05] max-h-[88vh] overflow-y-auto">
-          {/* Mode Switcher Tabs */}
-          <div className="grid grid-cols-3 p-1 bg-[#131316] rounded-xl border border-white/[0.08] mb-3">
-            <button
-              type="button"
-              onClick={() => setMode("register")}
-              className={`py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer font-mono ${
-                mode === "register"
-                  ? "bg-[#2b2b31] text-white border border-white/20 shadow-md font-bold"
-                  : "text-zinc-400 hover:text-white"
-              }`}
-            >
-              1. Create Team
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("join")}
-              className={`py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 font-mono ${
-                mode === "join"
-                  ? "bg-[#2b2b31] text-amber-300 border border-amber-500/30 shadow-md font-bold"
-                  : "text-zinc-400 hover:text-white"
-              }`}
-            >
-              <Link size={12} />
-              <span>2. Join Team</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("signin")}
-              className={`py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer font-mono ${
-                mode === "signin"
-                  ? "bg-[#2b2b31] text-white border border-white/20 shadow-md font-bold"
-                  : "text-zinc-400 hover:text-white"
-              }`}
-            >
-              3. Sign In
-            </button>
-          </div>
+        {/* Tactile Mode Switcher Pill */}
+        <div className="grid grid-cols-3 p-1 bg-[#161619] rounded-xl border border-white/[0.07] w-full shadow-2xl">
+          <button
+            type="button"
+            onClick={() => setMode("signin")}
+            className={`py-2 text-xs font-mono font-medium rounded-lg transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${
+              mode === "signin"
+                ? "bg-[#25252b] text-white shadow-md border border-white/15 font-semibold"
+                : "text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            <span>Sign In</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("register")}
+            className={`py-2 text-xs font-mono font-medium rounded-lg transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${
+              mode === "register"
+                ? "bg-[#25252b] text-white shadow-md border border-white/15 font-semibold"
+                : "text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            <span>Register</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("join")}
+            className={`py-2 text-xs font-mono font-medium rounded-lg transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${
+              mode === "join"
+                ? "bg-[#25252b] text-white shadow-md border border-white/15 font-semibold"
+                : "text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            <span>Join Team</span>
+          </button>
+        </div>
 
-          {/* REGISTER REAL TEAM FORM */}
-          {mode === "register" && (
-            <form onSubmit={handleRegister} className="space-y-2.5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div>
-                  <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-0.5">
-                    Your Full Name *
-                  </label>
-                  <div className="relative">
-                    <User size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. Alex Rivera or Jordan Lee"
-                      required
-                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-0.5">
-                    Work / Org Email *
-                  </label>
-                  <div className="relative">
-                    <Mail size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="name@organization.com"
-                      required
-                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div>
-                  <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-0.5">
-                    Password *
-                  </label>
-                  <div className="relative">
-                    <Lock size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••••••"
-                      required
-                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg pl-8 pr-8 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 cursor-pointer"
-                    >
-                      {showPassword ? <EyeOff size={13} /> : <Eye size={13} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-0.5">
-                    Team Workspace Name *
-                  </label>
-                  <div className="relative">
-                    <Users size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                    <input
-                      type="text"
-                      value={teamName}
-                      onChange={(e) => setTeamName(e.target.value)}
-                      placeholder="e.g. Robotics Lab Pod or Clinical Ops"
-                      required
-                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Field / Sector Selection */}
-              <div>
-                <label className="text-[10px] font-mono text-sky-400 uppercase font-bold flex items-center justify-between mb-0.5">
-                  <span className="flex items-center gap-1"><Briefcase size={12} /> Select Organization Sector</span>
-                  <span className="text-[9px] text-amber-400 font-semibold flex items-center gap-1">🔒 Locked upon registration</span>
+        {/* Obsidian Auth Container */}
+        <div className="w-full bg-[#18181c]/95 border border-white/[0.08] rounded-2xl p-5 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.9)] backdrop-blur-xl space-y-4">
+          
+          <form onSubmit={handleTriggerSubmit} className="space-y-3.5">
+            {/* JOIN CODE (Only for Join mode) */}
+            {mode === "join" && (
+              <div className="space-y-1">
+                <label className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                  <KeyRound size={12} className="text-[#ff8a28]" />
+                  <span>Team Invite Code</span>
                 </label>
-                <select
-                  value={field}
-                  onChange={(e) => handleFieldChange(e.target.value)}
-                  className="w-full bg-slate-950/95 border border-sky-500/50 focus:border-sky-400 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none cursor-pointer"
-                >
-                  {SECTORS.map((s) => (
-                    <option key={s.id} value={s.name}>
-                      {s.icon} {s.name} — {s.category}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-[10px] text-slate-400 mt-1">
-                  🔒 Note: Once registered, your organization sector cannot be changed to ensure consistency across data models and AI predictions.
-                </p>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. RP-ALPHA7"
+                  value={teamCode}
+                  onChange={(e) => setTeamCode(e.target.value.toUpperCase())}
+                  className="w-full px-3.5 py-2.5 bg-[#121214] border border-white/[0.08] focus:border-[#ff8a28] rounded-xl text-xs font-mono text-white placeholder-zinc-600 outline-none transition-all shadow-inner tracking-wider"
+                />
               </div>
+            )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div>
-                  <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-0.5">
-                    Your Role in Team
+            {/* FULL NAME (For Register and Join modes) */}
+            {(mode === "register" || mode === "join") && (
+              <div className="space-y-1">
+                <label className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                  <User size={12} className="text-[#ff8a28]" />
+                  <span>Operator Full Name</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Alex Mercer"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-[#121214] border border-white/[0.08] focus:border-[#ff8a28] rounded-xl text-xs font-mono text-white placeholder-zinc-600 outline-none transition-all shadow-inner"
+                />
+              </div>
+            )}
+
+            {/* EMAIL */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Mail size={12} className="text-[#ff8a28]" />
+                  <span>Work Email</span>
+                </span>
+                {mode === "signin" && (
+                  <button
+                    type="button"
+                    onClick={fillDemoAccount}
+                    className="text-[10px] text-[#ff8a28] hover:underline cursor-pointer flex items-center gap-1 font-mono lowercase"
+                  >
+                    <Flame size={10} />
+                    <span>demo credentials</span>
+                  </button>
+                )}
+              </label>
+              <input
+                type="email"
+                required
+                placeholder="operator@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-[#121214] border border-white/[0.08] focus:border-[#ff8a28] rounded-xl text-xs font-mono text-white placeholder-zinc-600 outline-none transition-all shadow-inner"
+              />
+            </div>
+
+            {/* PASSWORD */}
+            <div className="space-y-1">
+              <label className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                <Lock size={12} className="text-[#ff8a28]" />
+                <span>Security Key / Password</span>
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  placeholder="••••••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-[#121214] border border-white/[0.08] focus:border-[#ff8a28] rounded-xl text-xs font-mono text-white placeholder-zinc-600 outline-none transition-all shadow-inner pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 cursor-pointer p-1"
+                >
+                  {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+            </div>
+
+            {/* REGISTER-SPECIFIC FIELDS: WORKSPACE & SECTOR */}
+            {mode === "register" && (
+              <div className="space-y-3 pt-1 border-t border-white/[0.06]">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                    <Building2 size={12} className="text-[#ff8a28]" />
+                    <span>Workspace Organization Name</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Apex Global Operations"
+                    value={teamName}
+                    onChange={(e) => setTeamName(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#121214] border border-white/[0.08] focus:border-[#ff8a28] rounded-xl text-xs font-mono text-white placeholder-zinc-600 outline-none transition-all shadow-inner"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Sparkles size={12} className="text-[#ff8a28]" />
+                      <span>Operational Industry Sector</span>
+                    </span>
+                    <span className="text-[9px] text-zinc-500 font-mono">Locks to Organization</span>
                   </label>
                   <select
-                    value={roleTitle}
-                    onChange={(e) => setRoleTitle(e.target.value)}
-                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 rounded-lg px-2 py-1.5 text-xs text-white outline-none cursor-pointer"
+                    value={selectedSectorId}
+                    onChange={(e) => setSelectedSectorId(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#121214] border border-white/[0.08] focus:border-[#ff8a28] rounded-xl text-xs font-mono text-white outline-none cursor-pointer transition-all shadow-inner"
                   >
-                    {ROLE_OPTIONS.map((r) => (
-                      <option key={r} value={r}>
-                        {r}
+                    {SECTORS.map((s) => (
+                      <option key={s.id} value={s.id} className="bg-[#18181c] text-white">
+                        {s.icon} {s.name} ({s.category})
                       </option>
                     ))}
                   </select>
                 </div>
-
-                <div>
-                  <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-0.5">
-                    Weekly Hours Capacity
-                  </label>
-                  <div className="relative">
-                    <Clock size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                    <input
-                      type="number"
-                      min={5}
-                      max={80}
-                      value={weeklyHours}
-                      onChange={(e) => setWeeklyHours(Number(e.target.value))}
-                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white outline-none font-mono"
-                    />
-                  </div>
-                </div>
               </div>
+            )}
 
-              <div>
-                <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-0.5">
-                  Primary Goal / Deliverable (Optional)
-                </label>
-                <div className="relative">
-                  <Layers size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                  <input
-                    type="text"
-                    value={primaryTask}
-                    onChange={(e) => setPrimaryTask(e.target.value)}
-                    placeholder="e.g. Core Algorithm Development (or define with AI)"
-                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
-                  />
-                </div>
-              </div>
+            {/* Centerpiece: ThreeUI Liquid Chrome Sign In Button (Exact Configured Usage) */}
+            <div className="pt-2 space-y-2">
+              <div
+                className={`relative transition-all duration-300 cursor-pointer ${
+                  isLoading ? "opacity-60 pointer-events-none scale-[0.98]" : "hover:scale-[1.01]"
+                }`}
+                onPointerEnter={() => {
+                  isOverButton.current = true;
+                }}
+                onPointerLeave={() => {
+                  isOverButton.current = false;
+                }}
+                onClick={() => {
+                  handleTriggerSubmit();
+                }}
+                title="Click liquid-chrome control or press Enter to authenticate"
+              >
+                {/* Configured Usage Pattern from ThreeUI exact spec */}
+                <Scene />
 
-              {teamCode && (
-                <div className="px-2.5 py-1 rounded-lg bg-sky-500/10 border border-sky-400/30 flex items-center gap-1.5 text-[10px] text-sky-300 font-mono">
-                  <Link size={11} className="text-sky-400" />
-                  <span>Joining via Team Code: <strong>{teamCode}</strong></span>
-                </div>
-              )}
-
-              <LiquidChromeAction
-                isLoading={isLoading}
-                label="Register & Launch Team Workspace"
-                sublabel="Interactive Liquid Chrome Control · Click or Press Enter to Register"
-                isOverButton={isOverButton}
-              />
-            </form>
-          )}
-
-          {/* JOIN TEAM WELCOME FORM */}
-          {mode === "join" && (
-            <form onSubmit={handleJoinTeam} className="space-y-2.5">
-              <div className="text-center p-3 rounded-xl bg-gradient-to-r from-sky-950/70 via-slate-900 to-indigo-950/70 border border-sky-500/30 mb-2">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold mb-1">
-                  <Link size={11} /> TEAM INVITATION
-                </div>
-                <h2 className="text-base font-bold text-white tracking-tight">
-                  Welcome to {teamName || "the Team"}!
-                </h2>
-                <p className="text-xs text-slate-300 mt-0.5">
-                  You've been invited to join this team workspace. Enter your details to activate your seat and collaborate with teammates.
-                </p>
-                {teamCode && (
-                  <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-950 border border-sky-400/40 font-mono text-xs text-sky-300 font-bold">
-                    <span>Code:</span>
-                    <span className="text-white tracking-widest">{teamCode}</span>
+                {/* Subtle loading state pulse overlay */}
+                {isLoading && (
+                  <div className="absolute inset-0 bg-[#222225]/80 backdrop-blur-sm rounded-[18px] flex items-center justify-center gap-2 text-white font-mono text-xs">
+                    <span className="w-2 h-2 rounded-full bg-[#ff8a28] animate-ping" />
+                    <span>AUTHENTICATING TELEMETRY...</span>
                   </div>
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div>
-                  <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-0.5">
-                    Your Full Name *
-                  </label>
-                  <div className="relative">
-                    <User size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. Jordan Lee"
-                      required
-                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-0.5">
-                    Work Email *
-                  </label>
-                  <div className="relative">
-                    <Mail size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="jordan@team.com"
-                      required
-                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
-                    />
-                  </div>
-                </div>
+              {/* Minimalist interactive guidance */}
+              <div className="flex items-center justify-between text-[10px] font-mono text-zinc-500 px-1">
+                <span className="flex items-center gap-1">
+                  <ShieldCheck size={11} className="text-zinc-400" />
+                  <span>256-bit encrypted session</span>
+                </span>
+                <span className="text-zinc-400 flex items-center gap-1">
+                  <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/[0.1] text-[9px] text-zinc-300">
+                    ↵ ENTER
+                  </kbd>
+                  <span>or click crystal</span>
+                </span>
               </div>
+            </div>
+          </form>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div>
-                  <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-0.5">
-                    Password *
-                  </label>
-                  <div className="relative">
-                    <Lock size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••••••"
-                      required
-                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg pl-8 pr-8 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 cursor-pointer"
-                    >
-                      {showPassword ? <EyeOff size={13} /> : <Eye size={13} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-0.5">
-                    Team Code *
-                  </label>
-                  <div className="relative">
-                    <Link size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                    <input
-                      type="text"
-                      value={teamCode}
-                      onChange={(e) => setTeamCode(e.target.value)}
-                      placeholder="e.g. RP-7842"
-                      required
-                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white font-mono placeholder-slate-500 outline-none transition-all"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div>
-                  <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-0.5">
-                    Your Role in Team
-                  </label>
-                  <select
-                    value={roleTitle}
-                    onChange={(e) => setRoleTitle(e.target.value)}
-                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 rounded-lg px-2 py-1.5 text-xs text-white outline-none cursor-pointer"
-                  >
-                    {ROLE_OPTIONS.map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-0.5">
-                    Your Primary Task / Feature
-                  </label>
-                  <input
-                    type="text"
-                    value={primaryTask}
-                    onChange={(e) => setPrimaryTask(e.target.value)}
-                    placeholder="e.g. Frontend Architecture"
-                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
-                  />
-                </div>
-              </div>
-
-              <LiquidChromeAction
-                isLoading={isLoading}
-                label="Accept Invite & Enter Workspace"
-                sublabel="Interactive Liquid Chrome Control · Click or Press Enter to Join"
-                isOverButton={isOverButton}
-              />
-            </form>
-          )}
-
-          {/* SIGN IN FORM */}
-          {mode === "signin" && (
-            <form onSubmit={handleSignIn} className="space-y-3">
-              <div>
-                <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-1">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@organization.com"
-                    required
-                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-1">
-                  Password
-                </label>
-                <div className="relative">
-                  <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••••••"
-                    required
-                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg pl-9 pr-9 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 cursor-pointer"
-                  >
-                    {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2.5">
-                <div>
-                  <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-1">
-                    Team Workspace
-                  </label>
-                  <div className="relative">
-                    <Users size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                    <input
-                      type="text"
-                      value={teamName}
-                      onChange={(e) => setTeamName(e.target.value)}
-                      placeholder="Operations Team"
-                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 rounded-lg pl-8 pr-2.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-1">
-                    Team Code (Optional)
-                  </label>
-                  <div className="relative">
-                    <Link size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                    <input
-                      type="text"
-                      value={teamCode}
-                      onChange={(e) => setTeamCode(e.target.value)}
-                      placeholder="e.g. RP-7842"
-                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 rounded-lg pl-8 pr-2.5 py-2 text-xs text-white placeholder-slate-500 outline-none font-mono transition-all"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <LiquidChromeAction
-                isLoading={isLoading}
-                label="Sign In & Enter Workspace"
-                sublabel="Interactive Liquid Chrome Control · Click or Press Enter to Sign In"
-                isOverButton={isOverButton}
-              />
-            </form>
-          )}
         </div>
 
-        {/* Footer info */}
-        <div className="text-center mt-2.5 text-[10px] text-slate-500 flex items-center justify-center gap-3">
-          <span className="flex items-center gap-1">
-            <CheckCircle2 size={11} className="text-emerald-400" /> User-Driven Deliverables
-          </span>
+        {/* Studio Footer Status */}
+        <div className="flex items-center justify-center gap-4 text-[10px] font-mono text-zinc-600">
+          <span>ResourcePulse v2.4</span>
           <span>•</span>
-          <span>AI Needs Architect</span>
+          <span>WebGL 2 Spectral Shaders</span>
           <span>•</span>
-          <span>Dynamic Calculations</span>
+          <span>Make.com Automation Ready</span>
         </div>
+
       </div>
     </div>
   );
