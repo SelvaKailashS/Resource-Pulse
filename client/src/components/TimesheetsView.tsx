@@ -313,13 +313,13 @@ export function TimesheetsView({ onOpenCalendarSync }: { onOpenCalendarSync?: ()
             {stats.varianceHours > 0 ? (
               <TrendingUp className="w-4 h-4 text-amber-400" />
             ) : (
-              <TrendingDown className="w-4 h-4 text-emerald-400" />
+              <TrendingDown className="w-4 h-4 text-sky-400" />
             )}
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <span
               className={`text-2xl font-bold font-mono ${
-                stats.varianceHours > 0 ? "text-amber-400" : stats.varianceHours < 0 ? "text-emerald-400" : "text-sky-400"
+                stats.varianceHours > 0 ? "text-amber-400" : "text-sky-400"
               }`}
             >
               {stats.varianceHours > 0 ? `+${stats.varianceHours.toFixed(1)}h` : `${stats.varianceHours.toFixed(1)}h`}
@@ -337,10 +337,10 @@ export function TimesheetsView({ onOpenCalendarSync }: { onOpenCalendarSync?: ()
         <div className="p-4.5 rounded-2xl border border-border/40 bg-card/60 backdrop-blur-md shadow-xs">
           <div className="flex items-center justify-between text-muted-foreground">
             <span className="text-xs font-medium">Billable Ratio</span>
-            <DollarSign className="w-4 h-4 text-emerald-400" />
+            <DollarSign className="w-4 h-4 text-sky-400" />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold font-mono text-emerald-400">{stats.billableRatio.toFixed(0)}%</span>
+            <span className="text-2xl font-bold font-mono text-sky-400">{stats.billableRatio.toFixed(0)}%</span>
             <span className="text-xs text-muted-foreground font-mono">({stats.billableActual.toFixed(1)}h billable)</span>
           </div>
           <div className="mt-1 text-[11px] text-muted-foreground">
@@ -456,7 +456,7 @@ export function TimesheetsView({ onOpenCalendarSync }: { onOpenCalendarSync?: ()
                         <span
                           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${
                             isUnder
-                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                              ? "bg-sky-500/10 text-sky-400 border border-sky-500/20"
                               : isOver
                               ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
                               : "bg-muted text-muted-foreground"
@@ -471,7 +471,7 @@ export function TimesheetsView({ onOpenCalendarSync }: { onOpenCalendarSync?: ()
                       </td>
                       <td className="px-4 py-3 text-center">
                         {entry.billable ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-sky-500/20 text-sky-400 border border-sky-500/30">
                             Billable
                           </span>
                         ) : (
@@ -624,8 +624,6 @@ export function TimesheetsView({ onOpenCalendarSync }: { onOpenCalendarSync?: ()
                   className={`font-mono font-bold ${
                     formData.actualHours > formData.plannedHours
                       ? "text-amber-400"
-                      : formData.actualHours < formData.plannedHours
-                      ? "text-emerald-400"
                       : "text-sky-400"
                   }`}
                 >

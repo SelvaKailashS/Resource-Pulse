@@ -193,7 +193,7 @@ export function ReportsView() {
               onClick={handleCopyInvoiceLink}
               className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl border border-border bg-card hover:bg-muted text-foreground transition-all shadow-xs cursor-pointer"
             >
-              {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              {copiedLink ? <Check className="w-3.5 h-3.5 text-sky-400" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{copiedLink ? "Link Copied" : "Copy Portal Link"}</span>
             </button>
           )}
@@ -236,7 +236,7 @@ export function ReportsView() {
           >
             <span>{tab.label}</span>
             {tab.badge && (
-              <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-sky-500/20 text-sky-400 border border-sky-500/30">
                 {tab.badge}
               </span>
             )}
@@ -310,7 +310,7 @@ export function ReportsView() {
               </div>
 
               <div className="text-right sm:text-right">
-                <span className="px-3 py-1 rounded-full text-xs font-mono font-bold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                <span className="px-3 py-1 rounded-full text-xs font-mono font-bold uppercase bg-sky-500/10 text-sky-400 border border-sky-500/30">
                   Official Client Invoice
                 </span>
                 <div className="text-lg font-bold font-mono text-foreground mt-2">{invoiceData.invoiceNumber}</div>
@@ -418,7 +418,7 @@ export function ReportsView() {
             <div className="p-4 rounded-xl border border-border/40 bg-background/50">
               <p className="text-xs text-muted-foreground">Active Headcount</p>
               <p className="text-2xl font-bold font-mono text-foreground mt-1">{metrics.totalResources}</p>
-              <p className="text-[11px] text-emerald-400 mt-1">{metrics.optimalCount} in optimal band</p>
+              <p className="text-[11px] text-sky-400 mt-1">{metrics.optimalCount} in optimal band</p>
             </div>
 
             <div className="p-4 rounded-xl border border-border/40 bg-background/50">

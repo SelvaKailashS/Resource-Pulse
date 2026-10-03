@@ -938,7 +938,7 @@ function Home() {
                     <Clock3 size={14} className="text-amber-400" /> Log Hours
                   </button>
                   <button className="secondary-button" onClick={() => setIsCalendarSyncOpen(true)}>
-                    <Calendar size={14} className="text-emerald-400" /> Sync Calendar
+                    <Calendar size={14} className="text-sky-400" /> Sync Calendar
                   </button>
                   <button className="secondary-button" onClick={() => setActiveNav("Reports & Invoicing")}>
                     <FileText size={14} className="text-sky-400" /> Client Invoice
@@ -953,7 +953,7 @@ function Home() {
               <div className="p-4 rounded-2xl border border-sky-500/30 bg-gradient-to-r from-sky-950/40 via-card/70 to-blue-950/30 backdrop-blur-md shadow-xs space-y-3 mb-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/40 pb-2">
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
+                    <span className="w-2 h-2 rounded-full bg-sky-400 animate-pulse shadow-[0_0_8px_#38bdf8]" />
                     <span className="text-xs font-bold font-mono uppercase tracking-wider text-sky-300">
                       ResourcePulse Core Engine
                     </span>
@@ -990,18 +990,18 @@ function Home() {
                     <div className="font-bold text-foreground text-sm">
                       Planned vs. Actual
                     </div>
-                    <div className="text-[10px] text-emerald-400 mt-0.5 font-mono font-semibold">
+                    <div className="text-[10px] text-sky-400 mt-0.5 font-mono font-semibold">
                       ± Variance Tracking Live
                     </div>
                   </div>
 
                   <div
                     onClick={() => setIsCalendarSyncOpen(true)}
-                    className="p-3 rounded-xl bg-background/60 border border-border/40 hover:border-emerald-500/50 hover:bg-background/80 transition-all cursor-pointer group"
+                    className="p-3 rounded-xl bg-background/60 border border-border/40 hover:border-sky-500/50 hover:bg-background/80 transition-all cursor-pointer group"
                   >
                     <div className="flex items-center justify-between text-muted-foreground mb-1">
                       <span className="text-[10px] uppercase font-mono font-bold">3. 1-Click Calendar Sync</span>
-                      <Calendar size={13} className="text-emerald-400 group-hover:scale-110 transition-transform" />
+                      <Calendar size={13} className="text-sky-400 group-hover:scale-110 transition-transform" />
                     </div>
                     <div className="font-bold text-foreground text-sm">
                       Google & iCal Feed

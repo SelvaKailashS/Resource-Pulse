@@ -182,11 +182,11 @@ export function CalendarSyncModal({ open, onOpenChange }: CalendarSyncModalProps
             className="w-full p-3.5 rounded-xl bg-background border border-border hover:border-sky-500/50 hover:bg-muted/40 transition-all flex items-center justify-between group cursor-pointer"
           >
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-xs border border-emerald-500/20">
+              <div className="w-9 h-9 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center font-bold text-xs border border-sky-500/20">
                 .ICS
               </div>
               <div className="text-left">
-                <div className="text-xs font-bold text-foreground group-hover:text-emerald-400 transition-colors">
+                <div className="text-xs font-bold text-foreground group-hover:text-sky-400 transition-colors">
                   Download Full Schedule (.ics File)
                 </div>
                 <div className="text-[11px] text-muted-foreground">
@@ -194,7 +194,7 @@ export function CalendarSyncModal({ open, onOpenChange }: CalendarSyncModalProps
                 </div>
               </div>
             </div>
-            <Download className="w-4 h-4 text-muted-foreground group-hover:text-emerald-400" />
+            <Download className="w-4 h-4 text-muted-foreground group-hover:text-sky-400" />
           </button>
 
           {/* Button 3: Live Subscription URL */}
@@ -227,7 +227,7 @@ export function CalendarSyncModal({ open, onOpenChange }: CalendarSyncModalProps
         {/* Security & Telemetry Footer */}
         <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono pt-2 border-t border-border/40">
           <span className="flex items-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <ShieldCheck className="w-3.5 h-3.5 text-sky-400" />
             <span>RFC 5545 Compliant Feed</span>
           </span>
           <span>ResourcePulse Calendar Sync v2.4</span>
