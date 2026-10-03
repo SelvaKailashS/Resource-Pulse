@@ -416,6 +416,17 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         localStorage.setItem("resourcepulse_student_resources", JSON.stringify(updatedTeam));
         const matched = SECTORS.find((s) => s.name === field || s.id === field) || SECTORS[0];
         lockSectorConfig(matched.id, matched.name);
+
+        // Save to persistent registry
+        const regMap = JSON.parse(localStorage.getItem("resourcepulse_registered_users") || "{}");
+        regMap[email.trim().toLowerCase()] = {
+          name: name.trim(),
+          email: email.trim(),
+          teamName: resolvedTeamName,
+          field: field,
+          role: "member",
+        };
+        localStorage.setItem("resourcepulse_registered_users", JSON.stringify(regMap));
       } catch {}
 
       // Record in Supabase
