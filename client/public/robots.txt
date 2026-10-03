@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://resource-pulse-pied.vercel.app/sitemap.xml
