@@ -175,3 +175,45 @@ export async function recordTeamMember(member: {
     console.warn("[Supabase] Error saving team member:", err);
   }
 }
+
+/**
+ * Fetch a registered user account by email from Supabase
+ */
+export async function fetchUserAccount(email: string) {
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("email", cleanEmail)
+      .maybeSingle();
+    if (error) {
+      console.info("[Supabase] Query user error or table not ready:", error.message);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.warn("[Supabase] Failed to fetch user account:", err);
+    return null;
+  }
+}
+
+/**
+ * Fetch all registered team members from Supabase
+ */
+export async function fetchTeamMembers() {
+  try {
+    const { data, error } = await supabase
+      .from("team_members")
+      .select("*")
+      .order("created_at", { ascending: true });
+    if (error) {
+      console.info("[Supabase] Query team members error:", error.message);
+      return [];
+    }
+    return data || [];
+  } catch (err) {
+    console.warn("[Supabase] Failed to fetch team members:", err);
+    return [];
+  }
+}

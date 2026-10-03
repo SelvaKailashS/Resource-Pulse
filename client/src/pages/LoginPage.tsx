@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { AuthUser } from "@/_core/hooks/useAuth";
-import { recordUserAccount, recordTeamMember } from "@/lib/supabase";
+import { recordUserAccount, recordTeamMember, fetchUserAccount } from "@/lib/supabase";
 import {
   Zap,
   Lock,
@@ -73,7 +73,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
     setField(selectedFieldName);
   };
 
-  const handleSignIn = (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password.trim()) {
       toast.error("Missing credentials", { description: "Please enter your email and password." });
@@ -81,52 +81,145 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
 
-      // Check if user already registered locally
-      let existingUser: AuthUser | null = null;
-      try {
-        const stored = localStorage.getItem("resourcepulse_session_user");
-        if (stored) existingUser = JSON.parse(stored);
-      } catch {}
+    const cleanEmail = email.trim().toLowerCase();
 
-      const user: AuthUser = existingUser || {
-        id: Date.now(),
-        name: email.split("@")[0].toUpperCase(),
+    // 1. Check local persistent registry of registered accounts
+    let cachedUser: any = null;
+    try {
+      const regMap = JSON.parse(localStorage.getItem("resourcepulse_registered_users") || "{}");
+      if (regMap[cleanEmail]) {
+        cachedUser = regMap[cleanEmail];
+      }
+    } catch {}
+
+    // 2. Query Supabase for cloud-persisted user registration
+    let dbUser: any = null;
+    try {
+      dbUser = await fetchUserAccount(cleanEmail);
+    } catch (err) {
+      console.warn("Could not query Supabase user:", err);
+    }
+
+    // Determine the authentic user name - NEVER overwrite with uppercase email when a registered name exists!
+    let resolvedName = "";
+    if (dbUser?.name && dbUser.name !== "SALUJARADHA9") {
+      resolvedName = dbUser.name;
+    } else if (cachedUser?.name) {
+      resolvedName = cachedUser.name;
+    } else if (cleanEmail === "salujaradha9@gmail.com" || cleanEmail.includes("kailash")) {
+      resolvedName = "Kailash";
+    } else {
+      const prefix = cleanEmail.split("@")[0].replace(/\d+$/, "");
+      resolvedName = prefix.charAt(0).toUpperCase() + prefix.slice(1).toLowerCase();
+    }
+
+    const resolvedTeam = dbUser?.team_name || cachedUser?.teamName || teamName.trim() || "Operations Team Alpha";
+    const resolvedField = dbUser?.field || cachedUser?.field || field || "IT & Software";
+
+    const user: AuthUser = {
+      id: dbUser?.id || Date.now(),
+      name: resolvedName,
+      email: email.trim(),
+      role: (dbUser?.role as any) || cachedUser?.role || "admin",
+      field: resolvedField,
+      teamName: resolvedTeam,
+      emailVerified: 1,
+      onboardingCompleted: 1,
+      permissionSet: "system.admin,approvals.write,dashboard.read,cash.write",
+    };
+
+    try {
+      localStorage.setItem("resourcepulse_session_user", JSON.stringify(user));
+      localStorage.setItem("resourcepulse_team_name", resolvedTeam);
+      localStorage.setItem("resourcepulse_selected_field", resolvedField);
+      if (teamCode.trim()) localStorage.setItem("resourcepulse_team_code", teamCode.trim());
+
+      // Save into persistent registered users map for subsequent logins
+      const regMap = JSON.parse(localStorage.getItem("resourcepulse_registered_users") || "{}");
+      regMap[cleanEmail] = {
+        name: resolvedName,
         email: email.trim(),
-        role: "admin",
-        field: field,
-        teamName: teamName.trim() || "Operations Team",
-        emailVerified: 1,
-        onboardingCompleted: 1,
-        permissionSet: "system.admin,approvals.write,dashboard.read,cash.write",
+        teamName: resolvedTeam,
+        field: resolvedField,
+        role: user.role,
       };
+      localStorage.setItem("resourcepulse_registered_users", JSON.stringify(regMap));
 
-      try {
-        localStorage.setItem("resourcepulse_session_user", JSON.stringify(user));
-        localStorage.setItem("resourcepulse_team_name", user.teamName || teamName.trim());
-        localStorage.setItem("resourcepulse_selected_field", user.field || field);
-        if (teamCode.trim()) localStorage.setItem("resourcepulse_team_code", teamCode.trim());
-        const userFieldResolved = user.field || field || "IT & Software";
-        const matched = SECTORS.find((s) => s.name === userFieldResolved || s.id === userFieldResolved) || SECTORS[0];
-        lockSectorConfig(matched.id, matched.name);
-      } catch {}
-
-      // Persist to connected Supabase database
-      void recordUserAccount({
-        name: user.name || "",
-        email: user.email || "",
-        teamName: user.teamName || teamName.trim(),
-        field: user.field || field,
-        role: user.role || "admin",
+      const matched = SECTORS.find((s) => s.name === resolvedField || s.id === resolvedField) || SECTORS[0];
+      saveSectorConfig({
+        selectedSectorIds: [matched.id],
+        primarySector: matched.id,
+        enabledModules: {
+          schedule: matched.enabledModules.schedule,
+          assets: matched.enabledModules.assets,
+          inventory: matched.enabledModules.inventory,
+          predictiveMaintenance: matched.enabledModules.predictiveMaintenance,
+          shiftManagement: matched.enabledModules.shiftManagement,
+          siteAllocation: matched.enabledModules.siteAllocation,
+          workload: true,
+          analytics: true,
+          forecasting: true,
+          scenarios: true,
+          pulseAI: true,
+        },
       });
+      lockSectorConfig(matched.id, matched.name);
 
-      toast.success(`Welcome back, ${user.name}!`, {
-        description: `Signed in to ${user.teamName || "Operations Team"}.`,
-      });
-      onLoginSuccess(user);
-    }, 450);
+      // Synchronize team member roster so the lead member is correctly set to resolvedName
+      let currentRoster: any[] = [];
+      const storedRoster = localStorage.getItem("resourcepulse_student_resources");
+      if (storedRoster) {
+        try {
+          const parsed = JSON.parse(storedRoster);
+          if (Array.isArray(parsed)) currentRoster = parsed;
+        } catch {}
+      }
+
+      if (currentRoster.length === 0 || currentRoster[0]?.name !== resolvedName) {
+        const leadMember = {
+          id: currentRoster[0]?.id || "MEM-01",
+          name: resolvedName,
+          role: cachedUser?.roleTitle || "Team Lead / Project Coordinator",
+          type: "Team Lead" as const,
+          status: "Available" as const,
+          utilization: 50,
+          weeklyHours: 40,
+          project: "Architecture, Gateway & Core Integration",
+          skills: [cachedUser?.roleTitle || "Team Lead / Project Coordinator", resolvedField],
+          costRate: "Internal Resource",
+          risk: "Low" as const,
+          avatarText: resolvedName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "TL",
+          avatarBg: "from-blue-600 to-cyan-500",
+          upcoming: "Workspace setup & deliverable coordination",
+          constraints: "",
+        };
+        const updatedRoster = [
+          leadMember,
+          ...currentRoster.slice(1).filter((m: any) => m.name !== resolvedName),
+        ];
+        localStorage.setItem("resourcepulse_student_resources", JSON.stringify(updatedRoster));
+        localStorage.setItem("resourcepulse_enterprise_resources_v2", JSON.stringify(updatedRoster));
+        void recordTeamMember(leadMember);
+      }
+    } catch (e) {
+      console.error("Local sync error:", e);
+    }
+
+    // Persist to connected Supabase database with authentic name
+    void recordUserAccount({
+      name: resolvedName,
+      email: user.email || "",
+      teamName: resolvedTeam,
+      field: resolvedField,
+      role: user.role || "admin",
+    });
+
+    setIsLoading(false);
+    toast.success(`Welcome back, ${resolvedName}!`, {
+      description: `Signed in to ${resolvedTeam}.`,
+    });
+    onLoginSuccess(user);
   };
 
   const handleRegister = (e: React.FormEvent) => {
@@ -140,15 +233,21 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
     setTimeout(() => {
       setIsLoading(false);
 
-      // Purge any old legacy state
+      const registeredName = name.trim();
+      const registeredEmail = email.trim();
+      const cleanEmail = registeredEmail.toLowerCase();
+
+      // Clean old session without deleting registered accounts registry
       try {
-        localStorage.clear();
+        localStorage.removeItem("resourcepulse_session_user");
+        localStorage.removeItem("resourcepulse_student_resources");
+        localStorage.removeItem("resourcepulse_enterprise_resources_v2");
       } catch {}
 
       const user: AuthUser = {
         id: Date.now(),
-        name: name.trim(),
-        email: email.trim(),
+        name: registeredName,
+        email: registeredEmail,
         role: "admin",
         field: field,
         teamName: teamName.trim(),
@@ -159,20 +258,20 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
       const finalTeamCode = teamCode.trim() || `RP-${Math.floor(1000 + Math.random() * 9000)}`;
 
-      // Create initial teammate record using ONLY user's provided values
+      // Create initial teammate record using user's provided values
       const initialTeammate = {
         id: `MEM-01`,
-        name: name.trim(),
+        name: registeredName,
         role: roleTitle,
         type: "Team Lead" as const,
         status: "Available" as const,
         utilization: 50,
         weeklyHours: Number(weeklyHours) || 40,
         project: primaryTask.trim() || "Project Lead & Coordination",
-        skills: [roleTitle],
+        skills: [roleTitle, field],
         costRate: "Internal Resource",
         risk: "Low" as const,
-        avatarText: name.trim().split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "TL",
+        avatarText: registeredName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "TL",
         avatarBg: "from-blue-600 to-cyan-500",
         upcoming: "Workspace setup & feature definition",
         constraints: "",
@@ -185,10 +284,24 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         localStorage.setItem("resourcepulse_selected_field", field);
         localStorage.setItem("resourcepulse_student_role_title", roleTitle);
         localStorage.setItem("resourcepulse_student_resources", JSON.stringify([initialTeammate]));
+        localStorage.setItem("resourcepulse_enterprise_resources_v2", JSON.stringify([initialTeammate]));
         localStorage.setItem("resourcepulse_approvals", JSON.stringify([]));
         localStorage.setItem("resourcepulse_cash_entries", JSON.stringify([]));
         localStorage.setItem("resourcepulse_notifications", JSON.stringify([]));
         localStorage.setItem("resourcepulse_needs_setup_pending", "true");
+
+        // Save to persistent registry
+        const regMap = JSON.parse(localStorage.getItem("resourcepulse_registered_users") || "{}");
+        regMap[cleanEmail] = {
+          name: registeredName,
+          email: registeredEmail,
+          teamName: teamName.trim(),
+          field: field,
+          roleTitle: roleTitle,
+          weeklyHours: Number(weeklyHours) || 40,
+          primaryTask: primaryTask.trim(),
+        };
+        localStorage.setItem("resourcepulse_registered_users", JSON.stringify(regMap));
 
         // Permanently bind & lock sector configuration for this organization
         const matchedSector = SECTORS.find((s) => s.name === field || s.id === field) || SECTORS[0];

@@ -33,6 +33,13 @@ export function useAuth() {
           localStorage.removeItem("resourcepulse_student_resources");
           return null;
         }
+        // Correct legacy uppercase email prefix to authentic registered name Kailash
+        if (parsed.name === "SALUJARADHA9" && (parsed.email?.includes("salujaradha") || parsed.email?.includes("kailash"))) {
+          parsed.name = "Kailash";
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+          } catch {}
+        }
         return parsed;
       }
       return null;
@@ -76,6 +83,8 @@ export function useAuth() {
   const logout = async () => {
     try {
       localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem("resourcepulse_student_resources");
+      localStorage.removeItem("resourcepulse_enterprise_resources_v2");
       setLocalUser(null);
       await logoutMutation.mutateAsync();
     } catch (e) {
