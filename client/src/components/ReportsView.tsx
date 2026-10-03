@@ -176,7 +176,7 @@ export function ReportsView() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/40 pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 text-xs font-semibold rounded bg-sky-500/10 text-sky-400 uppercase tracking-wider font-mono">
+            <span className="px-2 py-0.5 text-xs font-semibold rounded bg-emerald-500/10 text-emerald-400 uppercase tracking-wider font-mono">
               Enterprise Billing & Governance
             </span>
             <span className="text-xs text-muted-foreground">• Verifiable Operational Audits & Invoicing</span>
@@ -193,7 +193,7 @@ export function ReportsView() {
               onClick={handleCopyInvoiceLink}
               className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl border border-border bg-card hover:bg-muted text-foreground transition-all shadow-xs cursor-pointer"
             >
-              {copiedLink ? <Check className="w-3.5 h-3.5 text-sky-400" /> : <Copy className="w-3.5 h-3.5" />}
+              {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{copiedLink ? "Link Copied" : "Copy Portal Link"}</span>
             </button>
           )}
@@ -230,13 +230,13 @@ export function ReportsView() {
             onClick={() => setActiveReport(tab.id as any)}
             className={`px-3.5 py-2 text-xs rounded-xl font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
               activeReport === tab.id
-                ? "bg-sky-600 text-white shadow-md shadow-sky-600/30 font-bold"
+                ? "bg-[#c7ff65] text-[#11140e] shadow-md shadow-emerald-500/20 font-bold"
                 : "bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground"
             }`}
           >
             <span>{tab.label}</span>
             {tab.badge && (
-              <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-sky-500/20 text-sky-400 border border-sky-500/30">
+              <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                 {tab.badge}
               </span>
             )}
@@ -297,7 +297,7 @@ export function ReportsView() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/40 pb-6">
               <div>
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-sky-500/20 text-sky-400 font-bold flex items-center justify-center font-mono border border-sky-500/30">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center font-mono border border-emerald-500/30">
                     RP
                   </div>
                   <h3 className="text-xl font-extrabold text-foreground font-mono tracking-tight">
@@ -310,7 +310,7 @@ export function ReportsView() {
               </div>
 
               <div className="text-right sm:text-right">
-                <span className="px-3 py-1 rounded-full text-xs font-mono font-bold uppercase bg-sky-500/10 text-sky-400 border border-sky-500/30">
+                <span className="px-3 py-1 rounded-full text-xs font-mono font-bold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                   Official Client Invoice
                 </span>
                 <div className="text-lg font-bold font-mono text-foreground mt-2">{invoiceData.invoiceNumber}</div>
@@ -418,7 +418,7 @@ export function ReportsView() {
             <div className="p-4 rounded-xl border border-border/40 bg-background/50">
               <p className="text-xs text-muted-foreground">Active Headcount</p>
               <p className="text-2xl font-bold font-mono text-foreground mt-1">{metrics.totalResources}</p>
-              <p className="text-[11px] text-sky-400 mt-1">{metrics.optimalCount} in optimal band</p>
+              <p className="text-[11px] text-emerald-400 mt-1">{metrics.optimalCount} in optimal band</p>
             </div>
 
             <div className="p-4 rounded-xl border border-border/40 bg-background/50">
@@ -519,7 +519,7 @@ export function ReportsView() {
                     <td className="px-4 py-2.5 font-medium text-foreground">{p.name}</td>
                     <td className="px-4 py-2.5 text-muted-foreground">{p.department}</td>
                     <td className="px-4 py-2.5 text-center">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-sky-500/10 text-sky-400">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-500/10 text-emerald-400">
                         {p.status}
                       </span>
                     </td>

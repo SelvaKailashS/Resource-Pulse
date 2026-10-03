@@ -997,8 +997,8 @@ export function VoiceAssistantCopilot({
             isListening
               ? "bg-rose-600 text-white animate-pulse scale-110 shadow-rose-500/60 ring-4 ring-rose-400/40"
               : isSpeaking
-              ? "bg-sky-500 text-slate-950 scale-105 shadow-sky-500/60 ring-4 ring-sky-400/30"
-              : "bg-sky-500 text-slate-950 hover:bg-sky-400 hover:scale-105 shadow-sky-500/30"
+              ? "bg-[#c7ff65] text-[#11140e] scale-105 shadow-emerald-500/60 ring-4 ring-[#c7ff65]/30"
+              : "bg-[#c7ff65] text-[#11140e] hover:bg-[#d7ff91] hover:scale-105 shadow-emerald-500/30"
           }`}
           title={isListening ? "Listening... (Tap to finish early)" : "Tap once to speak"}
         >
@@ -1012,18 +1012,18 @@ export function VoiceAssistantCopilot({
 
           {/* Sound wave rings when speaking or listening */}
           {(isListening || isSpeaking) && (
-            <span className="absolute -inset-1.5 rounded-full border-2 border-sky-400 animate-ping opacity-75 pointer-events-none" />
+            <span className="absolute -inset-1.5 rounded-full border-2 border-[#c7ff65] animate-ping opacity-75 pointer-events-none" />
           )}
         </button>
 
         {/* Chat Drawer Toggle Button */}
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="w-14 h-14 rounded-full bg-slate-900 border border-sky-400/40 text-sky-400 hover:bg-slate-800 flex items-center justify-center shadow-2xl hover:scale-105 transition-all relative"
+          className="w-14 h-14 rounded-full bg-slate-900 border border-emerald-400/40 text-emerald-400 hover:bg-slate-800 flex items-center justify-center shadow-2xl hover:scale-105 transition-all relative"
           title="Open AI Copilot Chat"
         >
           <MessageSquare size={22} />
-          <span className="absolute top-1.5 right-1.5 w-3 h-3 rounded-full bg-sky-400 animate-ping" />
+          <span className="absolute top-1.5 right-1.5 w-3 h-3 rounded-full bg-emerald-400 animate-ping" />
         </button>
       </div>
 
@@ -1045,22 +1045,22 @@ export function VoiceAssistantCopilot({
 
       {/* Expandable Chat Drawer */}
       {isOpen && (
-        <div className="fixed bottom-22 right-3 sm:right-6 z-50 w-[410px] max-w-[calc(100vw-24px)] h-[calc(100vh-105px)] max-h-[580px] rounded-2xl bg-[#080e1a]/95 border border-sky-500/40 shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl animate-fadeIn">
+        <div className="fixed bottom-22 right-3 sm:right-6 z-50 w-[410px] max-w-[calc(100vw-24px)] h-[calc(100vh-105px)] max-h-[580px] rounded-2xl bg-[#0b0e0d]/95 border border-emerald-500/40 shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl animate-fadeIn">
           {/* Header */}
-          <div className="p-3.5 bg-slate-900/90 border-b border-sky-900/40 flex items-center justify-between shrink-0">
+          <div className="p-3.5 bg-slate-900/90 border-b border-emerald-900/40 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-sky-500/20 border border-sky-400/50 flex items-center justify-center text-sky-400 shadow-inner">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-400/50 flex items-center justify-center text-emerald-400 shadow-inner">
                 <Bot size={20} />
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <strong className="text-sm font-bold text-white">Alex · AI Operations Lead</strong>
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-sky-950 border border-sky-800 text-sky-300">
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-800 text-emerald-300">
                     Live
                   </span>
                 </div>
-                <span className="text-[10.5px] text-sky-400/80 flex items-center gap-1.5 mt-0.5">
-                  <span className={`w-1.5 h-1.5 rounded-full ${isSpeaking ? "bg-emerald-400 animate-ping" : "bg-sky-400 animate-pulse"}`} />
+                <span className="text-[10.5px] text-emerald-400/80 flex items-center gap-1.5 mt-0.5">
+                  <span className={`w-1.5 h-1.5 rounded-full ${isSpeaking ? "bg-emerald-400 animate-ping" : "bg-emerald-400 animate-pulse"}`} />
                   {isSpeaking ? "Speaking answer aloud..." : isAnalyzing ? "Thinking..." : "Ready to answer anything"}
                 </span>
               </div>
@@ -1106,7 +1106,7 @@ export function VoiceAssistantCopilot({
                 }}
                 className={`p-1.5 rounded-lg border text-xs transition-colors ${
                   voiceEnabled
-                    ? "bg-sky-950/60 border-sky-800/40 text-sky-300 hover:bg-sky-900/60"
+                    ? "bg-emerald-950/60 border-emerald-800/40 text-emerald-300 hover:bg-emerald-900/60"
                     : "bg-slate-800 border-slate-700 text-slate-500 hover:text-slate-400"
                 }`}
                 title={voiceEnabled ? "Mute Voice Speech" : "Unmute Voice Speech"}
@@ -1130,9 +1130,9 @@ export function VoiceAssistantCopilot({
 
           {/* Voice Customization Settings Drawer */}
           {showVoiceSettings && (
-            <div className="p-3 bg-slate-950/95 border-b border-sky-900/40 text-xs animate-fadeIn space-y-2.5 shrink-0 max-h-[220px] overflow-y-auto">
+            <div className="p-3 bg-slate-950/95 border-b border-emerald-900/40 text-xs animate-fadeIn space-y-2.5 shrink-0 max-h-[220px] overflow-y-auto">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-sky-400 uppercase tracking-wider text-[11px] font-mono flex items-center gap-1.5">
+                <span className="font-bold text-emerald-400 uppercase tracking-wider text-[11px] font-mono flex items-center gap-1.5">
                   <Sliders size={13} /> Change Voice & Speech Settings
                 </span>
                 <button
@@ -1144,16 +1144,16 @@ export function VoiceAssistantCopilot({
               </div>
 
               {/* Samantha Dedicated Voice Display */}
-              <div className="p-3 rounded-xl bg-sky-950/40 border border-sky-400/30 space-y-1">
+              <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-400/30 space-y-1">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-white flex items-center gap-1.5">
-                    <Sparkles size={13} className="text-sky-400" /> Default AI Voice
+                    <Sparkles size={13} className="text-emerald-400" /> Default AI Voice
                   </span>
-                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                     Active
                   </span>
                 </div>
-                <strong className="text-xs text-sky-300 block font-mono">Samantha (Default Voice)</strong>
+                <strong className="text-xs text-emerald-300 block font-mono">Samantha (Default Voice)</strong>
                 <p className="text-[10.5px] text-slate-300 leading-relaxed">
                   High-fidelity natural voice tuned for operations announcements and interactive briefing.
                 </p>
@@ -1164,7 +1164,7 @@ export function VoiceAssistantCopilot({
                 <div>
                   <div className="flex justify-between text-[10px] text-slate-400 mb-0.5">
                     <span>Pitch</span>
-                    <span className="font-mono text-sky-300">{voicePitch.toFixed(2)}x</span>
+                    <span className="font-mono text-emerald-300">{voicePitch.toFixed(2)}x</span>
                   </div>
                   <input
                     type="range"
@@ -1183,7 +1183,7 @@ export function VoiceAssistantCopilot({
                 <div>
                   <div className="flex justify-between text-[10px] text-slate-400 mb-0.5">
                     <span>Speed</span>
-                    <span className="font-mono text-sky-300">{voiceRate.toFixed(2)}x</span>
+                    <span className="font-mono text-emerald-300">{voiceRate.toFixed(2)}x</span>
                   </div>
                   <input
                     type="range"
@@ -1204,7 +1204,7 @@ export function VoiceAssistantCopilot({
               {/* Test Voice Button */}
               <button
                 onClick={handleTestVoice}
-                className="w-full py-1.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/40 text-sky-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                className="w-full py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 text-emerald-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
               >
                 <Volume2 size={13} /> Test Voice Preview
               </button>
@@ -1223,7 +1223,7 @@ export function VoiceAssistantCopilot({
               <button
                 key={prompt}
                 onClick={() => handleVoiceCommand(prompt)}
-                className="px-2.5 py-1 rounded-md text-[10.5px] whitespace-nowrap bg-sky-950/50 hover:bg-sky-900/60 border border-sky-800/40 text-sky-300 font-medium transition-colors hover:border-sky-400/50"
+                className="px-2.5 py-1 rounded-md text-[10.5px] whitespace-nowrap bg-emerald-950/50 hover:bg-emerald-900/60 border border-emerald-800/40 text-emerald-300 font-medium transition-colors hover:border-emerald-400/50"
               >
                 {prompt}
               </button>
@@ -1238,24 +1238,24 @@ export function VoiceAssistantCopilot({
                 className={`flex gap-2.5 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
               >
                 {msg.sender === "ai" && (
-                  <div className="w-6 h-6 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center shrink-0 mt-0.5 border border-sky-400/30">
+                  <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5 border border-emerald-400/30">
                     <Sparkles size={12} />
                   </div>
                 )}
                 <div
                   className={`p-3.5 rounded-xl max-w-[85%] leading-relaxed ${
                     msg.sender === "user"
-                      ? "bg-sky-600 text-white rounded-br-xs shadow-md font-medium"
-                      : "bg-slate-900/95 border border-sky-900/40 text-slate-200 rounded-bl-xs shadow-lg"
+                      ? "bg-emerald-600 text-white rounded-br-xs shadow-md font-medium"
+                      : "bg-slate-900/95 border border-emerald-900/40 text-slate-200 rounded-bl-xs shadow-lg"
                   }`}
                 >
                   <p className="whitespace-pre-line">{msg.text}</p>
 
                   {/* Section 30: AI Explanation System (Finding, Evidence, Impact, Recommendation, Confidence) */}
                   {msg.explanation && (
-                    <div className="mt-3 p-2.5 rounded-lg bg-slate-950/80 border border-sky-500/30 text-[11px] space-y-1.5 text-left">
-                      <div className="flex items-center justify-between border-b border-sky-900/40 pb-1">
-                        <span className="font-bold text-sky-400 uppercase tracking-wider text-[10px] flex items-center gap-1">
+                    <div className="mt-3 p-2.5 rounded-lg bg-slate-950/80 border border-emerald-500/30 text-[11px] space-y-1.5 text-left">
+                      <div className="flex items-center justify-between border-b border-emerald-900/40 pb-1">
+                        <span className="font-bold text-emerald-400 uppercase tracking-wider text-[10px] flex items-center gap-1">
                           <HelpCircle size={11} /> Explainable AI Decision Breakdown
                         </span>
                         {msg.explanation.confidence && (
@@ -1292,9 +1292,9 @@ export function VoiceAssistantCopilot({
                           <button
                             key={idx}
                             onClick={qa.action}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10.5px] font-medium bg-sky-950/80 hover:bg-sky-800/60 border border-sky-700/50 text-sky-300 transition-all hover:scale-[1.02]"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10.5px] font-medium bg-emerald-950/80 hover:bg-sky-800/60 border border-sky-700/50 text-emerald-300 transition-all hover:scale-[1.02]"
                           >
-                            <Icon size={12} className="text-sky-400" />
+                            <Icon size={12} className="text-emerald-400" />
                             <span>{qa.label}</span>
                           </button>
                         );
@@ -1311,11 +1311,11 @@ export function VoiceAssistantCopilot({
 
             {isAnalyzing && (
               <div className="flex gap-2.5 justify-start">
-                <div className="w-6 h-6 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center shrink-0 mt-0.5 border border-sky-400/30">
+                <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5 border border-emerald-400/30">
                   <Sparkles size={12} />
                 </div>
-                <div className="p-3 rounded-xl bg-slate-900/90 border border-sky-900/40 text-sky-300 text-xs flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping" />
+                <div className="p-3 rounded-xl bg-slate-900/90 border border-emerald-900/40 text-emerald-300 text-xs flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                   <span>Alex is reasoning and fetching live data...</span>
                 </div>
               </div>
@@ -1325,13 +1325,13 @@ export function VoiceAssistantCopilot({
           </div>
 
           {/* Input & Push-to-Talk Mic Bar */}
-          <div className="p-2.5 bg-slate-900/95 border-t border-sky-900/40 flex items-center gap-2 shrink-0">
+          <div className="p-2.5 bg-slate-900/95 border-t border-emerald-900/40 flex items-center gap-2 shrink-0">
             <button
               onClick={toggleListening}
               className={`p-2.5 rounded-xl transition-all ${
                 isListening
                   ? "bg-rose-600 text-white animate-pulse shadow-lg shadow-rose-500/50"
-                  : "bg-slate-800 text-sky-400 hover:bg-slate-700 border border-slate-700"
+                  : "bg-slate-800 text-emerald-400 hover:bg-slate-700 border border-slate-700"
               }`}
               title={isListening ? "Tap to finish speaking" : "Tap once to speak"}
             >
@@ -1343,12 +1343,12 @@ export function VoiceAssistantCopilot({
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSendText()}
-              className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-sky-400 transition-colors"
+              className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-emerald-400 transition-colors"
             />
             <button
               onClick={handleSendText}
               disabled={!inputMessage.trim()}
-              className="p-2.5 rounded-xl bg-sky-500 text-slate-950 hover:bg-sky-400 disabled:opacity-30 disabled:hover:bg-sky-500 transition-all font-bold"
+              className="p-2.5 rounded-xl bg-sky-500 text-slate-950 hover:bg-emerald-400 disabled:opacity-30 disabled:hover:bg-sky-500 transition-all font-bold"
               title="Send message"
             >
               <Send size={16} />

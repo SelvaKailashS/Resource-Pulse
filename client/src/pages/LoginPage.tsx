@@ -190,7 +190,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
           costRate: "Internal Resource",
           risk: "Low" as const,
           avatarText: resolvedName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) || "TL",
-          avatarBg: "from-blue-600 to-cyan-500",
+          avatarBg: "from-emerald-600 to-teal-500",
           upcoming: "Workspace setup & deliverable coordination",
           constraints: "",
         };
@@ -455,7 +455,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
   };
 
   return (
-    <div className="h-screen max-h-screen w-full flex flex-col justify-center items-center px-4 py-2 bg-[#060a13] relative overflow-hidden font-sans login-grid-bg select-none">
+    <div className="h-screen max-h-screen w-full flex flex-col justify-center items-center px-4 py-2 bg-[#0b0e0d] relative overflow-hidden font-sans login-grid-bg select-none">
       {/* Background ambient lighting */}
       <div className="absolute top-[-10%] left-[-8%] w-[520px] h-[520px] rounded-full bg-sky-500/15 blur-[140px] pointer-events-none animate-ambient-glow" />
       <div className="absolute bottom-[-10%] right-[-8%] w-[520px] h-[520px] rounded-full bg-blue-600/15 blur-[150px] pointer-events-none animate-ambient-glow" />
@@ -463,15 +463,15 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
       <div className="w-full max-w-xl z-10 animate-opening-card flex flex-col my-auto">
         {/* Brand Header */}
         <div className="text-center mb-2.5">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-400/25 mb-1 shadow-sm shadow-sky-950">
-            <Zap size={13} className="text-sky-400 animate-pulse" />
-            <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-sky-300">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-400/25 mb-1 shadow-sm shadow-emerald-950">
+            <Zap size={13} className="text-[#c7ff65] animate-pulse" />
+            <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-emerald-300">
               Universal Operations & Workload Intelligence
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center justify-center gap-1">
             <span>Resource</span>
-            <span className="text-sky-400 drop-shadow-[0_0_12px_rgba(56,189,248,0.4)]">Pulse</span>
+            <span className="text-[#c7ff65] drop-shadow-[0_0_12px_rgba(199,255,101,0.4)]">Pulse</span>
           </h1>
           <p className="text-[11px] text-slate-400 mt-0.5 max-w-md mx-auto leading-tight">
             Register your team & sector. You specify all features and needs — zero mock data assumed.
@@ -479,7 +479,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         </div>
 
         {/* Auth Card */}
-        <div className="bg-slate-900/85 backdrop-blur-2xl border border-sky-500/30 rounded-2xl p-4 sm:p-5 shadow-2xl shadow-slate-950 ring-1 ring-sky-500/10">
+        <div className="bg-[#121715]/90 backdrop-blur-2xl border border-emerald-500/30 rounded-2xl p-4 sm:p-5 shadow-2xl shadow-black ring-1 ring-emerald-500/15">
           {/* Mode Switcher Tabs */}
           <div className="grid grid-cols-3 p-1 bg-slate-950/80 rounded-xl border border-slate-800 mb-3">
             <button
@@ -534,7 +534,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                       onChange={(e) => setName(e.target.value)}
                       placeholder="e.g. Alex Rivera or Jordan Lee"
                       required
-                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
+                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
                     />
                   </div>
                 </div>
@@ -551,7 +551,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="name@organization.com"
                       required
-                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
+                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
                     />
                   </div>
                 </div>
@@ -570,7 +570,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••••••"
                       required
-                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg pl-8 pr-8 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
+                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 rounded-lg pl-8 pr-8 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
                     />
                     <button
                       type="button"
@@ -594,7 +594,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                       onChange={(e) => setTeamName(e.target.value)}
                       placeholder="e.g. Robotics Lab Pod or Clinical Ops"
                       required
-                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
+                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
                     />
                   </div>
                 </div>
@@ -602,14 +602,14 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
               {/* Field / Sector Selection */}
               <div>
-                <label className="text-[10px] font-mono text-sky-400 uppercase font-bold flex items-center justify-between mb-0.5">
+                <label className="text-[10px] font-mono text-emerald-400 uppercase font-bold flex items-center justify-between mb-0.5">
                   <span className="flex items-center gap-1"><Briefcase size={12} /> Select Organization Sector</span>
                   <span className="text-[9px] text-amber-400 font-semibold flex items-center gap-1">🔒 Locked upon registration</span>
                 </label>
                 <select
                   value={field}
                   onChange={(e) => handleFieldChange(e.target.value)}
-                  className="w-full bg-slate-950/95 border border-sky-500/50 focus:border-sky-400 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none cursor-pointer"
+                  className="w-full bg-slate-950/95 border border-emerald-500/50 focus:border-emerald-400 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none cursor-pointer"
                 >
                   {SECTORS.map((s) => (
                     <option key={s.id} value={s.name}>
@@ -630,7 +630,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                   <select
                     value={roleTitle}
                     onChange={(e) => setRoleTitle(e.target.value)}
-                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 rounded-lg px-2 py-1.5 text-xs text-white outline-none cursor-pointer"
+                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-emerald-400 rounded-lg px-2 py-1.5 text-xs text-white outline-none cursor-pointer"
                   >
                     {ROLE_OPTIONS.map((r) => (
                       <option key={r} value={r}>
@@ -652,7 +652,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                       max={80}
                       value={weeklyHours}
                       onChange={(e) => setWeeklyHours(Number(e.target.value))}
-                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white outline-none font-mono"
+                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-emerald-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white outline-none font-mono"
                     />
                   </div>
                 </div>
@@ -669,14 +669,14 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                     value={primaryTask}
                     onChange={(e) => setPrimaryTask(e.target.value)}
                     placeholder="e.g. Core Algorithm Development (or define with AI)"
-                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
+                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-emerald-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
                   />
                 </div>
               </div>
 
               {teamCode && (
-                <div className="px-2.5 py-1 rounded-lg bg-sky-500/10 border border-sky-400/30 flex items-center gap-1.5 text-[10px] text-sky-300 font-mono">
-                  <Link size={11} className="text-sky-400" />
+                <div className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-400/30 flex items-center gap-1.5 text-[10px] text-emerald-300 font-mono">
+                  <Link size={11} className="text-emerald-400" />
                   <span>Joining via Team Code: <strong>{teamCode}</strong></span>
                 </div>
               )}
@@ -684,7 +684,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full mt-2 py-2.5 rounded-xl bg-gradient-to-r from-sky-400 via-sky-500 to-blue-600 hover:from-sky-300 hover:to-blue-500 text-slate-950 font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-lg shadow-sky-500/25 transition-all disabled:opacity-50 cursor-pointer"
+                className="w-full mt-2 py-2.5 rounded-xl bg-[#c7ff65] hover:bg-[#d7ff91] text-[#11140e] font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50 cursor-pointer"
               >
                 {isLoading ? (
                   <span>Initializing Workspace…</span>
@@ -701,7 +701,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
           {/* JOIN TEAM WELCOME FORM */}
           {mode === "join" && (
             <form onSubmit={handleJoinTeam} className="space-y-2.5">
-              <div className="text-center p-3 rounded-xl bg-gradient-to-r from-sky-950/70 via-slate-900 to-indigo-950/70 border border-sky-500/30 mb-2">
+              <div className="text-center p-3 rounded-xl bg-gradient-to-r from-emerald-950/70 via-slate-900 to-teal-950/70 border border-emerald-500/30 mb-2">
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold mb-1">
                   <Link size={11} /> TEAM INVITATION
                 </div>
@@ -712,7 +712,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                   You've been invited to join this team workspace. Enter your details to activate your seat and collaborate with teammates.
                 </p>
                 {teamCode && (
-                  <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-950 border border-sky-400/40 font-mono text-xs text-sky-300 font-bold">
+                  <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-950 border border-emerald-400/40 font-mono text-xs text-emerald-300 font-bold">
                     <span>Code:</span>
                     <span className="text-white tracking-widest">{teamCode}</span>
                   </div>
@@ -732,7 +732,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                       onChange={(e) => setName(e.target.value)}
                       placeholder="e.g. Jordan Lee"
                       required
-                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
+                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
                     />
                   </div>
                 </div>
@@ -749,7 +749,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="jordan@team.com"
                       required
-                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
+                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
                     />
                   </div>
                 </div>
@@ -768,7 +768,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••••••"
                       required
-                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg pl-8 pr-8 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
+                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 rounded-lg pl-8 pr-8 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
                     />
                     <button
                       type="button"
@@ -792,7 +792,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                       onChange={(e) => setTeamCode(e.target.value)}
                       placeholder="e.g. RP-7842"
                       required
-                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white font-mono placeholder-slate-500 outline-none transition-all"
+                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-emerald-400 rounded-lg pl-8 pr-2.5 py-1.5 text-xs text-white font-mono placeholder-slate-500 outline-none transition-all"
                     />
                   </div>
                 </div>
@@ -806,7 +806,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                   <select
                     value={roleTitle}
                     onChange={(e) => setRoleTitle(e.target.value)}
-                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 rounded-lg px-2 py-1.5 text-xs text-white outline-none cursor-pointer"
+                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-emerald-400 rounded-lg px-2 py-1.5 text-xs text-white outline-none cursor-pointer"
                   >
                     {ROLE_OPTIONS.map((r) => (
                       <option key={r} value={r}>
@@ -825,7 +825,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                     value={primaryTask}
                     onChange={(e) => setPrimaryTask(e.target.value)}
                     placeholder="e.g. Frontend Architecture"
-                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
+                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-emerald-400 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none transition-all"
                   />
                 </div>
               </div>
@@ -833,7 +833,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full mt-2 py-2.5 rounded-xl bg-gradient-to-r from-emerald-400 via-teal-500 to-sky-600 hover:from-emerald-300 hover:to-sky-500 text-slate-950 font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/25 transition-all disabled:opacity-50 cursor-pointer"
+                className="w-full mt-2 py-2.5 rounded-xl bg-[#c7ff65] hover:bg-[#d7ff91] text-[#11140e] font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50 cursor-pointer"
               >
                 {isLoading ? (
                   <span>Joining Workspace…</span>
@@ -862,7 +862,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@organization.com"
                     required
-                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all"
+                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all"
                   />
                 </div>
               </div>
@@ -879,7 +879,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••••••"
                     required
-                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg pl-9 pr-9 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all"
+                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 rounded-lg pl-9 pr-9 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all"
                   />
                   <button
                     type="button"
@@ -903,7 +903,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                       value={teamName}
                       onChange={(e) => setTeamName(e.target.value)}
                       placeholder="Operations Team"
-                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 rounded-lg pl-8 pr-2.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all"
+                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-emerald-400 rounded-lg pl-8 pr-2.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all"
                     />
                   </div>
                 </div>
@@ -919,7 +919,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                       value={teamCode}
                       onChange={(e) => setTeamCode(e.target.value)}
                       placeholder="e.g. RP-7842"
-                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 rounded-lg pl-8 pr-2.5 py-2 text-xs text-white placeholder-slate-500 outline-none font-mono transition-all"
+                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-emerald-400 rounded-lg pl-8 pr-2.5 py-2 text-xs text-white placeholder-slate-500 outline-none font-mono transition-all"
                     />
                   </div>
                 </div>

@@ -127,7 +127,7 @@ export function CalendarSyncModal({ open, onOpenChange }: CalendarSyncModalProps
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border/40 pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center border border-sky-500/30">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
               <Calendar className="w-4 h-4" />
             </div>
             <div>
@@ -146,7 +146,7 @@ export function CalendarSyncModal({ open, onOpenChange }: CalendarSyncModalProps
         </div>
 
         {/* 5-Second Explanation Pill */}
-        <div className="p-3.5 rounded-xl bg-sky-500/10 border border-sky-500/20 text-xs text-sky-300 leading-relaxed flex items-start gap-2.5">
+        <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 leading-relaxed flex items-start gap-2.5">
           <Sparkles className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
           <div>
             <strong>5-Second Setup:</strong> Sync workspace milestone deadlines, shift allocations, and project schedules straight to your mobile or desktop calendar with zero manual typing.
@@ -158,7 +158,7 @@ export function CalendarSyncModal({ open, onOpenChange }: CalendarSyncModalProps
           {/* Button 1: Google Calendar Direct Event */}
           <button
             onClick={handleOpenGoogleCalendar}
-            className="w-full p-3.5 rounded-xl bg-background border border-border hover:border-sky-500/50 hover:bg-muted/40 transition-all flex items-center justify-between group cursor-pointer"
+            className="w-full p-3.5 rounded-xl bg-background border border-border hover:border-emerald-500/50 hover:bg-muted/40 transition-all flex items-center justify-between group cursor-pointer"
           >
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center font-bold text-xs border border-blue-500/20">
@@ -179,14 +179,14 @@ export function CalendarSyncModal({ open, onOpenChange }: CalendarSyncModalProps
           {/* Button 2: Download .ICS File */}
           <button
             onClick={handleDownloadICS}
-            className="w-full p-3.5 rounded-xl bg-background border border-border hover:border-sky-500/50 hover:bg-muted/40 transition-all flex items-center justify-between group cursor-pointer"
+            className="w-full p-3.5 rounded-xl bg-background border border-border hover:border-emerald-500/50 hover:bg-muted/40 transition-all flex items-center justify-between group cursor-pointer"
           >
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center font-bold text-xs border border-sky-500/20">
+              <div className="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-xs border border-emerald-500/20">
                 .ICS
               </div>
               <div className="text-left">
-                <div className="text-xs font-bold text-foreground group-hover:text-sky-400 transition-colors">
+                <div className="text-xs font-bold text-foreground group-hover:text-emerald-400 transition-colors">
                   Download Full Schedule (.ics File)
                 </div>
                 <div className="text-[11px] text-muted-foreground">
@@ -194,7 +194,7 @@ export function CalendarSyncModal({ open, onOpenChange }: CalendarSyncModalProps
                 </div>
               </div>
             </div>
-            <Download className="w-4 h-4 text-muted-foreground group-hover:text-sky-400" />
+            <Download className="w-4 h-4 text-muted-foreground group-hover:text-emerald-400" />
           </button>
 
           {/* Button 3: Live Subscription URL */}
@@ -215,7 +215,7 @@ export function CalendarSyncModal({ open, onOpenChange }: CalendarSyncModalProps
               />
               <button
                 onClick={handleCopyLink}
-                className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold flex items-center gap-1 shrink-0 cursor-pointer transition-colors"
+                className="px-3 py-1.5 rounded-lg bg-[#c7ff65] hover:bg-[#d7ff91] text-[#11140e] text-xs font-semibold flex items-center gap-1 shrink-0 cursor-pointer transition-colors"
               >
                 {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                 <span>{copied ? "Copied" : "Copy"}</span>
@@ -227,7 +227,7 @@ export function CalendarSyncModal({ open, onOpenChange }: CalendarSyncModalProps
         {/* Security & Telemetry Footer */}
         <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono pt-2 border-t border-border/40">
           <span className="flex items-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5 text-sky-400" />
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
             <span>RFC 5545 Compliant Feed</span>
           </span>
           <span>ResourcePulse Calendar Sync v2.4</span>
