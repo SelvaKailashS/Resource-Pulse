@@ -136,7 +136,7 @@ const scenarioData: Record<Scenario, { title: string; sub: string; gain: string;
   cost: { title: "Minimize cost", sub: "Efficiency-first objective", gain: "+1.2 days", cost: "$0.4k", risk: "−19%", blurb: "Uses internal capacity and delays two low-priority tasks." },
 };
 
-function Sparkline({ color = "#c7ff65", reverse = false }: { color?: string; reverse?: boolean }) {
+function Sparkline({ color = "#38bdf8", reverse = false }: { color?: string; reverse?: boolean }) {
   return (
     <svg viewBox="0 0 130 34" className="h-8 w-full" preserveAspectRatio="none" aria-hidden="true">
       <path d={reverse ? "M0 8 C16 7 22 24 38 20 S54 13 68 21 S84 33 100 20 S117 13 130 15" : "M0 28 C18 22 23 25 38 17 S54 7 67 16 S84 20 100 9 S118 15 130 4"} fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" />
@@ -580,15 +580,15 @@ function Home() {
           <div
             className="workspace-avatar text-sm"
             style={{
-              background: "rgba(199, 255, 101, 0.15)",
-              color: "#c7ff65",
-              border: "1px solid rgba(199, 255, 101, 0.3)",
+              background: "rgba(56, 189, 248, 0.2)",
+              color: "#38bdf8",
+              border: "1px solid rgba(56, 189, 248, 0.4)",
             }}
           >
             {activeSectorDef?.icon || "🏢"}
           </div>
           <div className="workspace-copy">
-            <span className="eyebrow" style={{ color: "#c7ff65", display: "flex", alignItems: "center", gap: "4px" }}>
+            <span className="eyebrow" style={{ color: "#38bdf8", display: "flex", alignItems: "center", gap: "4px" }}>
               <span>{userField || "Team Workspace"}</span>
               <span title="Sector locked upon registration" style={{ fontSize: "11px", opacity: 0.85 }}>🔒</span>
             </span>
@@ -622,7 +622,7 @@ function Home() {
           ))}
         </div>
         <div className="sidebar-bottom">
-          <div className="sidebar-health"><span><StatusDot color="mint" /> System nominal</span><span className="mono">99.98%</span></div>
+          <div className="sidebar-health"><span><StatusDot color="blue" /> System nominal</span><span className="mono">99.98%</span></div>
         </div>
       </aside>
 
@@ -630,7 +630,7 @@ function Home() {
         <header className="topbar">
           <div className="breadcrumb">
             <span className="flex items-center gap-1.5 text-slate-300 font-medium">
-              <Briefcase size={14} className="text-[#c7ff65]" />
+              <Briefcase size={14} className="text-sky-400" />
               <span>{localStorage.getItem("resourcepulse_team_name") || "Operations Team"}</span>
             </span>
             <span className="slash">/</span>
@@ -640,17 +640,17 @@ function Home() {
             <div
               className="command-button"
               style={{
-                color: "#c7ff65",
-                borderColor: "rgba(199, 255, 101, 0.35)",
-                background: "rgba(199, 255, 101, 0.08)",
+                color: "#38bdf8",
+                borderColor: "rgba(56, 189, 248, 0.35)",
+                background: "rgba(14, 165, 233, 0.1)",
               }}
               title="Active Team Workspace"
             >
-              <Briefcase size={13} className="text-[#c7ff65]" />
+              <Briefcase size={13} className="text-sky-400" />
               <span>{localStorage.getItem("resourcepulse_team_name") || "Operations Team"}</span>
             </div>
             <button className="sync-status" onClick={() => loadDashboard(true)}>
-              <StatusDot color="mint" />
+              <StatusDot color="blue" />
               <span>{isLoading ? "Syncing…" : "Live sync"}</span>
               <span className="mono">{isLoading ? "fetching" : time}</span>
             </button>
@@ -664,7 +664,7 @@ function Home() {
               <span className="notification-dot" />
             </button>
             <button
-              className="primary-button text-xs py-1.5 px-3 flex items-center gap-1.5 font-bold cursor-pointer"
+              className="primary-button text-xs py-1.5 px-3 flex items-center gap-1.5 font-bold bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 shadow-md text-white border-0 cursor-pointer"
               onClick={() => setIsTaskSplitOpen(true)}
               title="Add task, upload document/image, and let AI split work across your team"
             >
@@ -674,15 +674,15 @@ function Home() {
             <button
               className="command-button"
               style={{
-                color: "#c7ff65",
-                borderColor: "rgba(199, 255, 101, 0.4)",
-                background: "rgba(199, 255, 101, 0.1)",
+                color: "#38bdf8",
+                borderColor: "rgba(56, 189, 248, 0.45)",
+                background: "rgba(14, 165, 233, 0.15)",
                 fontWeight: 600,
               }}
               onClick={() => setIsAiNeedsOpen(true)}
               title="Tell AI your project needs, features, and deliverables"
             >
-              <Sparkles size={14} className="text-[#c7ff65] animate-pulse" />
+              <Sparkles size={14} className="text-sky-400 animate-pulse" />
               <span>AI Project Setup</span>
             </button>
             <button
@@ -726,14 +726,14 @@ function Home() {
 
         <div className="content-wrap">
           {assignedTaskNotification && (
-            <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-950/80 via-slate-900 to-teal-950/80 border border-emerald-400/50 shadow-xl mb-6 flex flex-wrap items-center justify-between gap-4 animate-fadeIn">
+            <div className="p-4 rounded-xl bg-gradient-to-r from-blue-950/80 via-slate-900 to-sky-950/80 border border-sky-400/50 shadow-xl mb-6 flex flex-wrap items-center justify-between gap-4 animate-fadeIn">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-400 shrink-0">
+                <div className="w-10 h-10 rounded-lg bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-sky-400 shrink-0">
                   <BellRing size={20} className="animate-bounce" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="mono text-[10px] font-bold px-2 py-0.5 rounded bg-[#c7ff65] text-[#11140e] uppercase">
+                    <span className="mono text-[10px] font-bold px-2 py-0.5 rounded bg-sky-500 text-slate-950 uppercase">
                       New Task Assigned
                     </span>
                     <span className="text-xs text-slate-400 font-mono">
@@ -743,7 +743,7 @@ function Home() {
                   <strong className="text-sm font-bold text-white block mt-0.5">
                     {assignedTaskNotification.person} allocated to {assignedTaskNotification.task}
                   </strong>
-                  <p className="text-xs text-emerald-300">
+                  <p className="text-xs text-sky-300">
                     ✓ Voice announcement broadcasted • Reallocation request sent to Admin & Team Lead for authorization.
                   </p>
                 </div>
@@ -938,10 +938,10 @@ function Home() {
                     <Clock3 size={14} className="text-amber-400" /> Log Hours
                   </button>
                   <button className="secondary-button" onClick={() => setIsCalendarSyncOpen(true)}>
-                    <Calendar size={14} className="text-emerald-400" /> Sync Calendar
+                    <Calendar size={14} className="text-sky-400" /> Sync Calendar
                   </button>
                   <button className="secondary-button" onClick={() => setActiveNav("Reports & Invoicing")}>
-                    <FileText size={14} className="text-emerald-400" /> Client Invoice
+                    <FileText size={14} className="text-sky-400" /> Client Invoice
                   </button>
                   <button className="primary-button" onClick={handleSimulation} disabled={simulating}>
                     <Play size={14} fill="currentColor" /> {simulating ? "Simulating..." : "Run simulation"}
@@ -950,11 +950,11 @@ function Home() {
               </section>
 
               {/* 5-SECOND CLIENT EXECUTIVE VALUE BAR */}
-              <div className="p-4 rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-emerald-950/40 via-card/70 to-teal-950/30 backdrop-blur-md shadow-xs space-y-3 mb-6">
+              <div className="p-4 rounded-2xl border border-sky-500/30 bg-gradient-to-r from-sky-950/40 via-card/70 to-blue-950/30 backdrop-blur-md shadow-xs space-y-3 mb-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/40 pb-2">
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
-                    <span className="text-xs font-bold font-mono uppercase tracking-wider text-emerald-300">
+                    <span className="w-2 h-2 rounded-full bg-sky-400 animate-pulse shadow-[0_0_8px_#38bdf8]" />
+                    <span className="text-xs font-bold font-mono uppercase tracking-wider text-sky-300">
                       ResourcePulse Core Engine
                     </span>
                     <span className="text-[11px] text-muted-foreground hidden sm:inline">• Understand Your Entire Workspace in 5 Seconds</span>
@@ -965,17 +965,17 @@ function Home() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
                   <div
                     onClick={() => setActiveNav("Resources")}
-                    className="p-3 rounded-xl bg-background/60 border border-border/40 hover:border-emerald-500/50 hover:bg-background/80 transition-all cursor-pointer group"
+                    className="p-3 rounded-xl bg-background/60 border border-border/40 hover:border-sky-500/50 hover:bg-background/80 transition-all cursor-pointer group"
                   >
                     <div className="flex items-center justify-between text-muted-foreground mb-1">
                       <span className="text-[10px] uppercase font-mono font-bold">1. Workforce Capacity</span>
-                      <Users size={13} className="text-emerald-400 group-hover:scale-110 transition-transform" />
+                      <Users size={13} className="text-sky-400 group-hover:scale-110 transition-transform" />
                     </div>
                     <div className="font-bold text-foreground text-sm">
                       {realTeammates.length} Active Resources
                     </div>
                     <div className="text-[10px] text-muted-foreground mt-0.5 font-mono">
-                      Avg Workload: <strong className="text-emerald-300">{avgWorkload}%</strong>
+                      Avg Workload: <strong className="text-sky-300">{avgWorkload}%</strong>
                     </div>
                   </div>
 
@@ -990,7 +990,7 @@ function Home() {
                     <div className="font-bold text-foreground text-sm">
                       Planned vs. Actual
                     </div>
-                    <div className="text-[10px] text-emerald-400 mt-0.5 font-mono font-semibold">
+                    <div className="text-[10px] text-sky-400 mt-0.5 font-mono font-semibold">
                       ± Variance Tracking Live
                     </div>
                   </div>
@@ -1001,7 +1001,7 @@ function Home() {
                   >
                     <div className="flex items-center justify-between text-muted-foreground mb-1">
                       <span className="text-[10px] uppercase font-mono font-bold">3. 1-Click Calendar Sync</span>
-                      <Calendar size={13} className="text-emerald-400 group-hover:scale-110 transition-transform" />
+                      <Calendar size={13} className="text-sky-400 group-hover:scale-110 transition-transform" />
                     </div>
                     <div className="font-bold text-foreground text-sm">
                       Google & iCal Feed
@@ -1037,7 +1037,7 @@ function Home() {
                       <div className={`metric-icon metric-${metric.color}`}><Icon size={16} /></div>
                       <div className="metric-top"><span>{metric.label}</span><MoreHorizontal size={15} className="muted-icon" /></div>
                       <div className="metric-value-row"><strong>{metric.value}</strong><span className={`metric-delta delta-${metric.trend}`}>{metric.trend === "up" ? <ArrowUpRight size={13} /> : metric.trend === "down" ? <ArrowDownRight size={13} /> : null}{metric.delta}</span></div>
-                      <Sparkline color={metric.color === "blue" ? "#c7ff65" : metric.color === "amber" ? "#f3bd6b" : metric.color === "violet" ? "#b8a1ff" : "#ff8c7a"} reverse={metric.trend === "down"} />
+                      <Sparkline color={metric.color === "blue" ? "#38bdf8" : metric.color === "amber" ? "#f3bd6b" : metric.color === "violet" ? "#b8a1ff" : "#ff8c7a"} reverse={metric.trend === "down"} />
                     </div>
                   );
                 })}
@@ -1060,7 +1060,7 @@ function Home() {
                   <div>
                     <div className="flex items-center justify-between mb-3 pb-2 border-b border-border/40">
                       <div>
-                        <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-400 font-bold">
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-sky-400 font-bold">
                           Resource Workload
                         </span>
                         <h3 className="text-sm font-bold text-foreground">Capacity & Utilization</h3>
@@ -1088,7 +1088,7 @@ function Home() {
                           >
                             <div className="flex items-center justify-between text-xs">
                               <div className="flex items-center gap-2.5">
-                                <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-400/30 text-emerald-400 flex items-center justify-center font-bold text-[11px] font-mono">
+                                <div className="w-7 h-7 rounded-lg bg-sky-500/15 border border-sky-400/30 text-sky-400 flex items-center justify-center font-bold text-[11px] font-mono">
                                   {(m.name || "TM").slice(0, 2).toUpperCase()}
                                 </div>
                                 <div>
@@ -1104,7 +1104,7 @@ function Home() {
                                       ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
                                       : isHeavy
                                       ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-                                      : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                      : "bg-sky-500/20 text-sky-400 border border-sky-500/30"
                                   }`}
                                 >
                                   {util}% load
@@ -1118,7 +1118,7 @@ function Home() {
                             <div className="w-full bg-slate-800/80 rounded-full h-1.5 overflow-hidden">
                               <div
                                 className={`h-full rounded-full transition-all duration-500 ${
-                                  isOver ? "bg-rose-500" : isHeavy ? "bg-amber-400" : "bg-emerald-400"
+                                  isOver ? "bg-rose-500" : isHeavy ? "bg-amber-400" : "bg-sky-400"
                                 }`}
                                 style={{ width: `${Math.min(util, 100)}%` }}
                               />
@@ -1264,7 +1264,7 @@ function Home() {
                               className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-[11px] font-mono shrink-0 ${
                                 item.severity === "high"
                                   ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
-                                  : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                  : "bg-sky-500/20 text-sky-400 border border-sky-500/30"
                               }`}
                             >
                               0{index + 1}
@@ -1280,7 +1280,7 @@ function Home() {
                               className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
                                 item.severity === "high"
                                   ? "bg-rose-500/20 text-rose-400"
-                                  : "bg-emerald-500/20 text-emerald-400"
+                                  : "bg-sky-500/20 text-sky-400"
                               }`}
                             >
                               {item.severity === "high" ? "High Risk" : "Watch"}
@@ -1355,7 +1355,7 @@ function Home() {
                       </div>
                       <div>
                         <span className="text-[10px] font-mono text-muted-foreground uppercase block">Risk Change</span>
-                        <strong className="text-emerald-400">{liveRecommendation.riskChange}</strong>
+                        <strong className="text-sky-400">{liveRecommendation.riskChange}</strong>
                       </div>
                     </div>
                   </div>
