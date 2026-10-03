@@ -29,9 +29,10 @@ import {
 
 interface ScheduleViewProps {
   onNavigateToResources?: () => void;
+  onOpenCalendarSync?: () => void;
 }
 
-export function ScheduleView({ onNavigateToResources }: ScheduleViewProps) {
+export function ScheduleView({ onNavigateToResources, onOpenCalendarSync }: ScheduleViewProps) {
   const [resources] = useState<Resource[]>(() => loadInitialResources());
   const [projects] = useState<Project[]>(() => loadInitialProjects());
   const [schedule, setSchedule] = useState<ScheduleItem[]>(() => loadInitialSchedule());
@@ -130,6 +131,15 @@ export function ScheduleView({ onNavigateToResources }: ScheduleViewProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          {onOpenCalendarSync && (
+            <button
+              onClick={onOpenCalendarSync}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-sky-500/30 bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 transition-all cursor-pointer shadow-xs"
+            >
+              <CalendarIcon className="w-3.5 h-3.5 text-sky-400" />
+              <span>Sync to Google / iCal</span>
+            </button>
+          )}
           <button
             onClick={() => setIsModalOpen(true)}
             className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-xs"

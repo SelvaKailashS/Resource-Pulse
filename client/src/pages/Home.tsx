@@ -28,6 +28,8 @@ import { AssetsView } from "@/components/AssetsView";
 import { InventoryView } from "@/components/InventoryView";
 import { SectorModal } from "@/components/SectorModal";
 import { AutomationCenter } from "@/components/AutomationCenter";
+import { TimesheetsView } from "@/components/TimesheetsView";
+import { CalendarSyncModal } from "@/components/CalendarSyncModal";
 import { loadInitialResources, loadInitialProjects, computeOrgMetrics, loadThresholds, loadSectorConfig } from "@/lib/orgStore";
 import { SECTORS } from "@shared/sectorsData";
 import { track } from "@/lib/analytics";
@@ -91,8 +93,9 @@ const navSections: {
       { label: "Command center", icon: Gauge },
       { label: "Resources", icon: Users },
       { label: "Projects", icon: FolderGit2 },
-      { label: "Allocation", icon: GitMerge },
+      { label: "Timesheets", icon: Clock3, badge: "New" },
       { label: "Schedule", icon: Calendar },
+      { label: "Allocation", icon: GitMerge },
       { label: "Workload & Capacity", icon: Activity },
       { label: "Assets", icon: Cpu },
       { label: "Inventory", icon: Boxes },
@@ -110,8 +113,8 @@ const navSections: {
     section: "Automation & Governance",
     items: [
       { label: "Smart Alerts", icon: BellRing, badge: "Auto" },
+      { label: "Reports & Invoicing", icon: FileText, badge: "PDF" },
       { label: "Alerts", icon: Bell },
-      { label: "Reports", icon: FileText },
       { label: "Approvals", icon: ShieldCheck },
     ],
   },
@@ -177,6 +180,7 @@ function Home() {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isTaskSplitOpen, setIsTaskSplitOpen] = useState(false);
   const [isSectorModalOpen, setIsSectorModalOpen] = useState(false);
+  const [isCalendarSyncOpen, setIsCalendarSyncOpen] = useState(false);
   const [isAiNeedsOpen, setIsAiNeedsOpen] = useState(() => {
     try {
       return localStorage.getItem("resourcepulse_needs_setup_pending") === "true";
@@ -792,10 +796,17 @@ function Home() {
             <ProjectsView onOpenDataIntake={() => setActiveNav("Data Intake")} />
           )}
 
+          {activeNav === "Timesheets" && (
+            <TimesheetsView onOpenCalendarSync={() => setIsCalendarSyncOpen(true)} />
+          )}
+
           {activeNav === "Allocation" && <AllocationView />}
 
           {activeNav === "Schedule" && (
-            <ScheduleView onNavigateToResources={() => setActiveNav("Resources")} />
+            <ScheduleView
+              onNavigateToResources={() => setActiveNav("Resources")}
+              onOpenCalendarSync={() => setIsCalendarSyncOpen(true)}
+            />
           )}
 
           {activeNav === "Workload & Capacity" && (
@@ -819,7 +830,7 @@ function Home() {
             <AlertsView onNavigateToAllocation={() => setActiveNav("Allocation")} />
           )}
 
-          {activeNav === "Reports" && <ReportsView />}
+          {(activeNav === "Reports" || activeNav === "Reports & Invoicing") && <ReportsView />}
 
           {activeNav === "Data Intake" && (
             <DataIntakeView
@@ -922,11 +933,101 @@ function Home() {
                   <h1>Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening"}, {user?.name ? user.name.split(" ")[0] : "Team"}<span className="heading-dot">.</span></h1>
                   <p className="hero-copy">Your <strong>{userField}</strong> workspace for <strong>{teamName}</strong> is active. Real capacity and deadline models are synchronized.</p>
                 </div>
-                <div className="hero-actions">
-                  <button className="secondary-button" onClick={() => setActiveNav("Resources")}><Filter size={15} /> Manage Teammates</button>
-                  <button className="primary-button" onClick={handleSimulation} disabled={simulating}><Play size={14} fill="currentColor" /> {simulating ? "Simulating..." : "Run simulation"}</button>
+                <div className="hero-actions flex-wrap">
+                  <button className="secondary-button" onClick={() => setActiveNav("Timesheets")}>
+                    <Clock3 size={14} className="text-amber-400" /> Log Hours
+                  </button>
+                  <button className="secondary-button" onClick={() => setIsCalendarSyncOpen(true)}>
+                    <Calendar size={14} className="text-emerald-400" /> Sync Calendar
+                  </button>
+                  <button className="secondary-button" onClick={() => setActiveNav("Reports & Invoicing")}>
+                    <FileText size={14} className="text-sky-400" /> Client Invoice
+                  </button>
+                  <button className="primary-button" onClick={handleSimulation} disabled={simulating}>
+                    <Play size={14} fill="currentColor" /> {simulating ? "Simulating..." : "Run simulation"}
+                  </button>
                 </div>
               </section>
+
+              {/* 5-SECOND CLIENT EXECUTIVE VALUE BAR */}
+              <div className="p-4 rounded-2xl border border-sky-500/30 bg-gradient-to-r from-sky-950/40 via-card/70 to-blue-950/30 backdrop-blur-md shadow-xs space-y-3 mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/40 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
+                    <span className="text-xs font-bold font-mono uppercase tracking-wider text-sky-300">
+                      ResourcePulse Core Engine
+                    </span>
+                    <span className="text-[11px] text-muted-foreground hidden sm:inline">• Understand Your Entire Workspace in 5 Seconds</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-muted-foreground">Click any pillar to explore</span>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                  <div
+                    onClick={() => setActiveNav("Resources")}
+                    className="p-3 rounded-xl bg-background/60 border border-border/40 hover:border-sky-500/50 hover:bg-background/80 transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-center justify-between text-muted-foreground mb-1">
+                      <span className="text-[10px] uppercase font-mono font-bold">1. Workforce Capacity</span>
+                      <Users size={13} className="text-sky-400 group-hover:scale-110 transition-transform" />
+                    </div>
+                    <div className="font-bold text-foreground text-sm">
+                      {realTeammates.length} Active Resources
+                    </div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5 font-mono">
+                      Avg Workload: <strong className="text-sky-300">{avgWorkload}%</strong>
+                    </div>
+                  </div>
+
+                  <div
+                    onClick={() => setActiveNav("Timesheets")}
+                    className="p-3 rounded-xl bg-background/60 border border-border/40 hover:border-amber-500/50 hover:bg-background/80 transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-center justify-between text-muted-foreground mb-1">
+                      <span className="text-[10px] uppercase font-mono font-bold">2. Daily Timesheets</span>
+                      <Clock3 size={13} className="text-amber-400 group-hover:scale-110 transition-transform" />
+                    </div>
+                    <div className="font-bold text-foreground text-sm">
+                      Planned vs. Actual
+                    </div>
+                    <div className="text-[10px] text-emerald-400 mt-0.5 font-mono font-semibold">
+                      ± Variance Tracking Live
+                    </div>
+                  </div>
+
+                  <div
+                    onClick={() => setIsCalendarSyncOpen(true)}
+                    className="p-3 rounded-xl bg-background/60 border border-border/40 hover:border-emerald-500/50 hover:bg-background/80 transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-center justify-between text-muted-foreground mb-1">
+                      <span className="text-[10px] uppercase font-mono font-bold">3. 1-Click Calendar Sync</span>
+                      <Calendar size={13} className="text-emerald-400 group-hover:scale-110 transition-transform" />
+                    </div>
+                    <div className="font-bold text-foreground text-sm">
+                      Google & iCal Feed
+                    </div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5 font-mono">
+                      Auto-sync shifts to phone
+                    </div>
+                  </div>
+
+                  <div
+                    onClick={() => setActiveNav("Reports & Invoicing")}
+                    className="p-3 rounded-xl bg-background/60 border border-border/40 hover:border-blue-500/50 hover:bg-background/80 transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-center justify-between text-muted-foreground mb-1">
+                      <span className="text-[10px] uppercase font-mono font-bold">4. Client Invoicing</span>
+                      <FileText size={13} className="text-blue-400 group-hover:scale-110 transition-transform" />
+                    </div>
+                    <div className="font-bold text-foreground text-sm">
+                      1-Click PDF & Excel
+                    </div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5 font-mono">
+                      Accrued billable invoices
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               <div className="metrics-grid">
                 {metricCards.map((metric) => {
@@ -1402,6 +1503,11 @@ function Home() {
           setSectorConfig(newCfg);
           void loadDashboard(true);
         }}
+      />
+
+      <CalendarSyncModal
+        open={isCalendarSyncOpen}
+        onOpenChange={setIsCalendarSyncOpen}
       />
 
 
