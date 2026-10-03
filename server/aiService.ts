@@ -197,7 +197,7 @@ Briefly state in 1-2 clear sentences:
           "X-Title": "Resource Pulse",
         },
         body: JSON.stringify({
-          model: "openrouter/auto",
+          model: "meta-llama/llama-3.3-70b-instruct",
           messages: [{ role: "user", content: prompt }],
           max_tokens: 200,
         }),
@@ -411,12 +411,12 @@ Guidelines:
           "X-Title": "Resource Pulse Copilot",
         },
         body: JSON.stringify({
-          model: "openrouter/auto",
+          model: "meta-llama/llama-3.3-70b-instruct",
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: query },
           ],
-          max_tokens: 250,
+          max_tokens: 300,
           temperature: 0.7,
         }),
       });

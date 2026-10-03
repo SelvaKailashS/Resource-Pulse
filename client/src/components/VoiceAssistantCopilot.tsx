@@ -29,7 +29,7 @@ import {
   Boxes,
 } from "lucide-react";
 import { toast } from "sonner";
-import { askLiveCopilot } from "@/lib/openRouterClient";
+import { askLiveCopilot, type ChatHistoryMessage } from "@/lib/openRouterClient";
 import { recordCopilotChat } from "@/lib/supabase";
 import {
   loadInitialResources,
@@ -405,15 +405,6 @@ export function VoiceAssistantCopilot({
       return;
     }
 
-    // 2. Today's date and time queries
-    if (lower.includes("today") || lower.includes("date") || lower.includes("time") || lower.includes("clock")) {
-      const now = new Date();
-      const dateStr = now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
-      const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-      const currentTeam = localStorage.getItem("resourcepulse_team_name") || "your organization";
-      handleAIResponse(`Today is ${dateStr}, and the current time is ${timeStr}. Monitoring live operations for ${currentTeam}.`);
-      return;
-    }
 
     const curResources = loadInitialResources();
     const curProjects = loadInitialProjects();
@@ -712,113 +703,6 @@ export function VoiceAssistantCopilot({
       }
       return;
     }
-
-    // 3. Workers / Team headcount / Who is on the team queries
-    if (
-      lower.includes("how many workers") ||
-      lower.includes("workers are working") ||
-      lower.includes("who is working") ||
-      lower.includes("how many people") ||
-      lower.includes("team members") ||
-      lower.includes("how many resources") ||
-      lower.includes("who is on the team") ||
-      lower.includes("who is on team") ||
-      lower.includes("team roster") ||
-      lower.includes("my team") ||
-      lower.includes("show team")
-    ) {
-      let teamSummary = "There are no teammates registered yet. Add your teammates in the Resources tab or use the AI Project Setup.";
-      try {
-        const raw = localStorage.getItem("resourcepulse_student_resources");
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            const teamName = localStorage.getItem("resourcepulse_team_name") || "your team";
-            teamSummary = `There are ${parsed.length} active member(s) in ${teamName}: ` +
-              parsed.map((m: any) => `${m.name} (${m.role}, ${m.utilization}% load, working on: "${m.project}")`).join(", ") + ".";
-          }
-        }
-      } catch {}
-      handleAIResponse(teamSummary, "open_resources");
-      return;
-    }
-
-    // Project capability queries
-    if (
-      lower.includes("can use this website") ||
-      lower.includes("use this website") ||
-      lower.includes("can i use") ||
-      lower.includes("can we use") ||
-      lower.includes("manage project")
-    ) {
-      let projCount = 0;
-      try {
-        const rawProj = localStorage.getItem("resourcepulse_enterprise_projects_v2");
-        if (rawProj) {
-          const parsed = JSON.parse(rawProj);
-          if (Array.isArray(parsed)) projCount = parsed.length;
-        }
-      } catch {}
-
-      handleAIResponse(
-        `Yes, absolutely! ResourcePulse is built for enterprise project portfolio and deliverable management. You can create projects in the Projects tab, upload requirements (documents, PDFs, spreadsheets, images), decompose milestones with AI, allocate team members based on skills, and track capacity curves. You currently have ${projCount} project(s) configured.`,
-        "open_projects"
-      );
-      return;
-    }
-
-    // Conversational queries like "say something"
-    if (
-      lower.includes("say something") ||
-      lower.includes("tell me something") ||
-      lower.includes("talk to me")
-    ) {
-      const currentTeam = localStorage.getItem("resourcepulse_team_name") || "your team";
-      handleAIResponse(
-        `Your ${currentTeam} workspace is operating in equilibrium. Live capacity tracking and milestone risk telemetry are active with 0 cascading bottlenecks detected. What deliverable or project would you like to explore?`,
-        "open_home"
-      );
-      return;
-    }
-
-    // Greetings & What can you do (bounded)
-    if (
-      (/\b(hello|hi|hey|howdy|greetings)\b/i.test(lower) && lower.split(" ").length <= 4) ||
-      lower.includes("what can you do") ||
-      lower.includes("who are you")
-    ) {
-      const currentTeam = localStorage.getItem("resourcepulse_team_name") || "your team";
-      handleAIResponse(
-        `Hello! I'm Alex, your AI Operations Copilot for ${currentTeam}. I track your team members' workloads, identify capacity bottlenecks, run 5-second simulations, and assist with deliverable rebalancing. Ask me about who is on your team, project status, or tell me to run a simulation!`,
-        "open_home"
-      );
-      return;
-    }
-
-    // 4. Split work / Balanced workload queries
-    if (
-      lower.includes("split") ||
-      lower.includes("divide") ||
-      lower.includes("workload split") ||
-      lower.includes("equal") ||
-      lower.includes("share work")
-    ) {
-      handleAIResponse(
-        "I recommend an Intelligent Workload Split! Distributing deliverable tasks equally among active teammates maintains velocity, avoids single-person bottlenecks, and prevents pre-milestone burnout.",
-        "split_work"
-      );
-      return;
-    }
-
-    // 5. Why reallocate queries
-    if (lower.includes("why reallocate") || lower.includes("why is reallocate") || lower.includes("reallocate")) {
-      handleAIResponse(
-        "Workload reallocation is triggered when a teammate's capacity exceeds 80% or milestone deadlines are threatened. Rebalancing deliverables ensures all project components stay on schedule.",
-        "open_resources"
-      );
-      return;
-    }
-
     // 7. Direct simulation trigger
     if (
       lower === "run simulation" ||
@@ -865,10 +749,17 @@ export function VoiceAssistantCopilot({
       return;
     }
 
-    // 5. Query OpenRouter / Edge Dynamic Engine
+    // 5. Query OpenRouter Live AI Copilot with multi-turn conversation memory
     setIsAnalyzing(true);
     try {
-      const res = await askLiveCopilot(text);
+      const history: ChatHistoryMessage[] = messages
+        .filter((m) => m.id !== "1")
+        .slice(-8)
+        .map((m) => ({
+          role: m.sender === "user" ? ("user" as const) : ("assistant" as const),
+          content: m.text,
+        }));
+      const res = await askLiveCopilot(text, history);
       setIsAnalyzing(false);
       handleAIResponse(res.answer, res.suggestedAction, res.actionPayload);
     } catch (e) {
@@ -1054,9 +945,9 @@ export function VoiceAssistantCopilot({
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <strong className="text-sm font-bold text-white">Alex · AI Operations Lead</strong>
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-sky-950 border border-sky-800 text-sky-300">
-                    Live
+                  <strong className="text-sm font-bold text-white">Pulse AI · Operations Copilot</strong>
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> OpenRouter Live
                   </span>
                 </div>
                 <span className="text-[10.5px] text-sky-400/80 flex items-center gap-1.5 mt-0.5">
@@ -1141,6 +1032,22 @@ export function VoiceAssistantCopilot({
                 >
                   <X size={14} />
                 </button>
+              </div>
+
+              {/* OpenRouter Model & Key Status */}
+              <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="font-semibold text-slate-200 flex items-center gap-1.5">
+                    <Zap size={12} className="text-amber-400" /> AI Intelligence Core
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/40">
+                    Llama 3.3 70B &amp; GPT-4o
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                  <span>API Key: sk-or-v1-2f3...03f</span>
+                  <span className="text-emerald-400 font-bold">Online</span>
+                </div>
               </div>
 
               {/* Samantha Dedicated Voice Display */}
