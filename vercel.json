@@ -10,8 +10,29 @@
           "value": "application/xml; charset=utf-8"
         },
         {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
           "key": "Cache-Control",
-          "value": "public, max-age=3600, must-revalidate"
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/sitemap.txt",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/plain; charset=utf-8"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
         }
       ]
     },
@@ -27,6 +48,9 @@
   ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/sitemap.xml", "destination": "/sitemap.xml" },
+    { "source": "/sitemap.txt", "destination": "/sitemap.txt" },
+    { "source": "/robots.txt", "destination": "/robots.txt" },
+    { "source": "/((?!api|sitemap\\.xml|sitemap\\.txt|robots\\.txt).*)", "destination": "/index.html" }
   ]
 }
