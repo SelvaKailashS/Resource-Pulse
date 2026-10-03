@@ -6,7 +6,11 @@ import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
 import { startLogin } from "./const";
+import { initGA } from "./lib/analytics";
 import "./index.css";
+
+// Initialize Google Analytics 4 if configured
+initGA();
 
 const queryClient = new QueryClient();
 
