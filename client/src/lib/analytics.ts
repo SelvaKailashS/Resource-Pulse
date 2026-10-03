@@ -19,7 +19,7 @@ declare global {
 export const GA_MEASUREMENT_ID =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_GA_MEASUREMENT_ID) ||
   (typeof window !== "undefined" && window.GA_MEASUREMENT_ID) ||
-  "";
+  "G-D9MYQRB4QR";
 
 let isInitialized = false;
 
