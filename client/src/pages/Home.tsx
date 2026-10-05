@@ -78,6 +78,7 @@ import {
   Users,
   X,
   Zap,
+  LogOut,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -623,6 +624,16 @@ function Home() {
         </div>
         <div className="sidebar-bottom">
           <div className="sidebar-health"><span><StatusDot color="blue" /> System nominal</span><span className="mono">99.98%</span></div>
+          <button
+            onClick={async () => {
+              toast.info("Signing out of workspace...");
+              await logout();
+            }}
+            className="w-full mt-2 py-1.5 px-3 rounded-lg border border-slate-800 bg-slate-900/60 hover:bg-rose-500/15 hover:border-rose-500/30 text-slate-400 hover:text-rose-300 transition-all flex items-center justify-center gap-2 text-xs font-medium cursor-pointer"
+          >
+            <LogOut size={13} />
+            <span>Sign out</span>
+          </button>
         </div>
       </aside>
 
@@ -720,6 +731,19 @@ function Home() {
                 </span>
               </div>
               <ChevronDown size={14} className="topbar-user-chevron" />
+            </button>
+
+            {/* Direct 1-Click Logout Button */}
+            <button
+              className="px-2.5 py-1.5 rounded-xl border border-slate-700/80 bg-slate-900/60 hover:bg-rose-500/15 hover:border-rose-500/40 text-slate-400 hover:text-rose-300 transition-all flex items-center gap-1.5 text-xs font-semibold cursor-pointer shadow-xs ml-1"
+              onClick={async () => {
+                toast.info("Signing out of workspace...");
+                await logout();
+              }}
+              title="Sign out of workspace"
+            >
+              <LogOut size={13} />
+              <span className="hidden sm:inline">Sign out</span>
             </button>
           </div>
         </header>

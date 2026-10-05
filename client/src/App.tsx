@@ -4,7 +4,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import LoginPage from "./pages/LoginPage";
-import { useAuth } from "./_core/hooks/useAuth";
+import { AuthProvider, useAuth } from "./_core/hooks/useAuth";
 
 function AppContent() {
   const { isAuthenticated, login } = useAuth();
@@ -22,7 +22,9 @@ function App() {
       <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
           <Toaster position="bottom-right" theme="dark" />
-          <AppContent />
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
@@ -30,4 +32,3 @@ function App() {
 }
 
 export default App;
-

@@ -541,10 +541,11 @@ export function AccountCenter({
                       </div>
                     </div>
                     <button
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-805 text-slate-300 hover:text-white transition-colors shrink-0"
-                      onClick={() => {
-                        void logout();
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-white transition-colors shrink-0 cursor-pointer"
+                      onClick={async () => {
                         onOpenChange(false);
+                        toast.info("Signing out of workspace...");
+                        await logout();
                       }}
                     >
                       <LogOut size={13} />

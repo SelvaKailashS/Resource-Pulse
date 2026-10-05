@@ -40,11 +40,49 @@ const ROLE_OPTIONS = [
 ];
 
 export function LoginPage({ onLoginSuccess }: LoginPageProps) {
-  const [mode, setMode] = useState<"register" | "signin" | "join">("register");
-  const [email, setEmail] = useState("");
+  const getRegisteredTeam = () => {
+    try {
+      const lastTeam =
+        localStorage.getItem("resourcepulse_last_registered_team") ||
+        localStorage.getItem("resourcepulse_team_name");
+      if (lastTeam && lastTeam.trim() && lastTeam.trim() !== "Operations Team Alpha") {
+        return lastTeam.trim();
+      }
+      const lastEmail = localStorage.getItem("resourcepulse_last_registered_email");
+      const regMap = JSON.parse(localStorage.getItem("resourcepulse_registered_users") || "{}");
+      if (lastEmail && regMap[lastEmail]?.teamName) {
+        return regMap[lastEmail].teamName;
+      }
+      const userList = Object.values(regMap) as any[];
+      if (userList.length > 0 && userList[userList.length - 1]?.teamName) {
+        return userList[userList.length - 1].teamName;
+      }
+      if (lastTeam && lastTeam.trim()) return lastTeam.trim();
+    } catch {}
+    return "Operations Team Alpha";
+  };
+
+  const [mode, setMode] = useState<"register" | "signin" | "join">(() => {
+    try {
+      const lastEmail = localStorage.getItem("resourcepulse_last_registered_email");
+      const regMap = JSON.parse(localStorage.getItem("resourcepulse_registered_users") || "{}");
+      if (lastEmail || Object.keys(regMap).length > 0) {
+        return "signin";
+      }
+    } catch {}
+    return "register";
+  });
+
+  const [email, setEmail] = useState(() => {
+    try {
+      return localStorage.getItem("resourcepulse_last_registered_email") || "";
+    } catch {
+      return "";
+    }
+  });
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [teamName, setTeamName] = useState("Operations Team Alpha");
+  const [teamName, setTeamName] = useState(getRegisteredTeam);
   const [teamCode, setTeamCode] = useState("");
   const [field, setField] = useState(SECTORS[0].name);
   const [roleTitle, setRoleTitle] = useState(ROLE_OPTIONS[0]);
@@ -69,6 +107,20 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
       }
     } catch {}
   }, []);
+
+  const handleEmailChange = (val: string) => {
+    setEmail(val);
+    const clean = val.trim().toLowerCase();
+    try {
+      const regMap = JSON.parse(localStorage.getItem("resourcepulse_registered_users") || "{}");
+      if (regMap[clean]?.teamName) {
+        setTeamName(regMap[clean].teamName);
+      }
+      if (regMap[clean]?.field) {
+        setField(regMap[clean].field);
+      }
+    } catch {}
+  };
 
   const handleFieldChange = (selectedFieldName: string) => {
     setField(selectedFieldName);
@@ -115,7 +167,15 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
       resolvedName = prefix.charAt(0).toUpperCase() + prefix.slice(1).toLowerCase();
     }
 
-    const resolvedTeam = dbUser?.team_name || cachedUser?.teamName || teamName.trim() || "Operations Team Alpha";
+    const resolvedTeam =
+      teamName.trim() && teamName.trim() !== "Operations Team Alpha"
+        ? teamName.trim()
+        : cachedUser?.teamName ||
+          dbUser?.team_name ||
+          localStorage.getItem("resourcepulse_last_registered_team") ||
+          localStorage.getItem("resourcepulse_team_name") ||
+          teamName.trim() ||
+          "Operations Team Alpha";
     const resolvedField = dbUser?.field || cachedUser?.field || field || "IT & Software";
 
     const user: AuthUser = {
@@ -133,6 +193,8 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
     try {
       localStorage.setItem("resourcepulse_session_user", JSON.stringify(user));
       localStorage.setItem("resourcepulse_team_name", resolvedTeam);
+      localStorage.setItem("resourcepulse_last_registered_team", resolvedTeam);
+      localStorage.setItem("resourcepulse_last_registered_email", cleanEmail);
       localStorage.setItem("resourcepulse_selected_field", resolvedField);
       if (teamCode.trim()) localStorage.setItem("resourcepulse_team_code", teamCode.trim());
 
@@ -303,6 +365,8 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
           primaryTask: primaryTask.trim(),
         };
         localStorage.setItem("resourcepulse_registered_users", JSON.stringify(regMap));
+        localStorage.setItem("resourcepulse_last_registered_team", teamName.trim());
+        localStorage.setItem("resourcepulse_last_registered_email", cleanEmail);
 
         // Permanently bind & lock sector configuration for this organization
         const matchedSector = SECTORS.find((s) => s.name === field || s.id === field) || SECTORS[0];
@@ -510,7 +574,18 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
             </button>
             <button
               type="button"
-              onClick={() => setMode("signin")}
+              onClick={() => {
+                setMode("signin");
+                const regTeam = getRegisteredTeam();
+                if (regTeam && regTeam !== "Operations Team Alpha") {
+                  setTeamName(regTeam);
+                }
+                const lastEmail = localStorage.getItem("resourcepulse_last_registered_email");
+                if (lastEmail) {
+                  setEmail(lastEmail);
+                  handleEmailChange(lastEmail);
+                }
+              }}
               className={`py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                 mode === "signin"
                   ? "bg-sky-500/20 text-sky-300 border border-sky-400/30 shadow-sm font-bold"
@@ -862,7 +937,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => handleEmailChange(e.target.value)}
                     placeholder="name@organization.com"
                     required
                     className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 focus:ring-1 focus:ring-sky-400 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all"
@@ -897,7 +972,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
               <div className="grid grid-cols-2 gap-2.5">
                 <div>
                   <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-1">
-                    Team Workspace
+                    Team Workspace *
                   </label>
                   <div className="relative">
                     <Users size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -905,8 +980,9 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                       type="text"
                       value={teamName}
                       onChange={(e) => setTeamName(e.target.value)}
-                      placeholder="Operations Team"
-                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 rounded-lg pl-8 pr-2.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all"
+                      placeholder="Your registered team name"
+                      required
+                      className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 rounded-lg pl-8 pr-2.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all font-medium"
                     />
                   </div>
                 </div>
