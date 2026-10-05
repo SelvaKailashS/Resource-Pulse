@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner";
 import { SECTORS } from "@shared/sectorsData";
 import { saveSectorConfig, lockSectorConfig } from "@/lib/orgStore";
+import { SupernovaBackground } from "@/components/SupernovaBackground";
 
 interface LoginPageProps {
   onLoginSuccess: (user: AuthUser) => void;
@@ -455,12 +456,14 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
   };
 
   return (
-    <div className="h-screen max-h-screen w-full flex flex-col justify-center items-center px-4 py-2 bg-[#060a13] relative overflow-hidden font-sans login-grid-bg select-none">
-      {/* Background ambient lighting */}
-      <div className="absolute top-[-10%] left-[-8%] w-[520px] h-[520px] rounded-full bg-sky-500/15 blur-[140px] pointer-events-none animate-ambient-glow" />
-      <div className="absolute bottom-[-10%] right-[-8%] w-[520px] h-[520px] rounded-full bg-blue-600/15 blur-[150px] pointer-events-none animate-ambient-glow" />
+    <div className="h-screen max-h-screen w-full flex flex-col justify-center items-center px-4 py-2 bg-[#050811] relative overflow-hidden font-sans select-none">
+      {/* 3D Supernova Explosion Background */}
+      <SupernovaBackground particleCount={14000} />
 
-      <div className="w-full max-w-xl z-10 animate-opening-card flex flex-col my-auto">
+      {/* Subtle cosmic vignette gradient overlay to ensure card readability */}
+      <div className="absolute inset-0 bg-radial from-transparent via-[#050811]/60 to-[#050811]/90 pointer-events-none z-[1]" />
+
+      <div className="w-full max-w-xl z-10 relative animate-opening-card flex flex-col my-auto">
         {/* Brand Header */}
         <div className="text-center mb-2.5">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-400/25 mb-1 shadow-sm shadow-sky-950">
