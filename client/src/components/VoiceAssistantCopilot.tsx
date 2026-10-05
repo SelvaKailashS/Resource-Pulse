@@ -27,6 +27,10 @@ import {
   HelpCircle,
   Wrench,
   Boxes,
+  Clock3,
+  Calendar,
+  FolderGit2,
+  Cpu,
 } from "lucide-react";
 import { toast } from "sonner";
 import { askLiveCopilot, type ChatHistoryMessage } from "@/lib/openRouterClient";
@@ -402,6 +406,64 @@ export function VoiceAssistantCopilot({
     ) {
       onNavigate("Command center");
       handleAIResponse("Navigated back to the Command Center overview.", "open_home");
+      return;
+    }
+
+    if (
+      lower.startsWith("go to timesheets") ||
+      lower.startsWith("open timesheets") ||
+      lower.startsWith("view timesheets") ||
+      lower === "timesheets" ||
+      lower.includes("open timesheet")
+    ) {
+      onNavigate("Timesheets");
+      handleAIResponse("Opened Timesheets view. Showing daily task logging, planned vs actual variance, and accrued billable revenue.", "open_timesheets");
+      return;
+    }
+
+    if (
+      lower.startsWith("go to projects") ||
+      lower.startsWith("open projects") ||
+      lower.startsWith("view projects") ||
+      lower === "projects"
+    ) {
+      onNavigate("Projects");
+      handleAIResponse("Switched to Projects portfolio view. Tracking milestones, deliverable allocations, and deadlines.", "open_projects");
+      return;
+    }
+
+    if (
+      lower.startsWith("go to assets") ||
+      lower.startsWith("open assets") ||
+      lower.startsWith("view assets") ||
+      lower === "assets" ||
+      lower.includes("open machinery")
+    ) {
+      onNavigate("Assets");
+      handleAIResponse("Opened Assets directory. Tracking physical machinery, operating hours, and predictive maintenance schedules.", "open_assets");
+      return;
+    }
+
+    if (
+      lower.startsWith("go to inventory") ||
+      lower.startsWith("open inventory") ||
+      lower.startsWith("view inventory") ||
+      lower === "inventory"
+    ) {
+      onNavigate("Inventory");
+      handleAIResponse("Opened Inventory management. Monitoring stock levels, minimum thresholds, and replenishment orders.", "open_inventory");
+      return;
+    }
+
+    if (
+      lower.startsWith("go to schedule") ||
+      lower.startsWith("open schedule") ||
+      lower.startsWith("view schedule") ||
+      lower === "schedule" ||
+      lower.includes("open calendar")
+    ) {
+      onNavigate("Schedule");
+      handleAIResponse("Switched to Universal Schedule. Showing calendar timeline, team shifts, and conflict detection.", "open_schedule");
       return;
     }
 
@@ -830,6 +892,66 @@ export function VoiceAssistantCopilot({
         label: "Review Approvals",
         action: () => onNavigate("Approvals"),
         icon: ShieldCheck,
+      });
+    }
+
+    if (
+      action === "open_timesheets" ||
+      replyText.toLowerCase().includes("timesheet") ||
+      replyText.toLowerCase().includes("variance") ||
+      replyText.toLowerCase().includes("billable")
+    ) {
+      quickActions.push({
+        label: "View Timesheets",
+        action: () => onNavigate("Timesheets"),
+        icon: Clock3,
+      });
+    }
+
+    if (
+      action === "open_projects" ||
+      replyText.toLowerCase().includes("project")
+    ) {
+      quickActions.push({
+        label: "View Projects",
+        action: () => onNavigate("Projects"),
+        icon: FolderGit2,
+      });
+    }
+
+    if (
+      action === "open_assets" ||
+      replyText.toLowerCase().includes("machine") ||
+      replyText.toLowerCase().includes("equipment")
+    ) {
+      quickActions.push({
+        label: "View Assets",
+        action: () => onNavigate("Assets"),
+        icon: Cpu,
+      });
+    }
+
+    if (
+      action === "open_inventory" ||
+      replyText.toLowerCase().includes("inventory") ||
+      replyText.toLowerCase().includes("stock")
+    ) {
+      quickActions.push({
+        label: "View Inventory",
+        action: () => onNavigate("Inventory"),
+        icon: Boxes,
+      });
+    }
+
+    if (
+      action === "open_schedule" ||
+      replyText.toLowerCase().includes("schedule") ||
+      replyText.toLowerCase().includes("calendar")
+    ) {
+      quickActions.push({
+        label: "View Schedule",
+        action: () => onNavigate("Schedule"),
+        icon: Calendar,
       });
     }
 

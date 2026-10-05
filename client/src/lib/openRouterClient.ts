@@ -4,6 +4,9 @@ import {
   loadInitialAssets,
   loadInitialInventory,
   loadInitialSchedule,
+  loadThresholds,
+  computeOrgMetrics,
+  detectScheduleConflicts,
 } from "@/lib/orgStore";
 import { resolveQueryKnowledgeBase } from "@shared/aiKnowledgeBase";
 
@@ -48,13 +51,17 @@ export async function askLiveCopilot(
 }> {
   const q = query.trim().toLowerCase();
 
-  // 1. Load full real organizational intelligence
+  // 1. Ingest all 7 core operational domains from live organizational stores
   const resources = loadInitialResources();
   const projects = loadInitialProjects();
   const assets = loadInitialAssets();
   const inventory = loadInitialInventory();
   const schedule = loadInitialSchedule();
+  const thresholds = loadThresholds();
+  const metrics = computeOrgMetrics(resources, projects, thresholds);
+  const conflicts = detectScheduleConflicts(schedule, resources);
 
+  let timesheetEntries: any[] = [];
   let teamName = "Operations Team Alpha";
   let field = "IT & Software";
   let userName = "Team Lead";
@@ -67,6 +74,11 @@ export async function askLiveCopilot(
       if (userRaw) {
         const u = JSON.parse(userRaw);
         if (u.name) userName = u.name;
+      }
+      const rawTs = localStorage.getItem("resourcepulse_timesheet_entries");
+      if (rawTs) {
+        const parsed = JSON.parse(rawTs);
+        if (Array.isArray(parsed)) timesheetEntries = parsed;
       }
     }
   } catch {}
@@ -88,7 +100,34 @@ export async function askLiveCopilot(
     };
   }
 
-  // 3. Assemble dynamic system prompt with live organizational context
+  // 3. Compute telemetry metrics
+  const totalActualHours = timesheetEntries.reduce(
+    (s, e) => s + (Number(e.actualHours) || 0),
+    0
+  );
+  const totalPlannedHours = timesheetEntries.reduce(
+    (s, e) => s + (Number(e.plannedHours) || 0),
+    0
+  );
+  const netVarianceHours = Number((totalActualHours - totalPlannedHours).toFixed(1));
+  const netVariancePercent =
+    totalPlannedHours > 0
+      ? ((netVarianceHours / totalPlannedHours) * 100).toFixed(1)
+      : "0.0";
+  const billableEntries = timesheetEntries.filter((e) => e.billable);
+  const totalBillableHours = billableEntries.reduce(
+    (s, e) => s + (Number(e.actualHours) || 0),
+    0
+  );
+  const billableRatio =
+    totalActualHours > 0
+      ? Math.round((totalBillableHours / totalActualHours) * 100)
+      : 100;
+  const accruedBillableValue = billableEntries.reduce(
+    (s, e) => s + (Number(e.actualHours) || 0) * (Number(e.hourlyRate) || 85),
+    0
+  );
+
   const now = new Date();
   const dateStr = now.toLocaleDateString("en-US", {
     weekday: "long",
@@ -98,12 +137,19 @@ export async function askLiveCopilot(
   });
   const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
+  // 4. Build domain summaries
   const resourceSummary =
     resources.length > 0
       ? resources
           .map(
             (r, i) =>
-              `  ${i + 1}. ${r.name} (${r.role || "Member"}, ${r.department || "Core Operations"}, Load: ${r.utilization}%, Hours: ${r.assignedHours}h/${r.weeklyCapacityHours}h, Skills: ${(r.skills || []).join(", ") || "General"})`
+              `  ${i + 1}. ${r.name} | Role: ${r.role || "Member"} | Dept: ${
+                r.department || "Core Operations"
+              } | Load: ${r.utilization}% | Allocated: ${r.assignedHours}h/${
+                r.weeklyCapacityHours
+              }h | Rate: $${r.costPerHour || 50}/h | Status: ${r.status} | Skills: ${
+                (r.skills || []).join(", ") || "General"
+              }`
           )
           .join("\n")
       : "  • No registered team members yet. (Users can add members in Resources tab)";
@@ -113,48 +159,154 @@ export async function askLiveCopilot(
       ? projects
           .map(
             (p, i) =>
-              `  ${i + 1}. ${p.name} (Status: ${p.status}, Required: ${p.requiredHours}h, Assigned: ${p.assignedHours}h, Due: ${p.endDate || "Upcoming"})`
+              `  ${i + 1}. ${p.name} | Status: ${p.status} | Priority: ${
+                p.priority || "Medium"
+              } | Required: ${p.requiredHours}h | Assigned: ${p.assignedHours}h | Deadline: ${
+                p.endDate || "Upcoming"
+              } | Budget: $${(p.budget || 0).toLocaleString()}`
           )
           .join("\n")
       : "  • No projects registered yet. (Users can add projects in Projects tab)";
+
+  const timesheetSummary =
+    timesheetEntries.length > 0
+      ? timesheetEntries
+          .slice(-10)
+          .map(
+            (e, i) =>
+              `  ${i + 1}. [${e.date || "Today"}] ${e.resourceName}: "${e.taskName}" (${
+                e.projectName
+              }) -> Actual: ${e.actualHours}h / Planned: ${e.plannedHours}h (Variance: ${
+                e.varianceHours >= 0 ? `+${e.varianceHours}h` : `${e.varianceHours}h`
+              }, Billable: ${e.billable ? "Yes" : "No"} @ $${e.hourlyRate}/h, Status: ${
+                e.status
+              })`
+          )
+          .join("\n")
+      : "  • No timesheet hours logged yet. (Users can log hours in Timesheets tab)";
 
   const assetSummary =
     assets.length > 0
       ? assets
           .map(
             (a, i) =>
-              `  ${i + 1}. ${a.name} (Type: ${a.type || "Equipment"}, Health: ${a.healthScore}%, Hours: ${a.operatingHours}h/${a.maxHours || 500}h, Maintenance Due: ${a.nextMaintenanceDate || "N/A"})`
+              `  ${i + 1}. ${a.name} | Type: ${a.type || "Equipment"} | Health: ${
+                a.healthScore
+              }% | Hours Run: ${a.operatingHours}h/${
+                a.maxHours || 500
+              }h | Maintenance Due: ${a.nextMaintenanceDate || "N/A"} | Status: ${
+                a.status || "Operational"
+              }`
           )
           .join("\n")
-      : "  • 0 physical assets/machinery registered yet. (Users can add assets in Assets tab to enable predictive maintenance)";
+      : "  • 0 physical assets/machinery registered yet. (Users can add machinery in Assets tab to enable predictive maintenance)";
 
+  const lowStock = inventory.filter(
+    (it) =>
+      it.currentStock <= it.minimumThreshold ||
+      it.reorderStatus === "Low Stock" ||
+      it.reorderStatus === "Critical"
+  );
   const inventorySummary =
     inventory.length > 0
-      ? `${inventory.length} item(s) tracked. Status: ${inventory.filter((it) => it.currentStock <= it.minimumThreshold || it.reorderStatus === "Low Stock" || it.reorderStatus === "Critical").length} low-stock alert(s).`
-      : "0 inventory items tracked.";
+      ? `${inventory.length} total inventory items tracked across workspace. ${
+          lowStock.length > 0
+            ? `\n  • Low/Critical Stock Alerts (${lowStock.length}): ` +
+              lowStock
+                .map(
+                  (it) =>
+                    `${it.name} (On hand: ${it.currentStock} ${it.unit || "units"}, Min threshold: ${
+                      it.minimumThreshold
+                    }, Reorder Status: ${it.reorderStatus})`
+                )
+                .join("; ")
+            : "\n  • All tracked inventory stock levels are nominal."
+        }`
+      : "0 inventory items tracked in workspace. (Add supplies in Inventory tab)";
 
-  const systemPrompt = `You are Pulse AI, the Universal Resource Intelligence & Operations Copilot for ${teamName}.
-Your system instance identifier is PAI-OTA-001. You are talking with ${userName}.
+  const conflictSummary =
+    conflicts.length > 0
+      ? `${conflicts.length} active schedule conflict(s) detected:\n` +
+        conflicts
+          .map(
+            (c, i) =>
+              `  ${i + 1}. [${c.severity}] ${c.description} -> Resolution: ${
+                c.recommendedResolution
+              }`
+          )
+          .join("\n")
+      : "Zero schedule conflicts detected. All calendar shifts and milestones are synchronized.";
 
-LIVE ORGANIZATIONAL KNOWLEDGE BASE:
-- Current Date & Time: ${dateStr}, ${timeStr}
-- Organization / Workspace: ${teamName} (Discipline: ${field})
-- Active Team Members (${resources.length}):
+  const deptBreakdown =
+    metrics.departments.length > 0
+      ? metrics.departments
+          .map(
+            (d) =>
+              `  - ${d.name}: ${d.resourceCount} member(s), ${d.assignedHours}h assigned / ${d.capacityHours}h capacity (${d.utilization}% load, Weekly cost: $${d.weeklyCost.toLocaleString()})`
+          )
+          .join("\n")
+      : "  - Single operational unit.";
+
+  // 5. Dynamic Enterprise System Prompt
+  const systemPrompt = `You are Pulse AI, the Universal Enterprise Operations & Resource Intelligence Copilot for ${teamName}.
+Your system instance identifier is PAI-OTA-001. You are actively assisting ${userName}.
+
+LIVE ENTERPRISE KNOWLEDGE GRAPH & REAL-TIME TELEMETRY:
+- Workspace: ${teamName} | Discipline/Sector: ${field}
+- Current Timestamp: ${dateStr}, ${timeStr}
+
+1. HUMAN CAPITAL & CAPACITY POOL (${resources.length} active resource(s)):
 ${resourceSummary}
-- Project Portfolio (${projects.length}):
+
+2. ENTERPRISE CAPACITY & HEALTH EQUILIBRIUM:
+- Total Team Capacity: ${metrics.availableCapacityHours}h / week
+- Total Assigned Effort: ${metrics.totalAssignedHours}h / week
+- Average Organization Utilization: ${metrics.avgUtilization}%
+- Member Balance: ${metrics.optimalCount} optimal, ${metrics.overallocatedCount} overloaded (>100%), ${metrics.underutilizedCount} underutilized (<50%)
+- Capacity Gap: ${
+    metrics.capacityGapHours > 0
+      ? `${metrics.capacityGapHours}h shortage across deliverables`
+      : "0h deficit (healthy capacity equilibrium)"
+  }
+- Weekly Run Rate / Payroll: $${metrics.totalWeeklyCost.toLocaleString()} / week
+Department Workload Breakdown:
+${deptBreakdown}
+
+3. PROJECT PORTFOLIO & BACKLOG (${projects.length} initiative(s)):
 ${projectSummary}
-- Machinery & Physical Assets (${assets.length}):
+
+4. EXECUTION TELEMETRY & TIMESHEETS (${timesheetEntries.length} shift record(s)):
+- Logged Actual Hours: ${totalActualHours}h
+- Planned Hours Budget: ${totalPlannedHours}h
+- Net Workload Variance: ${netVarianceHours >= 0 ? `+${netVarianceHours}h` : `${netVarianceHours}h`} (${
+    netVarianceHours >= 0 ? `+${netVariancePercent}%` : `${netVariancePercent}%`
+  })
+- Billable Ratio: ${billableRatio}% (${totalBillableHours}h billable)
+- Accrued Billable Value: $${accruedBillableValue.toLocaleString()}
+Recent Timesheet Logs:
+${timesheetSummary}
+
+5. PHYSICAL ASSETS & MACHINERY (${assets.length} equipment item(s)):
 ${assetSummary}
-- Inventory Status: ${inventorySummary}
 
-GUIDELINES & BEHAVIOR:
-1. Normal Conversational Chatbot: You are a warm, highly capable, intelligent conversational AI. If the user asks general chat questions, questions about yourself (name, ID number, capabilities), tech concepts (e.g., Google, ChatGPT, LLMs, coding, cloud systems), philosophy, science, or general advice, respond naturally and engagingly as a top-tier chatbot.
-2. Organization Intelligence: When asked about people, workloads, team capacity, project deadlines, machine maintenance, bottlenecks, or simulations, speak with exact knowledge of the real live data above. Never make up fake employees.
-3. Machine & Maintenance: If asked which machine needs maintenance, reference the machinery records above. If 0 assets are registered, kindly inform them that no physical machinery is registered yet and they can add machinery in the Assets tab.
-4. Conciseness: Keep responses crisp, engaging, and easy to read (1-3 paragraphs or markdown bullet points).
-5. App Suggestions: If the user's intent relates to an app feature, naturally guide them to the right tab (Resources, Scenarios, Projects, Assets, Approvals, Simulation).`;
+6. INVENTORY & SUPPLY CHAIN (${inventory.length} catalog item(s)):
+${inventorySummary}
 
-  // 4. Try OpenRouter with meta-llama/llama-3.3-70b-instruct and openai/gpt-4o-mini
+7. CALENDAR & SCHEDULE CONFLICT TELEMETRY:
+${conflictSummary}
+
+CORE CAPABILITIES & DIRECTIVES:
+1. Complete Data Analysis: You have complete, real-time access to analyze all organizational data across all 7 operational domains (Team Members, Capacity/Workload, Projects, Timesheets/Execution Telemetry, Machinery/Assets, Inventory/Supplies, and Schedule/Conflicts). When asked about any aspect of the organization, analyze the real data above and cite specific people, numbers, percentages, hours, and dollar figures.
+2. Cross-Domain Intelligence: Perform multi-dimensional correlative analysis across domains:
+   - Correlate timesheet variances with project deadlines and cost slippage.
+   - Correlate member overload with schedule conflicts and burnout risks.
+   - Correlate equipment maintenance downtime with team deliverable schedules.
+   - Correlate billable ratios with revenue and client invoicing.
+3. Conversational Fluency: You are also an intelligent, versatile, warm conversational partner. If the user asks general chatbot questions (e.g. what is Google, ChatGPT, coding questions, technology concepts, general discussion), answer naturally, eloquently, and engagingly as a premier AI.
+4. Accuracy & Integrity: Speak strictly with knowledge of the actual workspace data above. Never invent fake employees or data. If a domain has 0 items (such as 0 physical assets or 0 inventory), explain that 0 records are currently registered and invite them to add items in the respective tab.
+5. Navigation Guidance: When recommending actions, reference the corresponding workspace tabs (Resources, Projects, Timesheets, Assets, Inventory, Schedule, Scenarios, Approvals, Simulation).`;
+
+  // 6. Invoke OpenRouter with robust fallback models
   const apiKey = getActiveOpenRouterKey();
 
   if (apiKey) {
@@ -165,7 +317,7 @@ GUIDELINES & BEHAVIOR:
 
     const messages = [
       { role: "system", content: systemPrompt },
-      ...chatHistory.slice(-6), // keep last 6 turns for conversational context
+      ...chatHistory.slice(-6),
       { role: "user", content: query },
     ];
 
@@ -182,8 +334,8 @@ GUIDELINES & BEHAVIOR:
           body: JSON.stringify({
             model,
             messages,
-            max_tokens: 380,
-            temperature: 0.7,
+            max_tokens: 700,
+            temperature: 0.65,
           }),
         });
 
@@ -194,14 +346,44 @@ GUIDELINES & BEHAVIOR:
             let suggestedAction: string | undefined = undefined;
             if (q.includes("simulation") || q.includes("simulate")) {
               suggestedAction = "run_simulation";
+            } else if (
+              q.includes("timesheet") ||
+              q.includes("hours logged") ||
+              q.includes("variance") ||
+              q.includes("billable")
+            ) {
+              suggestedAction = "open_timesheets";
             } else if (q.includes("impact") || q.includes("risk") || q.includes("cascade")) {
               suggestedAction = "open_impact";
             } else if (q.includes("scenario") || q.includes("tradeoff")) {
               suggestedAction = "open_scenarios";
-            } else if (q.includes("resource") || q.includes("worker") || q.includes("who is")) {
+            } else if (
+              q.includes("resource") ||
+              q.includes("worker") ||
+              q.includes("who is") ||
+              q.includes("capacity")
+            ) {
               suggestedAction = "open_resources";
-            } else if (q.includes("asset") || q.includes("machine") || q.includes("maintenance")) {
+            } else if (
+              q.includes("asset") ||
+              q.includes("machine") ||
+              q.includes("maintenance") ||
+              q.includes("equipment")
+            ) {
               suggestedAction = "open_assets";
+            } else if (
+              q.includes("inventory") ||
+              q.includes("stock") ||
+              q.includes("supply")
+            ) {
+              suggestedAction = "open_inventory";
+            } else if (
+              q.includes("schedule") ||
+              q.includes("calendar") ||
+              q.includes("shift") ||
+              q.includes("conflict")
+            ) {
+              suggestedAction = "open_schedule";
             } else if (q.includes("project")) {
               suggestedAction = "open_projects";
             }
@@ -215,6 +397,6 @@ GUIDELINES & BEHAVIOR:
     }
   }
 
-  // 5. Intelligent edge fallback if offline
+  // 7. Intelligent edge fallback if offline
   return resolveQueryKnowledgeBase(query);
 }
