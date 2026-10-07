@@ -238,11 +238,34 @@ export interface SyncedTeamMember {
   phone?: string;
 }
 
+const DELETED_MEMBERS_KEY = "resourcepulse_deleted_members";
+
+export function getDeletedMembers(): Set<string> {
+  try {
+    const raw = localStorage.getItem(DELETED_MEMBERS_KEY);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return new Set(arr.map((s: string) => String(s).toLowerCase().trim()));
+    }
+  } catch {}
+  return new Set();
+}
+
+export function recordDeletedMember(id?: string, name?: string) {
+  try {
+    const set = getDeletedMembers();
+    if (id) set.add(String(id).toLowerCase().trim());
+    if (name) set.add(name.toLowerCase().trim());
+    localStorage.setItem(DELETED_MEMBERS_KEY, JSON.stringify(Array.from(set)));
+  } catch {}
+}
+
 /**
  * Fetch all users and team members belonging to the organization workspace from Supabase
  */
 export async function fetchOrganizationWorkspace(targetTeamName?: string): Promise<SyncedTeamMember[]> {
   try {
+    const deletedSet = getDeletedMembers();
     const teamName =
       targetTeamName ||
       localStorage.getItem("resourcepulse_team_name") ||
@@ -273,6 +296,8 @@ export async function fetchOrganizationWorkspace(targetTeamName?: string): Promi
     for (const u of usersList) {
       const lowerName = (u.name || "").trim().toLowerCase();
       if (!lowerName || seenNames.has(lowerName)) continue;
+      // Skip if member has been deleted
+      if (deletedSet.has(lowerName) || (u.id && deletedSet.has(String(u.id).toLowerCase()))) continue;
       seenNames.add(lowerName);
 
       const matchedMember = memberMapByName.get(lowerName);
@@ -309,6 +334,8 @@ export async function fetchOrganizationWorkspace(targetTeamName?: string): Promi
     for (const m of membersList) {
       const lowerName = (m.name || "").trim().toLowerCase();
       if (!lowerName || seenNames.has(lowerName)) continue;
+      // Skip if member has been deleted
+      if (deletedSet.has(lowerName) || (m.id && deletedSet.has(String(m.id).toLowerCase()))) continue;
       seenNames.add(lowerName);
 
       const isAdminLead = lowerName === "kailash";
@@ -351,6 +378,41 @@ export async function fetchOrganizationWorkspace(targetTeamName?: string): Promi
  */
 export async function deleteTeamMember(id: string, name?: string) {
   try {
+    recordDeletedMember(id, name);
+
+    // Clean from registered users cache in localStorage
+    try {
+      const reg = JSON.parse(localStorage.getItem("resourcepulse_registered_users") || "{}");
+      let changed = false;
+      for (const email of Object.keys(reg)) {
+        if (
+          (name && reg[email]?.name?.toLowerCase().trim() === name.toLowerCase().trim()) ||
+          (id && String(reg[email]?.id).toLowerCase() === id.toLowerCase())
+        ) {
+          delete reg[email];
+          changed = true;
+        }
+      }
+      if (changed) {
+        localStorage.setItem("resourcepulse_registered_users", JSON.stringify(reg));
+      }
+    } catch {}
+
+    // Clean from local student resources
+    try {
+      const raw = localStorage.getItem("resourcepulse_student_resources");
+      if (raw) {
+        const arr = JSON.parse(raw);
+        const filtered = arr.filter((m: any) => 
+          m.id !== id && (!name || m.name?.toLowerCase().trim() !== name.toLowerCase().trim())
+        );
+        localStorage.setItem("resourcepulse_student_resources", JSON.stringify(filtered));
+        localStorage.setItem("resourcepulse_enterprise_resources_v2", JSON.stringify(filtered));
+        window.dispatchEvent(new CustomEvent("resourcepulse-team-synced", { detail: filtered }));
+      }
+    } catch {}
+
+    // Delete in Supabase
     if (id) {
       await supabase.from("team_members").delete().eq("id", id);
     }

@@ -54,9 +54,6 @@ export function ReportsView() {
     "invoicing" | "executive" | "utilization" | "projects" | "capacity"
   >("invoicing");
 
-  // Layout mode for Invoicing: "fit" (Fit to Screen Split Canvas), "document" (Full Document), "table" (Line items table)
-  const [invoicingViewMode, setInvoicingViewMode] = useState<"fit" | "document" | "table">("fit");
-
   const [teamName] = useState(
     () => localStorage.getItem("resourcepulse_team_name") || "Operations Team Alpha"
   );
@@ -271,7 +268,7 @@ export function ReportsView() {
   };
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full max-w-full space-y-6 overflow-x-hidden">
       {/* Top Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border/40 pb-5">
         <div>
@@ -442,56 +439,12 @@ export function ReportsView() {
               )}
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground font-semibold">Layout View:</span>
-              <div className="flex items-center rounded-xl border border-border/60 bg-muted/20 p-1">
-                <button
-                  onClick={() => setInvoicingViewMode("fit")}
-                  className={`flex items-center gap-1.5 px-3 py-1 text-xs rounded-lg transition-all cursor-pointer ${
-                    invoicingViewMode === "fit"
-                      ? "bg-sky-600 text-white font-bold shadow-xs"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                  title="Fit to Screen: Side-by-side Editor and Live Invoice"
-                >
-                  <LayoutGrid className="w-3.5 h-3.5" />
-                  <span>Fit to Screen</span>
-                </button>
-
-                <button
-                  onClick={() => setInvoicingViewMode("document")}
-                  className={`flex items-center gap-1.5 px-3 py-1 text-xs rounded-lg transition-all cursor-pointer ${
-                    invoicingViewMode === "document"
-                      ? "bg-sky-600 text-white font-bold shadow-xs"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                  title="Full Document: Edge-to-edge invoice canvas"
-                >
-                  <Maximize2 className="w-3.5 h-3.5" />
-                  <span>Document View</span>
-                </button>
-
-                <button
-                  onClick={() => setInvoicingViewMode("table")}
-                  className={`flex items-center gap-1.5 px-3 py-1 text-xs rounded-lg transition-all cursor-pointer ${
-                    invoicingViewMode === "table"
-                      ? "bg-sky-600 text-white font-bold shadow-xs"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                  title="Data Table View"
-                >
-                  <TableIcon className="w-3.5 h-3.5" />
-                  <span>Line Items</span>
-                </button>
-              </div>
-            </div>
           </div>
 
-          {/* MAIN INVOICE CANVAS (Fit to Screen vs Document vs Table) */}
-          {invoicingViewMode === "fit" && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full">
-              {/* LEFT COLUMN: Controls & Metadata Configuration (4 cols) */}
-              <div className="lg:col-span-4 space-y-4">
+          {/* MAIN RESPONSIVE INVOICE CANVAS (Fits screen on all devices) */}
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start w-full max-w-full">
+            {/* LEFT COLUMN: Controls & Metadata Configuration (4 cols) */}
+            <div className="xl:col-span-4 space-y-4 w-full">
                 <div className="p-5 rounded-2xl border border-border/50 bg-card/70 space-y-4 shadow-sm">
                   <div className="flex items-center justify-between border-b border-border/30 pb-3">
                     <h3 className="font-bold text-sm text-foreground flex items-center gap-2">
@@ -637,7 +590,7 @@ export function ReportsView() {
               </div>
 
               {/* RIGHT COLUMN: Official Live Invoice Document Preview (8 cols) */}
-              <div className="lg:col-span-8 w-full">
+              <div className="xl:col-span-8 w-full max-w-full overflow-hidden">
                 <div className="border border-border/60 rounded-3xl p-6 sm:p-8 bg-card/95 shadow-xl backdrop-blur-xl space-y-8 w-full font-sans print:border-none print:shadow-none print:p-0">
                   {/* Header: Company & Invoice Badges */}
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/40 pb-6">
@@ -773,185 +726,6 @@ export function ReportsView() {
                 </div>
               </div>
             </div>
-          )}
-
-          {/* DOCUMENT VIEW (Full Width Centered Canvas) */}
-          {invoicingViewMode === "document" && (
-            <div className="w-full">
-              <div className="border border-border/60 rounded-3xl p-8 sm:p-10 bg-card/95 shadow-2xl backdrop-blur-xl space-y-8 w-full max-w-5xl mx-auto font-sans print:border-none print:shadow-none print:p-0">
-                {/* Header */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/40 pb-6">
-                  <div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-sky-500/20 text-sky-400 font-extrabold flex items-center justify-center font-mono border border-sky-500/40 text-base shadow-sm">
-                        RP
-                      </div>
-                      <div>
-                        <h3 className="text-2xl font-extrabold text-foreground font-mono tracking-tight">
-                          {teamName.toUpperCase()}
-                        </h3>
-                        <p className="text-xs text-muted-foreground font-mono">
-                          ResourcePulse Universal Operations Core
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="sm:text-right">
-                    <span className="px-3.5 py-1 rounded-full text-xs font-mono font-bold uppercase bg-sky-500/10 text-sky-400 border border-sky-500/30">
-                      Official Client Statement
-                    </span>
-                    <div className="text-xl font-bold font-mono text-foreground mt-2">
-                      {invoiceData.invoiceNumber}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Details Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 text-xs">
-                  <div className="space-y-1.5">
-                    <span className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground font-bold block">
-                      Billed To
-                    </span>
-                    <strong className="text-base font-bold text-foreground block">{invoiceData.clientName}</strong>
-                    <p className="text-muted-foreground font-mono">{invoiceData.clientEmail}</p>
-                    <p className="text-muted-foreground">{invoiceData.clientAddress}</p>
-                  </div>
-
-                  <div className="space-y-1.5 sm:text-right">
-                    <span className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground font-bold block">
-                      Invoice Details
-                    </span>
-                    <p className="text-muted-foreground font-mono">
-                      <strong className="text-foreground">Issue Date:</strong> {invoiceData.issueDate}
-                    </p>
-                    <p className="text-muted-foreground font-mono">
-                      <strong className="text-foreground">Due Date:</strong> {invoiceData.dueDate} ({invoiceData.paymentTerms})
-                    </p>
-                    <p className="text-muted-foreground font-mono">
-                      <strong className="text-foreground">Currency:</strong> {invoiceData.currency}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Table */}
-                <div className="border border-border/40 rounded-2xl overflow-hidden bg-background/40">
-                  <div className="overflow-x-auto w-full">
-                    <table className="w-full text-xs text-left min-w-[550px]">
-                      <thead className="bg-muted/40 text-muted-foreground uppercase text-[10px] font-mono tracking-wider border-b border-border/30">
-                        <tr>
-                          <th className="px-5 py-3.5">Service / Milestone Description</th>
-                          <th className="px-5 py-3.5 text-right">Hours</th>
-                          <th className="px-5 py-3.5 text-right">Rate</th>
-                          <th className="px-5 py-3.5 text-right">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border/20">
-                        {invoiceLineItems.map((item) => (
-                          <tr key={item.id} className="hover:bg-muted/20">
-                            <td className="px-5 py-3.5">
-                              <div className="font-semibold text-foreground text-sm">{item.description}</div>
-                              <div className="text-xs text-muted-foreground font-mono">{item.department} Delivery Unit</div>
-                            </td>
-                            <td className="px-5 py-3.5 text-right font-mono text-muted-foreground">{item.hours}h</td>
-                            <td className="px-5 py-3.5 text-right font-mono text-muted-foreground">${item.rate}/h</td>
-                            <td className="px-5 py-3.5 text-right font-mono font-bold text-foreground">
-                              ${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Totals */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 pt-4 border-t border-border/40">
-                  <div className="max-w-md text-xs text-muted-foreground space-y-1">
-                    <strong className="text-foreground">Remittance Instructions:</strong>
-                    <p className="text-[11px]">
-                      Direct ACH / Wire Transfer: Routing 021000021 · Account 8839201948 · Swift: RPULSEUS33
-                    </p>
-                    <p className="text-[11px] italic text-sky-400/80">{invoiceData.notes}</p>
-                  </div>
-
-                  <div className="w-full sm:w-72 space-y-2 text-xs font-mono ml-auto">
-                    <div className="flex justify-between text-muted-foreground">
-                      <span>Subtotal:</span>
-                      <span>${invoiceSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="flex justify-between text-muted-foreground">
-                      <span>Tax ({invoiceData.taxRate}%):</span>
-                      <span>${invoiceTaxAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="flex justify-between text-base font-bold text-foreground pt-2 border-t border-border/40">
-                      <span>Total Due:</span>
-                      <span className="text-sky-400 text-lg">
-                        ${invoiceTotalDue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* LINE ITEMS TABLE VIEW */}
-          {invoicingViewMode === "table" && (
-            <div className="border border-border/50 rounded-2xl overflow-hidden bg-card/60 w-full shadow-sm">
-              <div className="p-4 border-b border-border/30 flex items-center justify-between">
-                <div>
-                  <h4 className="font-bold text-sm text-foreground">Invoice Deliverable Breakdown</h4>
-                  <p className="text-xs text-muted-foreground">
-                    {invoiceLineItems.length} active billable line item(s) • Total: ${invoiceTotalDue.toLocaleString()}
-                  </p>
-                </div>
-                <button
-                  onClick={handleAddLineItem}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-sky-500/10 text-sky-400 hover:bg-sky-500/20 border border-sky-500/30 transition-all cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Add Deliverable</span>
-                </button>
-              </div>
-
-              <div className="overflow-x-auto w-full">
-                <table className="w-full text-xs text-left min-w-[600px]">
-                  <thead className="bg-muted/40 text-muted-foreground uppercase text-[10px] font-mono tracking-wider border-b border-border/30">
-                    <tr>
-                      <th className="px-5 py-3">Line Item Description</th>
-                      <th className="px-5 py-3">Unit</th>
-                      <th className="px-5 py-3 text-right">Hours</th>
-                      <th className="px-5 py-3 text-right">Hourly Rate</th>
-                      <th className="px-5 py-3 text-right">Amount</th>
-                      <th className="px-5 py-3 text-center w-12">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/20">
-                    {invoiceLineItems.map((item) => (
-                      <tr key={item.id} className="hover:bg-muted/20">
-                        <td className="px-5 py-3 font-medium text-foreground">{item.description}</td>
-                        <td className="px-5 py-3 font-mono text-muted-foreground">{item.department}</td>
-                        <td className="px-5 py-3 text-right font-mono">{item.hours}h</td>
-                        <td className="px-5 py-3 text-right font-mono">${item.rate}/h</td>
-                        <td className="px-5 py-3 text-right font-mono font-bold text-sky-400">
-                          ${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </td>
-                        <td className="px-5 py-3 text-center">
-                          <button
-                            onClick={() => handleDeleteLineItem(item.id)}
-                            className="p-1 rounded text-muted-foreground hover:text-rose-400 transition-colors cursor-pointer"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
         </div>
       )}
 

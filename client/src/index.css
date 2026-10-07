@@ -415,7 +415,7 @@ kbd { padding: 2px 5px; border: 1px solid rgba(147, 197, 253, .12); border-radiu
   color: #38bdf8;
 }
 
-.content-wrap { max-width: 1480px; margin: 0 auto; padding: 29px 34px 42px; }
+.content-wrap { width: 100%; max-width: 100%; margin: 0 auto; padding: 24px 28px 42px; box-sizing: border-box; overflow-x: hidden; }
 
 .incident-banner {
   display: flex;

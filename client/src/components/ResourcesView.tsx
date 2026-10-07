@@ -6,6 +6,7 @@ import {
   deleteTeamMember,
   submitTeammateChangeRequest,
   loadChangeRequests,
+  getDeletedMembers,
 } from "@/lib/supabase";
 import {
   Search,
@@ -92,7 +93,12 @@ export function ResourcesView({
   }, []);
 
   const [resources, setResources] = useState<ResourceItem[]>(() => {
-    if (customResources && customResources.length > 0) return customResources;
+    const deleted = getDeletedMembers();
+    if (customResources && customResources.length > 0) {
+      return customResources.filter(
+        (p) => !deleted.has(p.name?.toLowerCase().trim()) && !deleted.has(String(p.id).toLowerCase().trim())
+      );
+    }
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
@@ -103,7 +109,9 @@ export function ResourcesView({
             localStorage.removeItem(STORAGE_KEY);
             return [];
           }
-          return parsed;
+          return parsed.filter(
+            (p: any) => !deleted.has(p.name?.toLowerCase().trim()) && !deleted.has(String(p.id).toLowerCase().trim())
+          );
         }
       } catch (e) {
         console.error("Failed to parse stored resources:", e);
@@ -170,8 +178,12 @@ export function ResourcesView({
   // Cloud synchronization with Supabase: listen for cross-user sync and poll periodically
   useEffect(() => {
     const handleSync = (e: any) => {
-      if (e.detail && Array.isArray(e.detail) && e.detail.length > 0) {
-        setResources(e.detail);
+      if (e.detail && Array.isArray(e.detail)) {
+        const deleted = getDeletedMembers();
+        const filtered = e.detail.filter(
+          (p: any) => !deleted.has(p.name?.toLowerCase().trim()) && !deleted.has(String(p.id).toLowerCase().trim())
+        );
+        setResources(filtered);
       }
     };
     window.addEventListener("resourcepulse-team-synced", handleSync);
@@ -179,7 +191,11 @@ export function ResourcesView({
     // Initial sync from Supabase
     void syncOrganizationResources(currentTeamName).then((roster) => {
       if (roster && roster.length > 0) {
-        setResources(roster);
+        const deleted = getDeletedMembers();
+        const filtered = roster.filter(
+          (p: any) => !deleted.has(p.name?.toLowerCase().trim()) && !deleted.has(String(p.id).toLowerCase().trim())
+        );
+        setResources(filtered);
       }
     });
 
