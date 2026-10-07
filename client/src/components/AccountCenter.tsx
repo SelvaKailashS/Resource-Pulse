@@ -1,6 +1,7 @@
 import { startLogin } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { setAnalyticsConsent, track } from "@/lib/analytics";
+import { fetchOrganizationWorkspace, syncOrganizationResources } from "@/lib/supabase";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -83,7 +84,7 @@ export function AccountCenter({
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [resetEmail, setResetEmail] = useState(user?.email ?? "");
 
-  const studentTeamMembers = useMemo(() => {
+  const [studentTeamMembers, setStudentTeamMembers] = useState<any[]>(() => {
     try {
       const stored = localStorage.getItem("resourcepulse_student_resources");
       if (stored) {
@@ -92,6 +93,27 @@ export function AccountCenter({
       }
     } catch {}
     return [];
+  });
+
+  // Sync team members from Supabase cloud when account center is opened
+  useEffect(() => {
+    const handleSync = (e: any) => {
+      if (e.detail && Array.isArray(e.detail) && e.detail.length > 0) {
+        setStudentTeamMembers(e.detail);
+      }
+    };
+    window.addEventListener("resourcepulse-team-synced", handleSync);
+
+    const team = localStorage.getItem("resourcepulse_team_name") || "Operations Team";
+    void syncOrganizationResources(team).then((roster) => {
+      if (roster && roster.length > 0) {
+        setStudentTeamMembers(roster);
+      }
+    });
+
+    return () => {
+      window.removeEventListener("resourcepulse-team-synced", handleSync);
+    };
   }, [open]);
 
   // Local cash entries for student project budgeting

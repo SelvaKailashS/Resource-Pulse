@@ -33,7 +33,7 @@ import { CalendarSyncModal } from "@/components/CalendarSyncModal";
 import { loadInitialResources, loadInitialProjects, computeOrgMetrics, loadThresholds, loadSectorConfig } from "@/lib/orgStore";
 import { SECTORS } from "@shared/sectorsData";
 import { track } from "@/lib/analytics";
-import { recordTaskAssignment, recordApprovalDecision } from "@/lib/supabase";
+import { recordTaskAssignment, recordApprovalDecision, syncOrganizationResources } from "@/lib/supabase";
 import {
   Activity,
   ArrowDownRight,
@@ -222,6 +222,33 @@ function Home() {
       if (res[0]?.name) setSimulationPerson(res[0].name);
     } catch {}
   }, [activeNav]);
+
+  // Synchronize team members across devices via Supabase cloud
+  useEffect(() => {
+    const handleTeamSynced = (e: any) => {
+      if (e.detail && Array.isArray(e.detail) && e.detail.length > 0) {
+        setRealTeammates(e.detail);
+      }
+    };
+    window.addEventListener("resourcepulse-team-synced", handleTeamSynced);
+
+    // Initial sync from Supabase
+    void syncOrganizationResources(teamName).then((roster) => {
+      if (roster && roster.length > 0) {
+        setRealTeammates(roster);
+      }
+    });
+
+    // Auto-poll Supabase every 8 seconds to detect newly joined teammates
+    const interval = setInterval(() => {
+      void syncOrganizationResources(teamName);
+    }, 8000);
+
+    return () => {
+      window.removeEventListener("resourcepulse-team-synced", handleTeamSynced);
+      clearInterval(interval);
+    };
+  }, [teamName]);
 
   const speakAnnouncement = (text: string) => {
     if ("speechSynthesis" in window) {

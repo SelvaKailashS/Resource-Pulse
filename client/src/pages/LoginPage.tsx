@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { AuthUser } from "@/_core/hooks/useAuth";
-import { recordUserAccount, recordTeamMember, fetchUserAccount } from "@/lib/supabase";
+import {
+  recordUserAccount,
+  recordTeamMember,
+  fetchUserAccount,
+  fetchOrganizationWorkspace,
+  syncOrganizationResources,
+} from "@/lib/supabase";
 import {
   Zap,
   Lock,
@@ -265,6 +271,9 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         localStorage.setItem("resourcepulse_enterprise_resources_v2", JSON.stringify(updatedRoster));
         void recordTeamMember(leadMember);
       }
+
+      // Synchronize full cloud organization workspace from Supabase
+      void syncOrganizationResources(resolvedTeam);
     } catch (e) {
       console.error("Local sync error:", e);
     }
@@ -415,7 +424,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
     }, 500);
   };
 
-  const handleJoinTeam = (e: React.FormEvent) => {
+  const handleJoinTeam = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !email.trim() || !password.trim()) {
       toast.error("Incomplete information", { description: "Please enter your name, email, and password." });
@@ -423,9 +432,8 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
 
+    try {
       const resolvedTeamName = teamName.trim() || "Operations Team";
       const finalTeamCode = teamCode.trim() || "RP-JOINED";
 
@@ -441,31 +449,40 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         permissionSet: "dashboard.read,cash.write",
       };
 
+      // 1. Fetch existing team members already in this organization from Supabase cloud database
       let existingTeam: any[] = [];
       try {
-        const stored = localStorage.getItem("resourcepulse_student_resources");
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed)) existingTeam = parsed;
+        const cloudMembers = await fetchOrganizationWorkspace(resolvedTeamName);
+        if (cloudMembers && cloudMembers.length > 0) {
+          existingTeam = cloudMembers;
+        } else {
+          const stored = localStorage.getItem("resourcepulse_student_resources");
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed)) existingTeam = parsed;
+          }
         }
-      } catch {}
+      } catch (err) {
+        console.warn("Could not fetch cloud workspace members:", err);
+      }
 
       const newTeammate = {
         id: `MEM-${Date.now().toString().slice(-4)}`,
         name: name.trim(),
         role: roleTitle,
-        type: "Contributor" as const,
+        type: "Core Member" as const,
         status: "Available" as const,
         utilization: 50,
         weeklyHours: Number(weeklyHours) || 40,
         project: primaryTask.trim() || "Team Deliverables",
-        skills: [roleTitle],
+        skills: [roleTitle, field],
         costRate: "Internal Resource",
         risk: "Low" as const,
         avatarText: name.trim().split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "TM",
         avatarBg: "from-emerald-600 to-teal-500",
         upcoming: "Onboarding and deliverable alignment",
         constraints: "",
+        email: email.trim(),
       };
 
       const updatedTeam = [
@@ -473,36 +490,35 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         newTeammate,
       ];
 
-      try {
-        localStorage.setItem("resourcepulse_session_user", JSON.stringify(user));
-        localStorage.setItem("resourcepulse_team_name", resolvedTeamName);
-        localStorage.setItem("resourcepulse_team_code", finalTeamCode);
-        localStorage.setItem("resourcepulse_selected_field", field);
-        localStorage.setItem("resourcepulse_student_resources", JSON.stringify(updatedTeam));
-        const matched = SECTORS.find((s) => s.name === field || s.id === field) || SECTORS[0];
-        lockSectorConfig(matched.id, matched.name);
+      localStorage.setItem("resourcepulse_session_user", JSON.stringify(user));
+      localStorage.setItem("resourcepulse_team_name", resolvedTeamName);
+      localStorage.setItem("resourcepulse_team_code", finalTeamCode);
+      localStorage.setItem("resourcepulse_selected_field", field);
+      localStorage.setItem("resourcepulse_student_resources", JSON.stringify(updatedTeam));
+      localStorage.setItem("resourcepulse_enterprise_resources_v2", JSON.stringify(updatedTeam));
+      const matched = SECTORS.find((s) => s.name === field || s.id === field) || SECTORS[0];
+      lockSectorConfig(matched.id, matched.name);
 
-        // Save to persistent registry
-        const regMap = JSON.parse(localStorage.getItem("resourcepulse_registered_users") || "{}");
-        regMap[email.trim().toLowerCase()] = {
-          name: name.trim(),
-          email: email.trim(),
-          teamName: resolvedTeamName,
-          field: field,
-          role: "member",
-        };
-        localStorage.setItem("resourcepulse_registered_users", JSON.stringify(regMap));
-      } catch {}
+      // Save to persistent registry
+      const regMap = JSON.parse(localStorage.getItem("resourcepulse_registered_users") || "{}");
+      regMap[email.trim().toLowerCase()] = {
+        name: name.trim(),
+        email: email.trim(),
+        teamName: resolvedTeamName,
+        field: field,
+        role: "member",
+      };
+      localStorage.setItem("resourcepulse_registered_users", JSON.stringify(regMap));
 
       // Record in Supabase
-      void recordUserAccount({
+      await recordUserAccount({
         name: user.name || "",
         email: user.email || "",
         teamName: resolvedTeamName,
         field: field,
         role: "member",
       });
-      void recordTeamMember({
+      await recordTeamMember({
         id: newTeammate.id,
         name: newTeammate.name,
         role: newTeammate.role,
@@ -512,11 +528,19 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         status: newTeammate.status,
       });
 
+      // Synchronize full cloud organization workspace
+      await syncOrganizationResources(resolvedTeamName);
+
+      setIsLoading(false);
       toast.success(`Welcome to ${resolvedTeamName}, ${user.name}!`, {
-        description: `Successfully joined as ${roleTitle}.`,
+        description: `Successfully joined! Synchronized with ${updatedTeam.length} teammates.`,
       });
       onLoginSuccess(user);
-    }, 450);
+    } catch (err) {
+      console.error("Join team failed:", err);
+      setIsLoading(false);
+      toast.error("Error joining team", { description: "Please try again." });
+    }
   };
 
   return (

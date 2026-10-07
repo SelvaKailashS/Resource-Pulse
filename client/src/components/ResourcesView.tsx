@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { recordTeamMember } from "@/lib/supabase";
+import { recordTeamMember, syncOrganizationResources } from "@/lib/supabase";
 import {
   Search,
   Users,
@@ -136,6 +136,33 @@ export function ResourcesView({
   const inviteLink = typeof window !== "undefined"
     ? `${window.location.origin}/?join=${teamCode}&team=${encodeURIComponent(currentTeamName)}`
     : "";
+
+  // Cloud synchronization with Supabase: listen for cross-user sync and poll periodically
+  useEffect(() => {
+    const handleSync = (e: any) => {
+      if (e.detail && Array.isArray(e.detail) && e.detail.length > 0) {
+        setResources(e.detail);
+      }
+    };
+    window.addEventListener("resourcepulse-team-synced", handleSync);
+
+    // Initial sync from Supabase
+    void syncOrganizationResources(currentTeamName).then((roster) => {
+      if (roster && roster.length > 0) {
+        setResources(roster);
+      }
+    });
+
+    // Auto-poll Supabase every 8 seconds to detect newly joined teammates
+    const interval = setInterval(() => {
+      void syncOrganizationResources(currentTeamName);
+    }, 8000);
+
+    return () => {
+      window.removeEventListener("resourcepulse-team-synced", handleSync);
+      clearInterval(interval);
+    };
+  }, [currentTeamName]);
 
   const sendWhatsAppNotification = (res: ResourceItem, contextNote?: string) => {
     const text =

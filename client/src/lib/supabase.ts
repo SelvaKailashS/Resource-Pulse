@@ -217,3 +217,163 @@ export async function fetchTeamMembers() {
     return [];
   }
 }
+
+export interface SyncedTeamMember {
+  id: string;
+  name: string;
+  role: string;
+  type: string;
+  status: "Available" | "High Load" | "Overallocated" | "Unavailable";
+  utilization: number;
+  weeklyHours: number;
+  project: string;
+  skills: string[];
+  costRate: string;
+  risk: "Low" | "Medium" | "High";
+  avatarText: string;
+  avatarBg: string;
+  upcoming: string;
+  constraints: string;
+  email?: string;
+  phone?: string;
+}
+
+/**
+ * Fetch all users and team members belonging to the organization workspace from Supabase
+ */
+export async function fetchOrganizationWorkspace(targetTeamName?: string): Promise<SyncedTeamMember[]> {
+  try {
+    const teamName =
+      targetTeamName ||
+      localStorage.getItem("resourcepulse_team_name") ||
+      "Operations Team";
+
+    let usersQuery = supabase.from("users").select("*");
+    if (teamName && teamName !== "Operations Team" && teamName !== "Operations Team Alpha") {
+      usersQuery = usersQuery.ilike("team_name", `%${teamName.trim()}%`);
+    }
+
+    const [usersRes, membersRes] = await Promise.all([
+      usersQuery,
+      supabase.from("team_members").select("*").order("created_at", { ascending: true }),
+    ]);
+
+    const usersList: any[] = usersRes.data || [];
+    const membersList: any[] = membersRes.data || [];
+
+    const memberMapByName = new Map<string, any>();
+    membersList.forEach((m) => {
+      if (m.name) memberMapByName.set(m.name.trim().toLowerCase(), m);
+    });
+
+    const roster: SyncedTeamMember[] = [];
+    const seenNames = new Set<string>();
+
+    // 1. Process all registered users for this team
+    for (const u of usersList) {
+      const lowerName = (u.name || "").trim().toLowerCase();
+      if (!lowerName || seenNames.has(lowerName)) continue;
+      seenNames.add(lowerName);
+
+      const matchedMember = memberMapByName.get(lowerName);
+      const isLead = u.role === "admin" || (matchedMember?.role && matchedMember.role.toLowerCase().includes("lead"));
+      const resolvedRole = matchedMember?.role || (isLead ? "Team Lead / Project Coordinator" : "Core Member");
+      const resolvedProject = matchedMember?.project || (isLead ? "Architecture, Gateway & Core Integration" : "Team Deliverables");
+
+      roster.push({
+        id: matchedMember?.id || `MEM-${u.id || Math.floor(1000 + Math.random() * 9000)}`,
+        name: u.name,
+        role: resolvedRole,
+        type: isLead ? "Team Lead" : "Core Member",
+        status: (matchedMember?.status as any) || "Available",
+        utilization: Number(matchedMember?.utilization) || 50,
+        weeklyHours: Number(matchedMember?.weekly_hours) || 40,
+        project: resolvedProject,
+        skills: [resolvedRole, u.field || "IT & Software"],
+        costRate: "Internal Resource",
+        risk: "Low",
+        avatarText: (u.name || "TM")
+          .split(" ")
+          .map((n: string) => n[0])
+          .join("")
+          .toUpperCase()
+          .slice(0, 2),
+        avatarBg: isLead ? "from-blue-600 to-cyan-500" : "from-emerald-600 to-teal-500",
+        upcoming: "Workspace setup & deliverable execution",
+        constraints: "",
+        email: u.email,
+      });
+    }
+
+    // 2. Also include any remaining team_members if users table doesn't have them yet
+    for (const m of membersList) {
+      const lowerName = (m.name || "").trim().toLowerCase();
+      if (!lowerName || seenNames.has(lowerName)) continue;
+      seenNames.add(lowerName);
+
+      const isLead = m.role && m.role.toLowerCase().includes("lead");
+      roster.push({
+        id: m.id || `MEM-${Math.floor(1000 + Math.random() * 9000)}`,
+        name: m.name,
+        role: m.role || "Core Member",
+        type: isLead ? "Team Lead" : "Core Member",
+        status: (m.status as any) || "Available",
+        utilization: Number(m.utilization) || 50,
+        weeklyHours: Number(m.weekly_hours) || 40,
+        project: m.project || "Team Deliverables",
+        skills: [m.role || "Core Contributor"],
+        costRate: "Internal Resource",
+        risk: "Low",
+        avatarText: (m.name || "TM")
+          .split(" ")
+          .map((n: string) => n[0])
+          .join("")
+          .toUpperCase()
+          .slice(0, 2),
+        avatarBg: isLead ? "from-blue-600 to-cyan-500" : "from-teal-600 to-emerald-500",
+        upcoming: "Sprint deliverable coordination",
+        constraints: "",
+      });
+    }
+
+    // Sort to keep Team Lead first
+    roster.sort((a, b) => (a.type === "Team Lead" ? -1 : b.type === "Team Lead" ? 1 : 0));
+
+    return roster;
+  } catch (err) {
+    console.warn("[Supabase] Failed to fetch organization workspace:", err);
+    return [];
+  }
+}
+
+/**
+ * Synchronize local storage and UI events with Supabase organization workspace
+ */
+export async function syncOrganizationResources(targetTeamName?: string): Promise<SyncedTeamMember[]> {
+  const roster = await fetchOrganizationWorkspace(targetTeamName);
+  if (roster.length > 0) {
+    try {
+      localStorage.setItem("resourcepulse_student_resources", JSON.stringify(roster));
+      const enterprise = roster.map((r) => ({
+        id: r.id,
+        name: r.name,
+        role: r.role,
+        department: r.type || "Engineering",
+        type: "People",
+        skills: r.skills || [],
+        status: r.status === "Overallocated" ? "Overallocated" : r.status === "Unavailable" ? "On Leave" : "Available",
+        weeklyCapacityHours: r.weeklyHours || 40,
+        assignedHours: Math.round(((r.weeklyHours || 40) * (r.utilization || 50)) / 100),
+        utilization: r.utilization || 50,
+        costPerHour: 50,
+        currentProjects: r.project ? [r.project] : [],
+        employmentType: "Full-Time",
+      }));
+      localStorage.setItem("resourcepulse_enterprise_resources_v2", JSON.stringify(enterprise));
+      window.dispatchEvent(new CustomEvent("resourcepulse-team-synced", { detail: roster }));
+    } catch (e) {
+      console.warn("Error updating local store during sync:", e);
+    }
+  }
+  return roster;
+}
