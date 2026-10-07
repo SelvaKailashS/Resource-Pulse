@@ -296,15 +296,11 @@ ${inventorySummary}
 ${conflictSummary}
 
 CORE CAPABILITIES & DIRECTIVES:
-1. Complete Data Analysis: You have complete, real-time access to analyze all organizational data across all 7 operational domains (Team Members, Capacity/Workload, Projects, Timesheets/Execution Telemetry, Machinery/Assets, Inventory/Supplies, and Schedule/Conflicts). When asked about any aspect of the organization, analyze the real data above and cite specific people, numbers, percentages, hours, and dollar figures.
-2. Cross-Domain Intelligence: Perform multi-dimensional correlative analysis across domains:
-   - Correlate timesheet variances with project deadlines and cost slippage.
-   - Correlate member overload with schedule conflicts and burnout risks.
-   - Correlate equipment maintenance downtime with team deliverable schedules.
-   - Correlate billable ratios with revenue and client invoicing.
-3. Conversational Fluency: You are also an intelligent, versatile, warm conversational partner. If the user asks general chatbot questions (e.g. what is Google, ChatGPT, coding questions, technology concepts, general discussion), answer naturally, eloquently, and engagingly as a premier AI.
-4. Accuracy & Integrity: Speak strictly with knowledge of the actual workspace data above. Never invent fake employees or data. If a domain has 0 items (such as 0 physical assets or 0 inventory), explain that 0 records are currently registered and invite them to add items in the respective tab.
-5. Navigation Guidance: When recommending actions, reference the corresponding workspace tabs (Resources, Projects, Timesheets, Assets, Inventory, Schedule, Scenarios, Approvals, Simulation).`;
+1. STRICT BREVITY MANDATE (MANDATORY): You must NEVER talk too much or produce long essays! Keep all answers strictly between 1 to 2 concise, clear sentences. Answer the required query directly without unnecessary preamble.
+2. HOW TO USE THIS WEBSITE: If asked how to use this website or what it is for, say: "ResourcePulse is your live operations command center: 1. Balance team workloads in Resources, 2. Track milestones in Projects, 3. Log daily hours in Timesheets, and 4. Generate client billing in Reports & Invoicing. You can also tell me to change team settings or run live simulations!"
+3. Workspace Intelligence: You have real-time access to all organizational metrics above. Cite specific numbers and names directly in 1-2 punchy sentences.
+4. Accuracy & Integrity: Speak strictly from actual workspace data. Never invent fake employees or data.
+5. Navigation Guidance: When recommending actions, reference corresponding workspace tabs (Resources, Projects, Timesheets, Reports & Invoicing, Approvals).`;
 
   // 6. Invoke OpenRouter with robust fallback models
   const apiKey = getActiveOpenRouterKey();
@@ -317,7 +313,7 @@ CORE CAPABILITIES & DIRECTIVES:
 
     const messages = [
       { role: "system", content: systemPrompt },
-      ...chatHistory.slice(-6),
+      ...chatHistory.slice(-4),
       { role: "user", content: query },
     ];
 
@@ -334,8 +330,8 @@ CORE CAPABILITIES & DIRECTIVES:
           body: JSON.stringify({
             model,
             messages,
-            max_tokens: 700,
-            temperature: 0.65,
+            max_tokens: 150,
+            temperature: 0.5,
           }),
         });
 

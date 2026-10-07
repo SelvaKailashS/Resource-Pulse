@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { askLiveCopilot, type ChatHistoryMessage } from "@/lib/openRouterClient";
-import { recordCopilotChat } from "@/lib/supabase";
+import { recordCopilotChat, recordTeamMember, recordDeletedMember } from "@/lib/supabase";
 import {
   loadInitialResources,
   loadInitialProjects,
@@ -337,6 +337,115 @@ export function VoiceAssistantCopilot({
     void recordCopilotChat("user", text);
 
     const lower = text.toLowerCase();
+
+    // 0. How to use this website
+    if (
+      lower.includes("how to use") ||
+      lower.includes("how do i use") ||
+      lower.includes("what is this website") ||
+      lower.includes("how this website works") ||
+      lower.includes("how does this work") ||
+      lower === "guide" ||
+      lower === "help"
+    ) {
+      handleAIResponse(
+        "ResourcePulse is your live operations command center: 1. Balance team workloads in Resources, 2. Track milestones in Projects, 3. Log daily hours in Timesheets, and 4. Generate client billing in Reports & Invoicing. You can also tell me to change team settings or run live simulations!",
+        "open_home"
+      );
+      return;
+    }
+
+    // 0b. Admin Command: Rename Team / Workspace
+    const renameMatch = text.match(/(?:change|update|rename|set)\s+(?:the\s+)?(?:team|workspace|organization|org)(?:\s+name)?(?:\s+to)?\s+[:"']?([A-Za-z0-9\s&_-]+?)["']?$/i);
+    if (renameMatch && renameMatch[1]) {
+      const newTeam = renameMatch[1].trim();
+      localStorage.setItem("resourcepulse_team_name", newTeam);
+      localStorage.setItem("resourcepulse_last_registered_team", newTeam);
+      window.dispatchEvent(new CustomEvent("resourcepulse-team-renamed", { detail: newTeam }));
+      toast.success(`Workspace renamed to "${newTeam}"`);
+      handleAIResponse(`Done! Workspace team name has been updated to "${newTeam}".`, "open_home");
+      return;
+    }
+
+    // 0c. Admin Command: Assign Teammate to Task / Deliverable
+    const assignMatch = text.match(/(?:assign|allocate|set)\s+([A-Za-z\s]+?)\s+to\s+[:"']?([A-Za-z0-9\s&,._-]+?)["']?$/i);
+    if (assignMatch && assignMatch[1] && assignMatch[2] && !assignMatch[2].match(/^\d+$/)) {
+      const targetName = assignMatch[1].trim();
+      const targetTask = assignMatch[2].trim();
+      let roster: any[] = [];
+      try {
+        const raw = localStorage.getItem("resourcepulse_student_resources");
+        if (raw) roster = JSON.parse(raw);
+      } catch {}
+      const foundIdx = roster.findIndex((m: any) => m.name.toLowerCase().includes(targetName.toLowerCase()));
+      if (foundIdx !== -1) {
+        roster[foundIdx].project = targetTask;
+        localStorage.setItem("resourcepulse_student_resources", JSON.stringify(roster));
+        localStorage.setItem("resourcepulse_enterprise_resources_v2", JSON.stringify(roster));
+        window.dispatchEvent(new CustomEvent("resourcepulse-team-synced", { detail: roster }));
+        void recordTeamMember(roster[foundIdx]);
+        toast.success(`Assigned ${roster[foundIdx].name} to "${targetTask}"`);
+        handleAIResponse(`Task assigned! ${roster[foundIdx].name} is now allocated to "${targetTask}".`, "open_resources");
+        return;
+      }
+    }
+
+    // 0d. Admin Command: Set Teammate Hours / Capacity
+    const hoursMatch = text.match(/(?:set|change|update)\s+([A-Za-z\s]+?)(?:'s)?\s+(?:hours|capacity)\s+to\s+(\d+)/i);
+    if (hoursMatch && hoursMatch[1] && hoursMatch[2]) {
+      const targetName = hoursMatch[1].trim();
+      const newHours = parseInt(hoursMatch[2], 10);
+      let roster: any[] = [];
+      try {
+        const raw = localStorage.getItem("resourcepulse_student_resources");
+        if (raw) roster = JSON.parse(raw);
+      } catch {}
+      const foundIdx = roster.findIndex((m: any) => m.name.toLowerCase().includes(targetName.toLowerCase()));
+      if (foundIdx !== -1 && !isNaN(newHours)) {
+        roster[foundIdx].weeklyHours = newHours;
+        roster[foundIdx].utilization = Math.min(100, Math.round((newHours / 40) * 50));
+        localStorage.setItem("resourcepulse_student_resources", JSON.stringify(roster));
+        localStorage.setItem("resourcepulse_enterprise_resources_v2", JSON.stringify(roster));
+        window.dispatchEvent(new CustomEvent("resourcepulse-team-synced", { detail: roster }));
+        void recordTeamMember(roster[foundIdx]);
+        toast.success(`Updated capacity for ${roster[foundIdx].name}`);
+        handleAIResponse(`Updated ${roster[foundIdx].name}'s weekly capacity to ${newHours} hours.`, "open_resources");
+        return;
+      }
+    }
+
+    // 0e. Admin Command: Delete / Remove Member
+    const deleteMatch = text.match(/(?:delete|remove|drop)\s+(?:member|teammate|person|user)?\s+([A-Za-z\s]+?)$/i);
+    if (deleteMatch && deleteMatch[1] && !lower.includes("alert") && !lower.includes("task") && !lower.includes("project")) {
+      const targetName = deleteMatch[1].trim();
+      let roster: any[] = [];
+      try {
+        const raw = localStorage.getItem("resourcepulse_student_resources");
+        if (raw) roster = JSON.parse(raw);
+      } catch {}
+      const found = roster.find((m: any) => m.name.toLowerCase().includes(targetName.toLowerCase()));
+      if (found) {
+        const updated = roster.filter((m: any) => m.id !== found.id && m.name.toLowerCase() !== found.name.toLowerCase());
+        localStorage.setItem("resourcepulse_student_resources", JSON.stringify(updated));
+        localStorage.setItem("resourcepulse_enterprise_resources_v2", JSON.stringify(updated));
+        recordDeletedMember(found.id, found.name);
+        window.dispatchEvent(new CustomEvent("resourcepulse-team-synced", { detail: updated }));
+        toast.success(`Removed ${found.name} from workspace`);
+        handleAIResponse(`Done. ${found.name} has been removed from the team roster.`, "open_resources");
+        return;
+      }
+    }
+
+    // 0f. Direct simulation trigger
+    if (
+      lower.includes("run simulation") ||
+      lower.includes("simulate") ||
+      lower.includes("start simulation")
+    ) {
+      onLaunchSimulation();
+      handleAIResponse("Starting live workload rebalancing simulation now!", "run_simulation");
+      return;
+    }
 
     // 1. Direct explicit navigation triggers
     if (
