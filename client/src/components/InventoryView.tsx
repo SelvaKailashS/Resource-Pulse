@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useAuth } from "@/_core/hooks/useAuth";
 import {
   Boxes,
   Plus,
@@ -19,6 +20,13 @@ import { InventoryItem, Project } from "@shared/orgTypes";
 import { loadInitialInventory, saveInventory, loadInitialProjects } from "@/lib/orgStore";
 
 export function InventoryView() {
+  const { user } = useAuth();
+  const isAdmin = Boolean(
+    user?.role === "admin" ||
+    (user?.email && (user.email === "salujaradha9@gmail.com" || user.email.includes("kailash"))) ||
+    (user?.name && user.name.toLowerCase().includes("kailash"))
+  );
+
   const [items, setItems] = useState<InventoryItem[]>(() => loadInitialInventory());
   const [projects] = useState<Project[]>(() => loadInitialProjects());
   const [search, setSearch] = useState("");
@@ -89,6 +97,10 @@ export function InventoryView() {
   };
 
   const handleDeleteItem = (id: string, name: string) => {
+    if (!isAdmin) {
+      toast.error("Permission Denied: Only Workspace Admin (Kailash) can delete inventory SKUs.");
+      return;
+    }
     if (confirm(`Remove "${name}" from inventory?`)) {
       const updated = items.filter((it) => it.id !== id);
       setItems(updated);
@@ -337,13 +349,15 @@ export function InventoryView() {
                           >
                             <RotateCcw className="w-3.5 h-3.5" />
                           </button>
-                          <button
-                            onClick={() => handleDeleteItem(item.id, item.name)}
-                            title="Remove SKU"
-                            className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleDeleteItem(item.id, item.name)}
+                              title="Remove SKU (Admin Only)"
+                              className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

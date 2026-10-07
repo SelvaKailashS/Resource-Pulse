@@ -1,6 +1,12 @@
 import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { recordTeamMember, syncOrganizationResources } from "@/lib/supabase";
+import {
+  recordTeamMember,
+  syncOrganizationResources,
+  deleteTeamMember,
+  submitTeammateChangeRequest,
+  loadChangeRequests,
+} from "@/lib/supabase";
 import {
   Search,
   Users,
@@ -60,6 +66,30 @@ export function ResourcesView({
   customResources?: ResourceItem[];
 }) {
   const { user } = useAuth();
+  const isAdmin = Boolean(
+    user?.role === "admin" ||
+    (user?.email && (user.email === "salujaradha9@gmail.com" || user.email.includes("kailash"))) ||
+    (user?.name && user.name.toLowerCase().includes("kailash"))
+  );
+
+  const [governanceNotice, setGovernanceNotice] = useState<any>(() => {
+    try {
+      const raw = localStorage.getItem("resourcepulse_governance_notices");
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return null;
+  });
+
+  useEffect(() => {
+    const handleNotice = () => {
+      try {
+        const raw = localStorage.getItem("resourcepulse_governance_notices");
+        if (raw) setGovernanceNotice(JSON.parse(raw));
+      } catch {}
+    };
+    window.addEventListener("resourcepulse-governance-notice", handleNotice);
+    return () => window.removeEventListener("resourcepulse-governance-notice", handleNotice);
+  }, []);
 
   const [resources, setResources] = useState<ResourceItem[]>(() => {
     if (customResources && customResources.length > 0) return customResources;
@@ -532,6 +562,37 @@ export function ResourcesView({
       formUtilization > 85 ? "High" : formUtilization > 70 ? "Medium" : "Low";
 
     if (editingId) {
+      if (!isAdmin) {
+        // Non-admin teammates must submit an approval request to the Admin
+        const targetMember = resources.find((r) => r.id === editingId);
+        void submitTeammateChangeRequest({
+          requesterName: user?.name || "Teammate",
+          requesterEmail: user?.email || undefined,
+          targetMemberId: editingId,
+          targetMemberName: formName.trim(),
+          currentValues: {
+            role: targetMember?.role || formRole,
+            project: targetMember?.project || formProject,
+            weeklyHours: targetMember?.weeklyHours || formWeeklyHours,
+            utilization: targetMember?.utilization || formUtilization,
+            status: targetMember?.status || formStatus,
+          },
+          requestedChanges: {
+            role: formRole.trim(),
+            project: formProject.trim() || "Project Deliverable",
+            weeklyHours: formWeeklyHours,
+            utilization: formUtilization,
+            status: formStatus,
+          },
+        });
+        toast.info("Change Request Sent to Admin", {
+          description: `Update for ${formName} submitted to Admin Kailash. Awaiting approval.`,
+        });
+        setIsFormOpen(false);
+        return;
+      }
+
+      // Admin directly updates
       setResources((prev) =>
         prev.map((item) =>
           item.id === editingId
@@ -563,7 +624,7 @@ export function ResourcesView({
         utilization: formUtilization,
         status: formStatus,
       });
-      toast.success("Teammate Updated", {
+      toast.success("Teammate Updated by Admin", {
         description: `${formName}’s workload details saved.`,
       });
     } else {
@@ -612,13 +673,20 @@ export function ResourcesView({
 
   const handleDeleteTeammate = (id: string, name: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+    if (!isAdmin) {
+      toast.error("Permission Denied", {
+        description: "Only the organization Admin (Kailash) can delete team members and resources.",
+      });
+      return;
+    }
     if (confirm(`Remove ${name} from your team roster?`)) {
       setResources((prev) => prev.filter((item) => item.id !== id));
       if (selectedResource?.id === id) {
         setSelectedResource(null);
       }
+      void deleteTeamMember(id, name);
       toast.info(`Removed ${name}`, {
-        description: "Team roster updated.",
+        description: "Team member deleted by Admin and synced to database.",
       });
     }
   };
@@ -737,6 +805,35 @@ export function ResourcesView({
           </button>
         </div>
       </div>
+
+      {/* Real-time Workspace Governance Notice */}
+      {governanceNotice && (
+        <div
+          className={`p-3.5 mb-3 rounded-xl flex items-center justify-between gap-3 text-xs font-semibold border ${
+            governanceNotice.type === "APPROVED"
+              ? "bg-emerald-950/70 border-emerald-500/50 text-emerald-200"
+              : "bg-rose-950/70 border-rose-500/50 text-rose-200"
+          }`}
+        >
+          <div className="flex items-center gap-2.5">
+            {governanceNotice.type === "APPROVED" ? (
+              <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+            ) : (
+              <AlertTriangle size={16} className="text-rose-400 shrink-0" />
+            )}
+            <span>{governanceNotice.text}</span>
+          </div>
+          <button
+            onClick={() => {
+              setGovernanceNotice(null);
+              localStorage.removeItem("resourcepulse_governance_notices");
+            }}
+            className="text-slate-400 hover:text-white p-1 rounded hover:bg-slate-800/60 cursor-pointer"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       <div className="resources-controls">
         <div className="search-box">
@@ -920,18 +1017,20 @@ export function ResourcesView({
                       </button>
                       <button
                         className="p-1.5 rounded-lg text-slate-400 hover:text-sky-300 hover:bg-slate-800 transition-colors"
-                        title="Edit Teammate"
+                        title={isAdmin ? "Edit Teammate (Admin Direct Update)" : "Request Changes (Admin Approval Required)"}
                         onClick={(e) => openEditModal(item, e)}
                       >
                         <Edit3 size={14} />
                       </button>
-                      <button
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors"
-                        title="Remove Teammate"
-                        onClick={(e) => handleDeleteTeammate(item.id, item.name, e)}
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      {isAdmin && (
+                        <button
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors"
+                          title="Remove Teammate (Admin Only)"
+                          onClick={(e) => handleDeleteTeammate(item.id, item.name, e)}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -955,20 +1054,35 @@ export function ResourcesView({
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-white">
-                    {editingId ? "Edit Team Member" : "Add Team Member"}
+                    {editingId
+                      ? isAdmin
+                        ? "Edit Team Member (Admin Direct Update)"
+                        : "Submit Teammate Change Request to Admin"
+                      : "Add Team Member"}
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Team member credentials and workload allocation
+                    {editingId && !isAdmin
+                      ? "Request updates to role, deliverables, or capacity from Admin Kailash"
+                      : "Team member credentials and workload allocation"}
                   </p>
                 </div>
               </div>
               <button
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
                 onClick={() => setIsFormOpen(false)}
               >
                 <X size={18} />
               </button>
             </div>
+
+            {editingId && !isAdmin && (
+              <div className="p-3 mb-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
+                <Users size={16} className="text-amber-400 shrink-0" />
+                <span>
+                  <strong>Governance Enforced:</strong> As a team member, submitting this form sends an approval request to Admin Kailash. Your deliverables and capacity will update once approved.
+                </span>
+              </div>
+            )}
 
             {/* Modal Tabs: Invite Link / Team Code vs Manual Entry */}
             {!editingId && (
@@ -1269,9 +1383,13 @@ export function ResourcesView({
                 </button>
                 <button
                   type="submit"
-                  className="primary-button text-xs px-5 py-2 font-bold"
+                  className="primary-button text-xs px-5 py-2 font-bold cursor-pointer"
                 >
-                  {editingId ? "Save Changes" : "Add Teammate"}
+                  {editingId
+                    ? isAdmin
+                      ? "Save Changes (Direct Admin Update)"
+                      : "Send Change Request to Admin Kailash"
+                    : "Add Teammate"}
                 </button>
               </div>
             </form>
@@ -1441,12 +1559,14 @@ export function ResourcesView({
               >
                 Simulate Teammate Absence
               </button>
-              <button
-                className="text-rose-400 hover:text-rose-300 text-xs flex items-center gap-1"
-                onClick={(e) => handleDeleteTeammate(selectedResource.id, selectedResource.name, e)}
-              >
-                <Trash2 size={13} /> Remove from Team
-              </button>
+              {isAdmin && (
+                <button
+                  className="text-rose-400 hover:text-rose-300 text-xs flex items-center gap-1 cursor-pointer"
+                  onClick={(e) => handleDeleteTeammate(selectedResource.id, selectedResource.name, e)}
+                >
+                  <Trash2 size={13} /> Remove from Team (Admin Only)
+                </button>
+              )}
             </div>
           </div>
         </div>

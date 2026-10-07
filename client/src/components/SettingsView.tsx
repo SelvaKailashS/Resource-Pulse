@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAuth } from "@/_core/hooks/useAuth";
 import {
   Sliders,
   Save,
@@ -47,6 +48,13 @@ interface SettingsViewProps {
 }
 
 export function SettingsView({ onSettingsSaved, onOpenSectorModal }: SettingsViewProps) {
+  const { user } = useAuth();
+  const isAdmin = Boolean(
+    user?.role === "admin" ||
+    (user?.email && (user.email === "salujaradha9@gmail.com" || user.email.includes("kailash"))) ||
+    (user?.name && user.name.toLowerCase().includes("kailash"))
+  );
+
   const [activeTab, setActiveTab] = useState<"general" | "sectors" | "custom_types" | "metrics" | "roles">("general");
 
   // General & Thresholds
@@ -76,6 +84,10 @@ export function SettingsView({ onSettingsSaved, onOpenSectorModal }: SettingsVie
 
   const handleSaveGeneral = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAdmin) {
+      toast.error("Permission Denied: Only Workspace Admin (Kailash) can save organization settings.");
+      return;
+    }
     saveThresholds(thresholds);
     localStorage.setItem("resourcepulse_team_name", orgName);
     localStorage.setItem("resourcepulse_selected_field", selectedField);
@@ -84,6 +96,10 @@ export function SettingsView({ onSettingsSaved, onOpenSectorModal }: SettingsVie
   };
 
   const handleResetDefaults = () => {
+    if (!isAdmin) {
+      toast.error("Permission Denied: Only Workspace Admin can reset thresholds.");
+      return;
+    }
     setThresholds(DEFAULT_THRESHOLDS);
     saveThresholds(DEFAULT_THRESHOLDS);
     toast.info("Thresholds reset to default enterprise parameters");
@@ -222,6 +238,16 @@ export function SettingsView({ onSettingsSaved, onOpenSectorModal }: SettingsVie
       {/* TAB 1: General & Thresholds */}
       {activeTab === "general" && (
         <form onSubmit={handleSaveGeneral} className="space-y-6">
+          {!isAdmin && (
+            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2.5">
+              <Lock className="w-4 h-4 shrink-0 text-amber-400" />
+              <div>
+                <strong className="block text-amber-200">Governance Lock Active: Read-Only Mode</strong>
+                <span>Only the Workspace Admin (Kailash) has permission to edit team details, name, and operational thresholds.</span>
+              </div>
+            </div>
+          )}
+
           <div className="border border-border/50 rounded-xl p-5 bg-card/40 space-y-4">
             <div className="flex items-center gap-2">
               <Building className="w-4 h-4 text-primary" />
@@ -231,12 +257,25 @@ export function SettingsView({ onSettingsSaved, onOpenSectorModal }: SettingsVie
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div>
                 <label className="font-medium text-foreground block mb-1">Organization / Team Name</label>
-                <input
-                  type="text"
-                  value={orgName}
-                  onChange={(e) => setOrgName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={orgName}
+                    disabled={!isAdmin}
+                    onChange={(e) => setOrgName(e.target.value)}
+                    className={`w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground ${
+                      !isAdmin ? "opacity-75 cursor-not-allowed bg-muted/40 pr-8" : ""
+                    }`}
+                  />
+                  {!isAdmin && (
+                    <Lock className="w-3.5 h-3.5 text-muted-foreground absolute right-2.5 top-1/2 -translate-y-1/2" />
+                  )}
+                </div>
+                {!isAdmin && (
+                  <p className="text-[10px] text-amber-400/90 mt-1 flex items-center gap-1">
+                    🔒 Only Admin can edit the organization / team name.
+                  </p>
+                )}
               </div>
 
               <div>
@@ -360,9 +399,15 @@ export function SettingsView({ onSettingsSaved, onOpenSectorModal }: SettingsVie
           <div className="flex justify-end">
             <button
               type="submit"
-              className="flex items-center gap-2 px-5 py-2.5 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-xs"
+              disabled={!isAdmin}
+              className={`flex items-center gap-2 px-5 py-2.5 text-xs font-semibold rounded-lg transition-all shadow-xs ${
+                isAdmin
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
+                  : "bg-muted/60 text-muted-foreground cursor-not-allowed border border-border/50"
+              }`}
             >
-              <Save className="w-3.5 h-3.5" /> Save Configuration
+              {isAdmin ? <Save className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+              {isAdmin ? "Save Configuration" : "🔒 Admin Only (Read-Only)"}
             </button>
           </div>
         </form>

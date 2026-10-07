@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useAuth } from "@/_core/hooks/useAuth";
 import {
   Wrench,
   Cpu,
@@ -23,6 +24,13 @@ import { AssetItem, Project } from "@shared/orgTypes";
 import { loadInitialAssets, saveAssets, loadInitialProjects } from "@/lib/orgStore";
 
 export function AssetsView() {
+  const { user } = useAuth();
+  const isAdmin = Boolean(
+    user?.role === "admin" ||
+    (user?.email && (user.email === "salujaradha9@gmail.com" || user.email.includes("kailash"))) ||
+    (user?.name && user.name.toLowerCase().includes("kailash"))
+  );
+
   const [assets, setAssets] = useState<AssetItem[]>(() => loadInitialAssets());
   const [projects] = useState<Project[]>(() => loadInitialProjects());
   const [search, setSearch] = useState("");
@@ -101,6 +109,10 @@ export function AssetsView() {
   };
 
   const handleDeleteAsset = (id: string, name: string) => {
+    if (!isAdmin) {
+      toast.error("Permission Denied: Only Workspace Admin (Kailash) can delete physical assets.");
+      return;
+    }
     if (confirm(`Remove asset "${name}" from registry?`)) {
       const updated = assets.filter((a) => a.id !== id);
       setAssets(updated);
@@ -339,13 +351,15 @@ export function AssetsView() {
                           >
                             <Wrench className="w-3.5 h-3.5" />
                           </button>
-                          <button
-                            onClick={() => handleDeleteAsset(asset.id, asset.name)}
-                            title="Remove Asset"
-                            className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleDeleteAsset(asset.id, asset.name)}
+                              title="Remove Asset (Admin Only)"
+                              className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

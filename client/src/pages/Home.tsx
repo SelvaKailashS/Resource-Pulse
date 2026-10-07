@@ -107,7 +107,6 @@ const navSections: {
     items: [
       { label: "Analytics & Forecasting", icon: TrendingUp },
       { label: "AI Insights", icon: Sparkles },
-      { label: "Scenarios", icon: Layers3 },
     ],
   },
   {
@@ -836,13 +835,6 @@ function Home() {
             />
           )}
 
-          {activeNav === "Scenarios" && (
-            <ScenariosView
-              onNavigateToApprovals={() => setActiveNav("Approvals")}
-              onOpenLiveSimulation={() => setIsLiveSimulationOpen(true)}
-            />
-          )}
-
           {activeNav === "Projects" && (
             <ProjectsView onOpenDataIntake={() => setActiveNav("Data Intake")} />
           )}
@@ -1431,16 +1423,7 @@ function Home() {
                 </div>
               </section>
 
-              <div className="section-heading scenario-heading"><div><span className="eyebrow">Simulate before you move</span><h2>Recovery scenarios</h2></div><button className="text-button" onClick={() => setActiveNav("Scenarios")}>Open simulator & trade-offs <ArrowUpRight size={14} /></button></div>
-              <section className="scenario-section">
-                <div className="scenario-tabs" role="tablist" aria-label="Recovery scenarios">
-                  {liveScenarios.map((scenario) => <button key={scenario.scenarioKey} className={`scenario-tab ${selectedScenario === scenario.scenarioKey ? "selected" : ""}`} onClick={() => setSelectedScenario(scenario.scenarioKey as Scenario)} role="tab" aria-selected={selectedScenario === scenario.scenarioKey}><span className={`scenario-dot dot-${scenario.scenarioKey}`} /><span>{scenario.title}</span><span className="scenario-tab-sub">{scenario.subtitle}</span></button>)}
-                </div>
-                <div className="scenario-detail">
-                  <div className="scenario-title"><div className="scenario-hero-icon"><Sparkles size={18} /></div><div><span className="eyebrow">SELECTED SCENARIO</span><h3>{selected?.title}</h3><p>{selected?.blurb}</p></div><span className="scenario-status"><StatusDot color="blue" /> {selected?.feasible ? "Feasible" : "Needs review"}</span></div>
-                  <div className="scenario-stats"><div><span className="eyebrow">TIME RECOVERED</span><strong>{selected?.timeRecovered}</strong></div><div><span className="eyebrow">EST. COST</span><strong>{selected?.estimatedCost}</strong></div><div><span className="eyebrow">RISK REDUCTION</span><strong className="blue-text">{selected?.riskReduction}</strong></div><button className="primary-button" onClick={() => setActiveNav("Scenarios")}><Play size={14} fill="currentColor" /> Open full simulator</button></div>
-                </div>
-              </section>
+
 
               <section className="bottom-row">
                 <div className="panel activity-panel">

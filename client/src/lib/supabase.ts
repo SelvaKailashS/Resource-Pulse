@@ -276,20 +276,20 @@ export async function fetchOrganizationWorkspace(targetTeamName?: string): Promi
       seenNames.add(lowerName);
 
       const matchedMember = memberMapByName.get(lowerName);
-      const isLead = u.role === "admin" || (matchedMember?.role && matchedMember.role.toLowerCase().includes("lead"));
-      const resolvedRole = matchedMember?.role || (isLead ? "Team Lead / Project Coordinator" : "Core Member");
-      const resolvedProject = matchedMember?.project || (isLead ? "Architecture, Gateway & Core Integration" : "Team Deliverables");
+      const isAdminLead = u.role === "admin" || lowerName === "kailash";
+      const resolvedRole = matchedMember?.role || (isAdminLead ? "Team Lead / Project Coordinator" : "Engineering Specialist");
+      const resolvedProject = matchedMember?.project || (isAdminLead ? "Architecture, Gateway & Core Integration" : "Team Deliverables");
 
       roster.push({
         id: matchedMember?.id || `MEM-${u.id || Math.floor(1000 + Math.random() * 9000)}`,
         name: u.name,
         role: resolvedRole,
-        type: isLead ? "Team Lead" : "Core Member",
+        type: isAdminLead ? "Team Lead" : "Core Member",
         status: (matchedMember?.status as any) || "Available",
         utilization: Number(matchedMember?.utilization) || 50,
         weeklyHours: Number(matchedMember?.weekly_hours) || 40,
         project: resolvedProject,
-        skills: [resolvedRole, u.field || "IT & Software"],
+        skills: matchedMember?.skills || [resolvedRole, u.field || "IT & Software"],
         costRate: "Internal Resource",
         risk: "Low",
         avatarText: (u.name || "TM")
@@ -298,7 +298,7 @@ export async function fetchOrganizationWorkspace(targetTeamName?: string): Promi
           .join("")
           .toUpperCase()
           .slice(0, 2),
-        avatarBg: isLead ? "from-blue-600 to-cyan-500" : "from-emerald-600 to-teal-500",
+        avatarBg: isAdminLead ? "from-blue-600 to-cyan-500" : "from-emerald-600 to-teal-500",
         upcoming: "Workspace setup & deliverable execution",
         constraints: "",
         email: u.email,
@@ -311,12 +311,12 @@ export async function fetchOrganizationWorkspace(targetTeamName?: string): Promi
       if (!lowerName || seenNames.has(lowerName)) continue;
       seenNames.add(lowerName);
 
-      const isLead = m.role && m.role.toLowerCase().includes("lead");
+      const isAdminLead = lowerName === "kailash";
       roster.push({
         id: m.id || `MEM-${Math.floor(1000 + Math.random() * 9000)}`,
         name: m.name,
         role: m.role || "Core Member",
-        type: isLead ? "Team Lead" : "Core Member",
+        type: isAdminLead ? "Team Lead" : "Core Member",
         status: (m.status as any) || "Available",
         utilization: Number(m.utilization) || 50,
         weeklyHours: Number(m.weekly_hours) || 40,
@@ -330,13 +330,13 @@ export async function fetchOrganizationWorkspace(targetTeamName?: string): Promi
           .join("")
           .toUpperCase()
           .slice(0, 2),
-        avatarBg: isLead ? "from-blue-600 to-cyan-500" : "from-teal-600 to-emerald-500",
+        avatarBg: isAdminLead ? "from-blue-600 to-cyan-500" : "from-teal-600 to-emerald-500",
         upcoming: "Sprint deliverable coordination",
         constraints: "",
       });
     }
 
-    // Sort to keep Team Lead first
+    // Sort to keep Admin / Team Lead first
     roster.sort((a, b) => (a.type === "Team Lead" ? -1 : b.type === "Team Lead" ? 1 : 0));
 
     return roster;
@@ -345,6 +345,90 @@ export async function fetchOrganizationWorkspace(targetTeamName?: string): Promi
     return [];
   }
 }
+
+/**
+ * Delete a team member from Supabase (Admin only)
+ */
+export async function deleteTeamMember(id: string, name?: string) {
+  try {
+    if (id) {
+      await supabase.from("team_members").delete().eq("id", id);
+    }
+    if (name) {
+      await supabase.from("team_members").delete().ilike("name", name.trim());
+      await supabase.from("users").delete().ilike("name", name.trim());
+    }
+    console.log(`[Supabase] Successfully deleted team member ${name || id}`);
+  } catch (err) {
+    console.warn("[Supabase] Failed to delete team member:", err);
+  }
+}
+
+export interface TeammateChangeRequest {
+  id: string;
+  requesterName: string;
+  requesterEmail?: string;
+  targetMemberId: string;
+  targetMemberName: string;
+  currentValues: {
+    role: string;
+    project: string;
+    weeklyHours: number;
+    utilization: number;
+    status: string;
+  };
+  requestedChanges: {
+    role: string;
+    project: string;
+    weeklyHours: number;
+    utilization: number;
+    status: string;
+  };
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  submittedAt: string;
+  decidedAt?: string;
+  decidedBy?: string;
+  decisionNote?: string;
+}
+
+const CR_STORAGE_KEY = "resourcepulse_teammate_change_requests";
+
+export function loadChangeRequests(): TeammateChangeRequest[] {
+  try {
+    const raw = localStorage.getItem(CR_STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return [];
+}
+
+export function saveChangeRequests(requests: TeammateChangeRequest[]) {
+  try {
+    localStorage.setItem(CR_STORAGE_KEY, JSON.stringify(requests));
+    window.dispatchEvent(new CustomEvent("resourcepulse-change-requests-updated", { detail: requests }));
+  } catch {}
+}
+
+export async function submitTeammateChangeRequest(req: Omit<TeammateChangeRequest, "id" | "status" | "submittedAt">): Promise<TeammateChangeRequest> {
+  const newReq: TeammateChangeRequest = {
+    ...req,
+    id: `CR-${Date.now()}`,
+    status: "PENDING",
+    submittedAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+  };
+  const existing = loadChangeRequests();
+  const updated = [newReq, ...existing];
+  saveChangeRequests(updated);
+
+  // Record audit log
+  void recordApprovalDecision(
+    newReq.id,
+    newReq.requesterName,
+    `Change request submitted for ${newReq.targetMemberName}: Change deliverable to "${newReq.requestedChanges.project}" (${newReq.requestedChanges.weeklyHours}h/wk)`
+  );
+
+  return newReq;
+}
+
 
 /**
  * Synchronize local storage and UI events with Supabase organization workspace

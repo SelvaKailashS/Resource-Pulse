@@ -33,12 +33,20 @@ import { toast } from "sonner";
 import { Project, Resource } from "@shared/orgTypes";
 import { loadInitialProjects, saveProjects, loadInitialResources } from "@/lib/orgStore";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 interface ProjectsViewProps {
   onOpenDataIntake?: () => void;
 }
 
 export function ProjectsView({ onOpenDataIntake }: ProjectsViewProps) {
+  const { user } = useAuth();
+  const isAdmin = Boolean(
+    user?.role === "admin" ||
+    (user?.email && (user.email === "salujaradha9@gmail.com" || user.email.includes("kailash"))) ||
+    (user?.name && user.name.toLowerCase().includes("kailash"))
+  );
+
   const [projects, setProjects] = useState<Project[]>(() => loadInitialProjects());
   const [resources] = useState<Resource[]>(() => loadInitialResources());
   const [search, setSearch] = useState("");
@@ -332,6 +340,10 @@ export function ProjectsView({ onOpenDataIntake }: ProjectsViewProps) {
   };
 
   const handleDeleteProject = (id: string, name: string) => {
+    if (!isAdmin) {
+      toast.error("Permission Denied: Only Workspace Admin (Kailash) can delete projects.");
+      return;
+    }
     if (confirm(`Are you sure you want to delete "${name}"?`)) {
       const updated = projects.filter((p) => p.id !== id);
       setProjects(updated);
@@ -487,13 +499,15 @@ export function ProjectsView({ onOpenDataIntake }: ProjectsViewProps) {
                       <h3 className="font-semibold text-foreground text-sm mt-1.5">{p.name}</h3>
                     </div>
 
-                    <button
-                      onClick={() => handleDeleteProject(p.id, p.name)}
-                      className="text-muted-foreground hover:text-red-500 p-1"
-                      title="Delete project"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    {isAdmin && (
+                      <button
+                        onClick={() => handleDeleteProject(p.id, p.name)}
+                        className="text-muted-foreground hover:text-red-500 p-1"
+                        title="Delete project (Admin Only)"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
 
                   {/* Hours Allocation Progress */}

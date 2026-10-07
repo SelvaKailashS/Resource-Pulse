@@ -140,13 +140,6 @@ export function CommandPaletteModal({
             <span>Organization Team Chat</span>
           </CommandItem>
 
-          <CommandItem
-            onSelect={() => handleSelect(() => onNavigate("Scenarios"))}
-            className="flex items-center gap-2 cursor-pointer"
-          >
-            <Layers3 size={15} className="text-violet-400" />
-            <span>Scenario Trade-off Matrix</span>
-          </CommandItem>
 
           <CommandItem
             onSelect={() => handleSelect(() => onNavigate("Approvals"))}

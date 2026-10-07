@@ -361,16 +361,6 @@ export function VoiceAssistantCopilot({
       return;
     }
 
-    if (
-      lower.startsWith("go to scenarios") ||
-      lower.startsWith("open scenarios") ||
-      lower.startsWith("view scenarios") ||
-      lower === "scenarios"
-    ) {
-      onNavigate("Scenarios");
-      handleAIResponse("Switched to Scenarios view. You can compare Balanced, Deadline Protection, and Cost Minimization plans.", "open_scenarios");
-      return;
-    }
 
     if (
       lower.startsWith("go to approvals") ||
@@ -870,17 +860,6 @@ export function VoiceAssistantCopilot({
       });
     }
 
-    if (
-      action === "open_scenarios" ||
-      replyText.toLowerCase().includes("scenario") ||
-      replyText.toLowerCase().includes("balanced")
-    ) {
-      quickActions.push({
-        label: "Compare Scenarios",
-        action: () => onNavigate("Scenarios"),
-        icon: Layers3,
-      });
-    }
 
     if (
       action === "open_approvals" ||

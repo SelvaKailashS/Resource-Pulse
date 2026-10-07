@@ -88,7 +88,8 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
   });
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [teamName, setTeamName] = useState(getRegisteredTeam);
+  // On sign-in page, leave the organization input completely blank!
+  const [teamName, setTeamName] = useState("");
   const [teamCode, setTeamCode] = useState("");
   const [field, setField] = useState(SECTORS[0].name);
   const [roleTitle, setRoleTitle] = useState(ROLE_OPTIONS[0]);
@@ -116,16 +117,6 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
   const handleEmailChange = (val: string) => {
     setEmail(val);
-    const clean = val.trim().toLowerCase();
-    try {
-      const regMap = JSON.parse(localStorage.getItem("resourcepulse_registered_users") || "{}");
-      if (regMap[clean]?.teamName) {
-        setTeamName(regMap[clean].teamName);
-      }
-      if (regMap[clean]?.field) {
-        setField(regMap[clean].field);
-      }
-    } catch {}
   };
 
   const handleFieldChange = (selectedFieldName: string) => {
@@ -600,14 +591,10 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
               type="button"
               onClick={() => {
                 setMode("signin");
-                const regTeam = getRegisteredTeam();
-                if (regTeam && regTeam !== "Operations Team Alpha") {
-                  setTeamName(regTeam);
-                }
+                setTeamName(""); // Always leave organization blank on signin
                 const lastEmail = localStorage.getItem("resourcepulse_last_registered_email");
                 if (lastEmail) {
                   setEmail(lastEmail);
-                  handleEmailChange(lastEmail);
                 }
               }}
               className={`py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
@@ -996,7 +983,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
               <div className="grid grid-cols-2 gap-2.5">
                 <div>
                   <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-1">
-                    Team Workspace *
+                    Team Workspace (Optional)
                   </label>
                   <div className="relative">
                     <Users size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -1004,8 +991,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                       type="text"
                       value={teamName}
                       onChange={(e) => setTeamName(e.target.value)}
-                      placeholder="Your registered team name"
-                      required
+                      placeholder="Leave blank to auto-detect"
                       className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-sky-400 rounded-lg pl-8 pr-2.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-all font-medium"
                     />
                   </div>
