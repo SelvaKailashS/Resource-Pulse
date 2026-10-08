@@ -57,6 +57,57 @@ export interface ResourceItem {
 
 const STORAGE_KEY = "resourcepulse_student_resources";
 
+export function sanitizeRoster(list: any[]): ResourceItem[] {
+  return list.map((item: any) => {
+    const lowerName = (item.name || "").toLowerCase().trim();
+    const isLead = lowerName === "kailash" || lowerName.includes("kailash");
+    if (isLead) {
+      return {
+        ...item,
+        type: "Team Lead" as const,
+        role: item.role || "Team Lead / Project Coordinator",
+        skills:
+          Array.isArray(item.skills) && item.skills.length > 0
+            ? item.skills
+            : ["System Architecture", "API Gateway", "Team Coordination", "IT & Software"],
+      };
+    }
+
+    let role = item.role;
+    let skills = Array.isArray(item.skills)
+      ? item.skills.filter((s: string) => s !== "Team Lead / Project Coordinator")
+      : [];
+    const proj = (item.project || "").toLowerCase();
+
+    if (!role || role === "Team Lead / Project Coordinator") {
+      if (lowerName.includes("madhunila") || proj.includes("research")) {
+        role = "Lead Researcher";
+        skills = skills.length > 0 ? skills : ["Research & Analysis", "Documentation", "Operations", "IT & Software"];
+      } else if (
+        lowerName.includes("sribalaji") ||
+        proj.includes("presentation") ||
+        proj.includes("power point")
+      ) {
+        role = "Presentation & QA Lead";
+        skills = skills.length > 0 ? skills : ["PowerPoint Presentation", "Product Demo", "QA Testing", "IT & Software"];
+      } else if (lowerName.includes("sasinathan")) {
+        role = "Core Implementation Lead";
+        skills = skills.length > 0 ? skills : ["System Architecture", "API Integration", "Full Stack Development", "IT & Software"];
+      } else {
+        role = "Engineering Specialist";
+        skills = skills.length > 0 ? skills : ["Sprint Deliverables", "Engineering", "IT & Software"];
+      }
+    }
+
+    return {
+      ...item,
+      type: "Core Member" as const,
+      role,
+      skills: skills.length > 0 ? skills : [role, "IT & Software"],
+    };
+  });
+}
+
 export function ResourcesView({
   onAssignTask,
   onSimulateAbsence,
@@ -95,9 +146,10 @@ export function ResourcesView({
   const [resources, setResources] = useState<ResourceItem[]>(() => {
     const deleted = getDeletedMembers();
     if (customResources && customResources.length > 0) {
-      return customResources.filter(
+      const filtered = customResources.filter(
         (p) => !deleted.has(p.name?.toLowerCase().trim()) && !deleted.has(String(p.id).toLowerCase().trim())
       );
+      return sanitizeRoster(filtered);
     }
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
@@ -109,9 +161,10 @@ export function ResourcesView({
             localStorage.removeItem(STORAGE_KEY);
             return [];
           }
-          return parsed.filter(
+          const filtered = parsed.filter(
             (p: any) => !deleted.has(p.name?.toLowerCase().trim()) && !deleted.has(String(p.id).toLowerCase().trim())
           );
+          return sanitizeRoster(filtered);
         }
       } catch (e) {
         console.error("Failed to parse stored resources:", e);
@@ -183,7 +236,7 @@ export function ResourcesView({
         const filtered = e.detail.filter(
           (p: any) => !deleted.has(p.name?.toLowerCase().trim()) && !deleted.has(String(p.id).toLowerCase().trim())
         );
-        setResources(filtered);
+        setResources(sanitizeRoster(filtered));
       }
     };
     window.addEventListener("resourcepulse-team-synced", handleSync);
@@ -195,7 +248,7 @@ export function ResourcesView({
         const filtered = roster.filter(
           (p: any) => !deleted.has(p.name?.toLowerCase().trim()) && !deleted.has(String(p.id).toLowerCase().trim())
         );
-        setResources(filtered);
+        setResources(sanitizeRoster(filtered));
       }
     });
 

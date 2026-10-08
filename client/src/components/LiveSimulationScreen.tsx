@@ -218,7 +218,7 @@ export function LiveSimulationScreen({ onClose, onApproveAndNavigate, initialRes
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#060a14]/95 backdrop-blur-xl overflow-y-auto p-4 md:p-8 animate-fadeIn">
+    <div className="fixed inset-0 z-50 bg-[#060a14]/95 backdrop-blur-xl overflow-y-auto p-3 sm:p-5 md:p-8 animate-fadeIn">
       {/* Top Banner & Control Bar */}
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-sky-900/30">

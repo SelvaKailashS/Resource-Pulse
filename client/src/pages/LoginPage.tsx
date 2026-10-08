@@ -307,35 +307,50 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         localStorage.removeItem("resourcepulse_enterprise_resources_v2");
       } catch {}
 
+      const isLead =
+        cleanEmail.includes("kailash") ||
+        registeredName.toLowerCase().includes("kailash");
+
       const user: AuthUser = {
         id: Date.now(),
         name: registeredName,
         email: registeredEmail,
-        role: "admin",
+        role: isLead ? "admin" : "member",
         field: field,
         teamName: teamName.trim(),
         emailVerified: 1,
         onboardingCompleted: 1,
-        permissionSet: "system.admin,approvals.write,dashboard.read,cash.write",
+        permissionSet: isLead
+          ? "system.admin,approvals.write,dashboard.read,cash.write"
+          : "dashboard.read,cash.read",
       };
 
       const finalTeamCode = teamCode.trim() || `RP-${Math.floor(1000 + Math.random() * 9000)}`;
 
+      // Derive specific role title & skills
+      const resolvedRole = isLead
+        ? roleTitle || "Engineering Lead / Architect"
+        : (roleTitle === "Team Lead / Project Coordinator" ? "Core Member / Specialist" : roleTitle);
+
+      const resolvedSkills = isLead
+        ? ["System Architecture", "API Gateway", field]
+        : [primaryTask.trim() || "Sprint Deliverable", field];
+
       // Create initial teammate record using user's provided values
       const initialTeammate = {
-        id: `MEM-01`,
+        id: `MEM-${Math.floor(1000 + Math.random() * 9000)}`,
         name: registeredName,
-        role: roleTitle,
-        type: "Team Lead" as const,
+        role: resolvedRole,
+        type: (isLead ? "Team Lead" : "Core Member") as any,
         status: "Available" as const,
         utilization: 50,
         weeklyHours: Number(weeklyHours) || 40,
-        project: primaryTask.trim() || "Project Lead & Coordination",
-        skills: [roleTitle, field],
+        project: primaryTask.trim() || (isLead ? "Architecture, Gateway & Core Integration" : "Team Deliverables"),
+        skills: resolvedSkills,
         costRate: "Internal Resource",
         risk: "Low" as const,
-        avatarText: registeredName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "TL",
-        avatarBg: "from-blue-600 to-cyan-500",
+        avatarText: registeredName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "TM",
+        avatarBg: isLead ? "from-blue-600 to-cyan-500" : "from-emerald-600 to-teal-500",
         upcoming: "Workspace setup & feature definition",
         constraints: "",
       };

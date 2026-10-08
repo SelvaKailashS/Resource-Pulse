@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { trpc } from "@/lib/trpc";
 import { AccountCenter } from "@/components/AccountCenter";
-import { ResourcesView } from "@/components/ResourcesView";
+import { ResourcesView, sanitizeRoster } from "@/components/ResourcesView";
 import { ScenariosView } from "@/components/ScenariosView";
 import { ApprovalsView } from "@/components/ApprovalsView";
 import { LiveSimulationScreen } from "@/components/LiveSimulationScreen";
@@ -62,6 +61,7 @@ import {
   Layers3,
   LoaderCircle,
   Leaf,
+  Menu,
   MessageSquare,
   MoreHorizontal,
   Play,
@@ -177,6 +177,7 @@ function Home() {
   const [showNotice, setShowNotice] = useState(true);
   const [activeNav, setActiveNav] = useState("Command center");
   const [accountOpen, setAccountOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isTaskSplitOpen, setIsTaskSplitOpen] = useState(false);
   const [isSectorModalOpen, setIsSectorModalOpen] = useState(false);
@@ -196,7 +197,7 @@ function Home() {
 
   // Load real teammates & projects from enterprise orgStore
   const [realTeammates, setRealTeammates] = useState<any[]>(() => {
-    return loadInitialResources();
+    return sanitizeRoster(loadInitialResources());
   });
   const [realProjects, setRealProjects] = useState<any[]>(() => {
     return loadInitialProjects();
@@ -214,7 +215,7 @@ function Home() {
 
   useEffect(() => {
     try {
-      const res = loadInitialResources();
+      const res = sanitizeRoster(loadInitialResources());
       setRealTeammates(res);
       const prj = loadInitialProjects();
       setRealProjects(prj);
@@ -226,7 +227,7 @@ function Home() {
   useEffect(() => {
     const handleTeamSynced = (e: any) => {
       if (e.detail && Array.isArray(e.detail) && e.detail.length > 0) {
-        setRealTeammates(e.detail);
+        setRealTeammates(sanitizeRoster(e.detail));
       }
     };
     window.addEventListener("resourcepulse-team-synced", handleTeamSynced);
@@ -234,7 +235,7 @@ function Home() {
     // Initial sync from Supabase
     void syncOrganizationResources(teamName).then((roster) => {
       if (roster && roster.length > 0) {
-        setRealTeammates(roster);
+        setRealTeammates(sanitizeRoster(roster));
       }
     });
 
@@ -594,7 +595,24 @@ function Home() {
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      {/* Mobile & Split-Screen Sidebar Backdrop */}
+      {isSidebarOpen && (
+        <div
+          className="sidebar-backdrop"
+          onClick={() => setIsSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      <aside className={`sidebar ${isSidebarOpen ? "open" : ""}`}>
+        <button
+          className="sidebar-close-btn"
+          onClick={() => setIsSidebarOpen(false)}
+          aria-label="Close sidebar"
+        >
+          <X size={16} />
+        </button>
+
         <div className="brand-mark">
           <div className="brand-icon"><Zap size={16} strokeWidth={2.5} /></div>
           <span>Resource<span className="brand-accent">Pulse</span></span>
@@ -635,6 +653,7 @@ function Home() {
                       key={item.label}
                       onClick={() => {
                         setActiveNav(item.label);
+                        setIsSidebarOpen(false);
                       }}
                       className={`nav-item ${isActive ? "active" : ""}`}
                     >
@@ -665,17 +684,27 @@ function Home() {
 
       <main className="main-content">
         <header className="topbar">
-          <div className="breadcrumb">
-            <span className="flex items-center gap-1.5 text-slate-300 font-medium">
-              <Briefcase size={14} className="text-sky-400" />
-              <span>{localStorage.getItem("resourcepulse_team_name") || "Operations Team"}</span>
-            </span>
-            <span className="slash">/</span>
-            <strong>{activeNav}</strong>
+          <div className="flex items-center gap-2 min-w-0">
+            <button
+              className="sidebar-toggle-btn"
+              onClick={() => setIsSidebarOpen(true)}
+              aria-label="Open sidebar navigation"
+              title="Open Menu"
+            >
+              <Menu size={18} />
+            </button>
+            <div className="breadcrumb min-w-0 truncate">
+              <span className="flex items-center gap-1.5 text-slate-300 font-medium truncate">
+                <Briefcase size={14} className="text-sky-400 shrink-0" />
+                <span className="truncate">{localStorage.getItem("resourcepulse_team_name") || "Operations Team"}</span>
+              </span>
+              <span className="slash">/</span>
+              <strong className="truncate">{activeNav}</strong>
+            </div>
           </div>
           <div className="topbar-actions">
             <div
-              className="command-button"
+              className="command-button hidden xl:flex"
               style={{
                 color: "#38bdf8",
                 borderColor: "rgba(56, 189, 248, 0.35)",
@@ -686,7 +715,7 @@ function Home() {
               <Briefcase size={13} className="text-sky-400" />
               <span>{localStorage.getItem("resourcepulse_team_name") || "Operations Team"}</span>
             </div>
-            <button className="sync-status" onClick={() => loadDashboard(true)}>
+            <button className="sync-status hidden md:flex" onClick={() => loadDashboard(true)}>
               <StatusDot color="blue" />
               <span>{isLoading ? "Syncing…" : "Live sync"}</span>
               <span className="mono">{isLoading ? "fetching" : time}</span>
@@ -706,10 +735,10 @@ function Home() {
               title="Add task, upload document/image, and let AI split work across your team"
             >
               <Plus size={15} />
-              <span>+ Add Task</span>
+              <span className="hidden sm:inline">+ Add Task</span>
             </button>
             <button
-              className="command-button"
+              className="command-button hidden sm:flex"
               style={{
                 color: "#38bdf8",
                 borderColor: "rgba(56, 189, 248, 0.45)",
@@ -720,10 +749,10 @@ function Home() {
               title="Tell AI your project needs, features, and deliverables"
             >
               <Sparkles size={14} className="text-sky-400 animate-pulse" />
-              <span>AI Project Setup</span>
+              <span className="hidden md:inline">AI Project Setup</span>
             </button>
             <button
-              className="command-button"
+              className="command-button hidden lg:flex"
               onClick={() => setIsCommandPaletteOpen(true)}
               title="Open Command Palette (⌘K / Ctrl+K)"
             >
@@ -749,7 +778,7 @@ function Home() {
                       .slice(0, 2)
                   : "TL"}
               </div>
-              <div className="topbar-user-info">
+              <div className="topbar-user-info hidden md:flex">
                 <span className="topbar-user-name">{user?.name || "Team Lead"}</span>
                 <span className="topbar-user-badge">
                   <span className="topbar-role-tag">{user?.role === "admin" ? "Team Lead" : "Core Member"}</span>
@@ -761,7 +790,7 @@ function Home() {
 
             {/* Direct 1-Click Logout Button */}
             <button
-              className="px-2.5 py-1.5 rounded-xl border border-slate-700/80 bg-slate-900/60 hover:bg-rose-500/15 hover:border-rose-500/40 text-slate-400 hover:text-rose-300 transition-all flex items-center gap-1.5 text-xs font-semibold cursor-pointer shadow-xs ml-1"
+              className="px-2.5 py-1.5 rounded-xl border border-slate-700/80 bg-slate-900/60 hover:bg-rose-500/15 hover:border-rose-500/40 text-slate-400 hover:text-rose-300 transition-all hidden sm:flex items-center gap-1.5 text-xs font-semibold cursor-pointer shadow-xs ml-1"
               onClick={async () => {
                 toast.info("Signing out of workspace...");
                 await logout();

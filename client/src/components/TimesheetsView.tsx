@@ -42,6 +42,7 @@ export interface TimesheetEntry {
 }
 
 const STORAGE_KEY = "resourcepulse_timesheet_entries";
+const DELETED_TS_KEY = "resourcepulse_deleted_timesheet_ids";
 
 export function TimesheetsView({ onOpenCalendarSync }: { onOpenCalendarSync?: () => void }) {
   const [resources] = useState(() => loadInitialResources());
@@ -52,54 +53,18 @@ export function TimesheetsView({ onOpenCalendarSync }: { onOpenCalendarSync?: ()
 
   const [entries, setEntries] = useState<TimesheetEntry[]>(() => {
     try {
+      const deletedIds = new Set(JSON.parse(localStorage.getItem(DELETED_TS_KEY) || "[]"));
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
+      if (stored !== null) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) {
+          return parsed.filter((e: any) => !deletedIds.has(e.id));
+        }
       }
     } catch {}
 
-    // Initial default seed entries based on workspace resources & projects
-    const defaultLeadName = resources[0]?.name || "Kailash";
-    const defaultProjName = projects[0]?.name || "Core Infrastructure";
-    const today = new Date().toISOString().split("T")[0];
-
-    return [
-      {
-        id: "TS-101",
-        resourceId: resources[0]?.id || "MEM-01",
-        resourceName: defaultLeadName,
-        projectId: projects[0]?.id || "PRJ-01",
-        projectName: defaultProjName,
-        taskName: "Architecture Review & API Gateway Integration",
-        date: today,
-        plannedHours: 8.0,
-        actualHours: 6.5,
-        varianceHours: -1.5,
-        variancePercent: -18.75,
-        billable: true,
-        hourlyRate: 85,
-        notes: "Completed deployment scripts ahead of schedule.",
-        status: "Approved",
-      },
-      {
-        id: "TS-102",
-        resourceId: resources[0]?.id || "MEM-01",
-        resourceName: defaultLeadName,
-        projectId: projects[0]?.id || "PRJ-01",
-        projectName: defaultProjName,
-        taskName: "Security Audit & Telemetry Validation",
-        date: today,
-        plannedHours: 4.0,
-        actualHours: 4.5,
-        varianceHours: 0.5,
-        variancePercent: 12.5,
-        billable: true,
-        hourlyRate: 85,
-        notes: "Extended load testing for edge cases.",
-        status: "Submitted",
-      },
-    ];
+    // Never re-seed dummy entries if user deleted them or started clean
+    return [];
   });
 
   // Modal State for logging new hours
@@ -218,10 +183,33 @@ export function TimesheetsView({ onOpenCalendarSync }: { onOpenCalendarSync?: ()
     });
   };
 
-  // Delete entry
+  // Delete entry permanently
   const handleDeleteEntry = (id: string) => {
-    setEntries(entries.filter((e) => e.id !== id));
+    const updated = entries.filter((e) => e.id !== id);
+    setEntries(updated);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      const delIds: string[] = JSON.parse(localStorage.getItem(DELETED_TS_KEY) || "[]");
+      if (!delIds.includes(id)) {
+        delIds.push(id);
+        localStorage.setItem(DELETED_TS_KEY, JSON.stringify(delIds));
+      }
+    } catch {}
     toast.info("Timesheet shift record removed");
+  };
+
+  // Clear all entries
+  const handleClearAll = () => {
+    try {
+      const delIds: string[] = JSON.parse(localStorage.getItem(DELETED_TS_KEY) || "[]");
+      entries.forEach((e) => {
+        if (!delIds.includes(e.id)) delIds.push(e.id);
+      });
+      localStorage.setItem(DELETED_TS_KEY, JSON.stringify(delIds));
+      localStorage.setItem(STORAGE_KEY, "[]");
+    } catch {}
+    setEntries([]);
+    toast.success("All timesheet entries cleared");
   };
 
   // Export CSV
@@ -310,6 +298,17 @@ export function TimesheetsView({ onOpenCalendarSync }: { onOpenCalendarSync?: ()
             <Download className="w-3.5 h-3.5" />
             <span>Export CSV</span>
           </button>
+
+          {entries.length > 0 && (
+            <button
+              onClick={handleClearAll}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl border border-rose-900/40 bg-rose-950/20 hover:bg-rose-950/40 text-rose-300 transition-all cursor-pointer shadow-xs"
+              title="Clear all recorded timesheet entries"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+              <span>Clear All</span>
+            </button>
+          )}
 
           <button
             onClick={() => setIsLogModalOpen(true)}

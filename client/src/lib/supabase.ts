@@ -292,6 +292,72 @@ export async function fetchOrganizationWorkspace(targetTeamName?: string): Promi
     const roster: SyncedTeamMember[] = [];
     const seenNames = new Set<string>();
 
+    // Helper to derive authentic specific roles and skills for each teammate
+    const resolveRoleAndSkills = (
+      name: string,
+      email?: string,
+      savedRole?: string,
+      savedProject?: string,
+      savedSkills?: string[],
+      field?: string
+    ) => {
+      const lowerName = (name || "").toLowerCase().trim();
+      const lowerEmail = (email || "").toLowerCase().trim();
+      const isAdminLead =
+        lowerName === "kailash" ||
+        lowerName.includes("kailash") ||
+        lowerEmail.includes("kailash");
+
+      if (isAdminLead) {
+        return {
+          role: "Team Lead / Project Coordinator",
+          type: "Team Lead" as const,
+          project: savedProject || "Architecture, Gateway & Core Integration",
+          skills: ["System Architecture", "API Gateway", "Team Coordination", field || "IT & Software"],
+        };
+      }
+
+      const project = savedProject || "Team Deliverables";
+      const lowerProj = project.toLowerCase();
+      let role = savedRole && savedRole !== "Team Lead / Project Coordinator" ? savedRole : "";
+      let skills: string[] = Array.isArray(savedSkills)
+        ? savedSkills.filter((s) => s !== "Team Lead / Project Coordinator")
+        : [];
+
+      if (lowerName.includes("madhunila") || lowerProj.includes("research")) {
+        role = role || "Lead Researcher";
+        if (skills.length === 0) {
+          skills = ["Research & Analysis", "Documentation", "Operations", field || "IT & Software"];
+        }
+      } else if (
+        lowerName.includes("sribalaji") ||
+        lowerProj.includes("power point") ||
+        lowerProj.includes("presentation")
+      ) {
+        role = role || "Presentation & QA Lead";
+        if (skills.length === 0) {
+          skills = ["PowerPoint Presentation", "Product Demo", "QA Testing", field || "IT & Software"];
+        }
+      } else if (lowerName.includes("sasinathan")) {
+        role = role || "Core Implementation Lead";
+        if (skills.length === 0) {
+          skills = ["System Architecture", "API Integration", "Full Stack Development", field || "IT & Software"];
+        }
+      } else {
+        role = role || "Engineering Specialist";
+        if (skills.length === 0) {
+          skills = ["Sprint Deliverables", "Engineering", field || "IT & Software"];
+        }
+      }
+
+      return {
+        role,
+        type: "Core Member" as const,
+        project,
+        skills,
+      };
+    };
+
     // 1. Process all registered users for this team
     for (const u of usersList) {
       const lowerName = (u.name || "").trim().toLowerCase();
@@ -301,20 +367,25 @@ export async function fetchOrganizationWorkspace(targetTeamName?: string): Promi
       seenNames.add(lowerName);
 
       const matchedMember = memberMapByName.get(lowerName);
-      const isAdminLead = u.role === "admin" || lowerName === "kailash";
-      const resolvedRole = matchedMember?.role || (isAdminLead ? "Team Lead / Project Coordinator" : "Engineering Specialist");
-      const resolvedProject = matchedMember?.project || (isAdminLead ? "Architecture, Gateway & Core Integration" : "Team Deliverables");
+      const resolved = resolveRoleAndSkills(
+        u.name,
+        u.email,
+        matchedMember?.role,
+        matchedMember?.project,
+        matchedMember?.skills,
+        u.field
+      );
 
       roster.push({
         id: matchedMember?.id || `MEM-${u.id || Math.floor(1000 + Math.random() * 9000)}`,
         name: u.name,
-        role: resolvedRole,
-        type: isAdminLead ? "Team Lead" : "Core Member",
+        role: resolved.role,
+        type: resolved.type,
         status: (matchedMember?.status as any) || "Available",
         utilization: Number(matchedMember?.utilization) || 50,
         weeklyHours: Number(matchedMember?.weekly_hours) || 40,
-        project: resolvedProject,
-        skills: matchedMember?.skills || [resolvedRole, u.field || "IT & Software"],
+        project: resolved.project,
+        skills: resolved.skills,
         costRate: "Internal Resource",
         risk: "Low",
         avatarText: (u.name || "TM")
@@ -323,7 +394,7 @@ export async function fetchOrganizationWorkspace(targetTeamName?: string): Promi
           .join("")
           .toUpperCase()
           .slice(0, 2),
-        avatarBg: isAdminLead ? "from-blue-600 to-cyan-500" : "from-emerald-600 to-teal-500",
+        avatarBg: resolved.type === "Team Lead" ? "from-blue-600 to-cyan-500" : "from-emerald-600 to-teal-500",
         upcoming: "Workspace setup & deliverable execution",
         constraints: "",
         email: u.email,
@@ -338,17 +409,24 @@ export async function fetchOrganizationWorkspace(targetTeamName?: string): Promi
       if (deletedSet.has(lowerName) || (m.id && deletedSet.has(String(m.id).toLowerCase()))) continue;
       seenNames.add(lowerName);
 
-      const isAdminLead = lowerName === "kailash";
+      const resolved = resolveRoleAndSkills(
+        m.name,
+        m.email,
+        m.role,
+        m.project,
+        m.skills
+      );
+
       roster.push({
         id: m.id || `MEM-${Math.floor(1000 + Math.random() * 9000)}`,
         name: m.name,
-        role: m.role || "Core Member",
-        type: isAdminLead ? "Team Lead" : "Core Member",
+        role: resolved.role,
+        type: resolved.type,
         status: (m.status as any) || "Available",
         utilization: Number(m.utilization) || 50,
         weeklyHours: Number(m.weekly_hours) || 40,
-        project: m.project || "Team Deliverables",
-        skills: [m.role || "Core Contributor"],
+        project: resolved.project,
+        skills: resolved.skills,
         costRate: "Internal Resource",
         risk: "Low",
         avatarText: (m.name || "TM")
@@ -357,7 +435,7 @@ export async function fetchOrganizationWorkspace(targetTeamName?: string): Promi
           .join("")
           .toUpperCase()
           .slice(0, 2),
-        avatarBg: isAdminLead ? "from-blue-600 to-cyan-500" : "from-teal-600 to-emerald-500",
+        avatarBg: resolved.type === "Team Lead" ? "from-blue-600 to-cyan-500" : "from-teal-600 to-emerald-500",
         upcoming: "Sprint deliverable coordination",
         constraints: "",
       });
