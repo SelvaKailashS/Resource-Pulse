@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { trpc } from "@/lib/trpc";
 import { AccountCenter } from "@/components/AccountCenter";
 import { ResourcesView, sanitizeRoster } from "@/components/ResourcesView";
 import { ScenariosView } from "@/components/ScenariosView";

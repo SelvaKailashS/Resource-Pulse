@@ -31,10 +31,12 @@ import {
   Calendar,
   FolderGit2,
   Cpu,
+  Mail,
 } from "lucide-react";
 import { toast } from "sonner";
 import { askLiveCopilot, type ChatHistoryMessage } from "@/lib/openRouterClient";
 import { recordCopilotChat, recordTeamMember, recordDeletedMember } from "@/lib/supabase";
+import { dispatchAutomationEvent } from "@/lib/automationApi";
 import {
   loadInitialResources,
   loadInitialProjects,
@@ -285,6 +287,36 @@ export function VoiceAssistantCopilot({
 
       recognitionRef.current = recognition;
     }
+  }, []);
+
+  // Automated AI Sentinel Watcher: If a sudden bottleneck or >95% overload happens, inform Admin and send mail
+  useEffect(() => {
+    try {
+      const resources = loadInitialResources();
+      const overloaded = resources.find((r) => r.utilization >= 95);
+      const alertedKey = `rp_admin_alerted_${overloaded?.id || "none"}`;
+      if (overloaded && !sessionStorage.getItem(alertedKey)) {
+        sessionStorage.setItem(alertedKey, "1");
+        const adminEmail = localStorage.getItem("resourcepulse_last_registered_email") || "salujaradha9@gmail.com";
+        const team = localStorage.getItem("resourcepulse_team_name") || "Koders CLub";
+
+        void dispatchAutomationEvent({
+          eventType: "workload_overload",
+          severity: "high",
+          sector: "IT & Software",
+          title: `⚠️ Capacity Crunch Alert: ${overloaded.name} at ${overloaded.utilization}% Load`,
+          description: `ResourcePulse AI detected sudden capacity overload for ${overloaded.name} (${overloaded.assignedHours}h/${overloaded.weeklyCapacityHours}h). Automated dispatch sent to Admin.`,
+          recipient: {
+            name: "Workspace Admin (Kailash)",
+            email: adminEmail,
+          },
+        });
+
+        toast.warning("AI Sentinel: Workload Crunch Detected", {
+          description: `Informed Admin & dispatched automated alert email to ${adminEmail}`,
+        });
+      }
+    } catch {}
   }, []);
 
   // Single Tap to Toggle Listening (Push-to-Talk)
@@ -910,7 +942,60 @@ export function VoiceAssistantCopilot({
       return;
     }
 
-    // 5. Query OpenRouter Live AI Copilot with multi-turn conversation memory
+    // 5. Mail Automation & Emergency Admin Notification Intent
+    if (
+      lower.includes("send mail") ||
+      lower.includes("send email") ||
+      lower.includes("mail automation") ||
+      lower.includes("inform admin") ||
+      lower.includes("notify admin") ||
+      lower.includes("alert admin") ||
+      lower.includes("inform to the admin") ||
+      lower.includes("something happened") ||
+      lower.includes("emergency alert") ||
+      lower.includes("email alert")
+    ) {
+      const adminEmail = localStorage.getItem("resourcepulse_last_registered_email") || "salujaradha9@gmail.com";
+      const team = localStorage.getItem("resourcepulse_team_name") || "Koders CLub";
+      const incidentSummary = text.length > 15 ? text : "Operational Alert: Critical resource constraint or unexpected bottleneck detected.";
+
+      void dispatchAutomationEvent({
+        eventType: "admin_incident_alert",
+        severity: "critical",
+        sector: "IT & Software",
+        title: `🚨 Urgent Operational Incident: ${team}`,
+        description: incidentSummary,
+        recipient: {
+          name: "Workspace Admin (Kailash)",
+          email: adminEmail,
+        },
+        data: {
+          incidentDetails: incidentSummary,
+          dispatchedAt: new Date().toISOString(),
+          team,
+        },
+      });
+
+      toast.error("🚨 Emergency Email Sent to Admin", {
+        description: `Automated alert dispatched to ${adminEmail}`,
+      });
+
+      handleAIResponse(
+        `🚨 Mail Automation Activated! I have informed the Admin and dispatched an urgent email alert to ${adminEmail}.\n\nIncident summary: "${incidentSummary}"\n\nThe automation engine has logged this event with high severity and notified all monitoring systems.`,
+        "open_alerts",
+        { email: adminEmail, summary: incidentSummary },
+        {
+          finding: "Emergency operational notification issued to workspace administrator.",
+          evidence: `Dispatched to ${adminEmail} via automation webhook engine.`,
+          impact: "Immediate executive visibility granted to unblock team operations.",
+          recommendation: "Review the Smart Alerts log or run a recovery simulation to rebalance workload.",
+          confidence: 100,
+        }
+      );
+      return;
+    }
+
+    // 6. Query OpenRouter Live AI Copilot with multi-turn conversation memory
     setIsAnalyzing(true);
     try {
       const history: ChatHistoryMessage[] = messages
