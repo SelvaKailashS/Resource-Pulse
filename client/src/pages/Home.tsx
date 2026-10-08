@@ -19,6 +19,7 @@ import { AllocationView } from "@/components/AllocationView";
 import { WorkloadCapacityView } from "@/components/WorkloadCapacityView";
 import { ForecastingView } from "@/components/ForecastingView";
 import { AIInsightsView } from "@/components/AIInsightsView";
+import { RAGKnowledgeHub } from "@/components/RAGKnowledgeHub";
 import { AlertsView } from "@/components/AlertsView";
 import { ReportsView } from "@/components/ReportsView";
 import { DataSourcesView } from "@/components/DataSourcesView";
@@ -108,6 +109,7 @@ const navSections: {
     items: [
       { label: "Analytics & Forecasting", icon: TrendingUp },
       { label: "AI Insights", icon: Sparkles },
+      { label: "RAG Knowledge Base", icon: Layers3, badge: "Vector" },
     ],
   },
   {
@@ -897,6 +899,10 @@ function Home() {
 
           {activeNav === "AI Insights" && (
             <AIInsightsView onNavigateToAllocation={() => setActiveNav("Allocation")} />
+          )}
+
+          {(activeNav === "RAG Knowledge Base" || activeNav === "RAG Knowledge Hub") && (
+            <RAGKnowledgeHub />
           )}
 
           {activeNav === "Alerts" && (

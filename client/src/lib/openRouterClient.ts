@@ -9,6 +9,7 @@ import {
   detectScheduleConflicts,
 } from "@/lib/orgStore";
 import { resolveQueryKnowledgeBase } from "@shared/aiKnowledgeBase";
+import { buildRAGPromptContext, type RAGQueryResult } from "@/lib/ragEngine";
 
 export function getActiveOpenRouterKey(): string {
   try {
@@ -48,8 +49,12 @@ export async function askLiveCopilot(
   answer: string;
   suggestedAction?: string;
   actionPayload?: any;
+  ragCitations?: RAGQueryResult[];
 }> {
   const q = query.trim().toLowerCase();
+
+  // 0. Perform Hybrid Semantic Vector Retrieval (RAG Engine)
+  const { contextBlock: ragContext, citations: ragCitations } = buildRAGPromptContext(query, 3);
 
   // 1. Ingest all 7 core operational domains from live organizational stores
   const resources = loadInitialResources();
@@ -312,7 +317,7 @@ CORE CAPABILITIES & DIRECTIVES:
     ];
 
     const messages = [
-      { role: "system", content: systemPrompt },
+      { role: "system", content: systemPrompt + (ragContext ? `\n\n${ragContext}` : "") },
       ...chatHistory.slice(-4),
       { role: "user", content: query },
     ];
@@ -384,7 +389,7 @@ CORE CAPABILITIES & DIRECTIVES:
               suggestedAction = "open_projects";
             }
 
-            return { answer: text, suggestedAction };
+            return { answer: text, suggestedAction, ragCitations };
           }
         }
       } catch (err) {
@@ -393,6 +398,10 @@ CORE CAPABILITIES & DIRECTIVES:
     }
   }
 
-  // 7. Intelligent edge fallback if offline
-  return resolveQueryKnowledgeBase(query);
+  // 7. Intelligent edge fallback with RAG citations
+  const fallback = resolveQueryKnowledgeBase(query);
+  return {
+    ...fallback,
+    ragCitations,
+  };
 }

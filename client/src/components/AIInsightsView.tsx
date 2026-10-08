@@ -8,6 +8,7 @@ import {
   TrendingDown,
   ArrowRight,
   Filter,
+  Layers3,
 } from "lucide-react";
 import { Resource, Project, ThresholdSettings, AIInsightItem } from "@shared/orgTypes";
 import {
@@ -16,12 +17,14 @@ import {
   loadThresholds,
   generateTransparentAIInsights,
 } from "@/lib/orgStore";
+import { RAGKnowledgeHub } from "@/components/RAGKnowledgeHub";
 
 interface AIInsightsViewProps {
   onNavigateToAllocation?: () => void;
 }
 
 export function AIInsightsView({ onNavigateToAllocation }: AIInsightsViewProps) {
+  const [activeTab, setActiveTab] = useState<"diagnostics" | "rag">("diagnostics");
   const [resources] = useState<Resource[]>(() => loadInitialResources());
   const [projects] = useState<Project[]>(() => loadInitialProjects());
   const [thresholds] = useState<ThresholdSettings>(() => loadThresholds());
@@ -69,8 +72,38 @@ export function AIInsightsView({ onNavigateToAllocation }: AIInsightsViewProps) 
             Every recommendation is accompanied by verifiable empirical evidence, projected downstream impact, and model confidence.
           </p>
         </div>
+
+        {/* Tab Switcher: AI Diagnostics vs RAG Knowledge Hub */}
+        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-900 border border-slate-800 shrink-0">
+          <button
+            onClick={() => setActiveTab("diagnostics")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+              activeTab === "diagnostics"
+                ? "bg-sky-500 text-slate-950 font-bold shadow-sm"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <Sparkles size={13} />
+            <span>AI Diagnostics</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("rag")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+              activeTab === "rag"
+                ? "bg-cyan-500 text-slate-950 font-bold shadow-sm"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <Layers3 size={13} />
+            <span>RAG Knowledge Hub</span>
+          </button>
+        </div>
       </div>
 
+      {activeTab === "rag" ? (
+        <RAGKnowledgeHub />
+      ) : (
+        <>
       {/* Filters */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
@@ -197,6 +230,8 @@ export function AIInsightsView({ onNavigateToAllocation }: AIInsightsViewProps) 
             No active insights match the selected filter criteria.
           </p>
         </div>
+      )}
+        </>
       )}
     </div>
   );

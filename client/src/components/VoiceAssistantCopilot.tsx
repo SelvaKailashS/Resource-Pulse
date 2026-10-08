@@ -52,6 +52,8 @@ interface Props {
   onAssignTask: (resourceName: string, taskName: string) => void;
 }
 
+import { type RAGQueryResult } from "@/lib/ragEngine";
+
 export interface AIExplanation {
   finding: string;
   evidence: string;
@@ -69,6 +71,7 @@ interface ChatMessage {
   actionTaken?: string;
   actionPayload?: any;
   quickActions?: { label: string; action: () => void; icon?: any }[];
+  ragCitations?: RAGQueryResult[];
 }
 
 export function VoiceAssistantCopilot({
@@ -1007,7 +1010,7 @@ export function VoiceAssistantCopilot({
         }));
       const res = await askLiveCopilot(text, history);
       setIsAnalyzing(false);
-      handleAIResponse(res.answer, res.suggestedAction, res.actionPayload);
+      handleAIResponse(res.answer, res.suggestedAction, res.actionPayload, undefined, res.ragCitations);
     } catch (e) {
       setIsAnalyzing(false);
       handleAIResponse(
@@ -1020,7 +1023,8 @@ export function VoiceAssistantCopilot({
     replyText: string,
     action?: string,
     actionPayload?: any,
-    explanation?: AIExplanation
+    explanation?: AIExplanation,
+    ragCitations?: RAGQueryResult[]
   ) => {
     void recordCopilotChat("ai", replyText);
 
@@ -1143,6 +1147,7 @@ export function VoiceAssistantCopilot({
       actionPayload,
       explanation,
       quickActions: quickActions.slice(0, 3),
+      ragCitations: ragCitations && ragCitations.length > 0 ? ragCitations : undefined,
     };
 
     setMessages((prev) => [...prev, aiMsg]);
@@ -1481,6 +1486,43 @@ export function VoiceAssistantCopilot({
                       <div>
                         <span className="text-emerald-400 font-semibold">4. Recommendation: </span>
                         <span className="text-emerald-200">{msg.explanation.recommendation}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* RAG Knowledge Citations Badge & Source Breakdown */}
+                  {msg.ragCitations && msg.ragCitations.length > 0 && (
+                    <div className="mt-3 p-2.5 rounded-lg bg-sky-950/70 border border-sky-500/30 text-[11px] space-y-1.5 text-left">
+                      <div className="flex items-center justify-between border-b border-sky-900/40 pb-1">
+                        <span className="font-bold text-sky-400 uppercase tracking-wider text-[10px] flex items-center gap-1 font-mono">
+                          <Layers3 size={11} className="text-cyan-400" /> Grounded RAG Knowledge Retrieved
+                        </span>
+                        <span className="font-mono text-[9.5px] text-emerald-400 font-semibold px-1.5 py-0.2 rounded bg-emerald-500/10 border border-emerald-500/30">
+                          {Math.round(
+                            msg.ragCitations.reduce((s, c) => s + c.similarityPercentage, 0) /
+                              msg.ragCitations.length
+                          )}% Confidence
+                        </span>
+                      </div>
+                      <div className="space-y-1.5 pt-0.5">
+                        {msg.ragCitations.map((cit, ci) => (
+                          <div
+                            key={ci}
+                            className="p-1.5 rounded-md bg-slate-950/90 border border-slate-800/80 text-[10.5px]"
+                          >
+                            <div className="flex items-center justify-between text-slate-300 font-medium">
+                              <span className="truncate max-w-[210px] text-sky-300 font-mono text-[10px]">
+                                📄 {cit.chunk.docTitle}
+                              </span>
+                              <span className="text-cyan-400 font-mono text-[9.5px] font-bold shrink-0 ml-1">
+                                {cit.similarityPercentage}% Match
+                              </span>
+                            </div>
+                            <p className="text-slate-400 mt-1 line-clamp-2 leading-relaxed text-[10px]">
+                              "{cit.chunk.text.slice(0, 140)}..."
+                            </p>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
