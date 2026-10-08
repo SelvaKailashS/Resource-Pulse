@@ -19,12 +19,15 @@ interface Props {
 }
 
 export function TeamChatView({ currentUserName, currentUserRole }: Props) {
-  const teamName = localStorage.getItem("resourcepulse_team_name") || "Operations Team";
+  const rawTeamName = localStorage.getItem("resourcepulse_team_name") || "Operations Team";
+  const teamName = rawTeamName.trim();
+  const normalizedTeam = teamName.toLowerCase().replace(/[^a-z0-9]/g, "_") || "operations_team";
   const user = currentUserName || localStorage.getItem("resourcepulse_user_name") || "Teammate";
   const role = currentUserRole || "Contributor";
 
   const [activeChannel, setActiveChannel] = useState<string>("general");
   const [inputText, setInputText] = useState("");
+  const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const getInitialMessages = (): ChatMessage[] => {
@@ -75,42 +78,117 @@ export function TeamChatView({ currentUserName, currentUserRole }: Props) {
     } catch {}
   }, [messages]);
 
-  // Try fetching any synced messages from Supabase
+  // Real-time broadcast channel + Persistent cloud sync
   useEffect(() => {
     let isSubscribed = true;
+
+    // 1. Realtime Broadcast channel across all connected teammates
+    const channel = supabase.channel(`team_chat_${normalizedTeam}`, {
+      config: { broadcast: { self: false } },
+    });
+
+    channel
+      .on("broadcast", { event: "new_team_message" }, ({ payload }) => {
+        if (!payload || !payload.id || !isSubscribed) return;
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === payload.id)) return prev;
+          return [
+            ...prev,
+            {
+              id: payload.id,
+              senderName: payload.senderName || "Teammate",
+              senderRole: payload.senderRole || "Member",
+              channel: payload.channel || "general",
+              text: payload.text || "",
+              timestamp: payload.timestamp || new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              isCurrentUser: (payload.senderName || "").trim().toLowerCase() === (user || "").trim().toLowerCase(),
+            },
+          ];
+        });
+      })
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED" && isSubscribed) {
+          setIsRealtimeConnected(true);
+        }
+      });
+
+    // 2. Poll Supabase persistent storage so any missed/offline messages sync
     const fetchRemoteMessages = async () => {
       try {
         const { data, error } = await supabase
-          .from("team_chat")
+          .from("copilot_chat")
           .select("*")
-          .eq("team_name", teamName)
+          .eq("sender", "user")
           .order("created_at", { ascending: true })
-          .limit(50);
+          .limit(100);
 
-        if (!error && data && data.length > 0 && isSubscribed) {
-          const remoteMsgs: ChatMessage[] = data.map((d: any) => ({
-            id: d.id || `msg-${Date.now()}-${Math.random()}`,
-            senderName: d.sender_name || "Teammate",
-            senderRole: d.sender_role || "Member",
-            channel: d.channel || "general",
-            text: d.content || d.text || "",
-            timestamp: new Date(d.created_at || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-            isCurrentUser: (d.sender_name || "").toLowerCase() === user.toLowerCase(),
-          }));
-          setMessages((prev) => {
-            const ids = new Set(prev.map((m) => m.id));
-            const fresh = remoteMsgs.filter((m) => !ids.has(m.id));
-            return [...prev, ...fresh];
-          });
+        if (!error && Array.isArray(data) && isSubscribed) {
+          const freshRemote: ChatMessage[] = [];
+          for (const row of data) {
+            if (!row.message || typeof row.message !== "string" || !row.message.startsWith("{")) continue;
+            try {
+              const parsed = JSON.parse(row.message);
+              if (parsed && parsed.type === "team_chat_msg") {
+                const msgTeam = (parsed.teamName || "").toLowerCase().trim();
+                const myTeam = normalizedTeam;
+                if (
+                  !msgTeam ||
+                  msgTeam === myTeam ||
+                  myTeam.includes(msgTeam) ||
+                  msgTeam.includes(myTeam) ||
+                  (parsed.teamRaw && parsed.teamRaw.toLowerCase() === rawTeamName.toLowerCase())
+                ) {
+                  freshRemote.push({
+                    id: parsed.msgId || row.id,
+                    senderName: parsed.senderName || "Teammate",
+                    senderRole: parsed.senderRole || "Member",
+                    channel: parsed.channel || "general",
+                    text: parsed.text || "",
+                    timestamp: parsed.timestamp || new Date(row.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                    isCurrentUser: (parsed.senderName || "").trim().toLowerCase() === (user || "").trim().toLowerCase(),
+                  });
+                }
+              }
+            } catch {}
+          }
+
+          if (freshRemote.length > 0) {
+            setMessages((prev) => {
+              const existingIds = new Set(prev.map((m) => m.id));
+              const additions = freshRemote.filter((m) => !existingIds.has(m.id));
+              if (additions.length === 0) return prev;
+              return [...prev, ...additions];
+            });
+          }
         }
-      } catch {}
+      } catch (err) {
+        console.warn("[TeamChat] Error loading messages:", err);
+      }
     };
 
     void fetchRemoteMessages();
+    const interval = setInterval(fetchRemoteMessages, 3500);
+
+    // 3. Cross-tab synchronization
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "resourcepulse_team_messages" && e.newValue) {
+        try {
+          const updated = JSON.parse(e.newValue);
+          if (Array.isArray(updated)) {
+            setMessages(updated);
+          }
+        } catch {}
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+
     return () => {
       isSubscribed = false;
+      clearInterval(interval);
+      window.removeEventListener("storage", handleStorage);
+      void supabase.removeChannel(channel);
     };
-  }, [teamName, user]);
+  }, [normalizedTeam, user, rawTeamName]);
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -119,31 +197,69 @@ export function TeamChatView({ currentUserName, currentUserRole }: Props) {
     const textToSend = inputText.trim();
     setInputText("");
 
+    const msgId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
     const newMsg: ChatMessage = {
-      id: `msg-${Date.now()}`,
+      id: msgId,
       senderName: user,
       senderRole: role,
       channel: activeChannel,
       text: textToSend,
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      timestamp: timeStr,
       isCurrentUser: true,
     };
 
+    // Optimistic local update
     setMessages((prev) => [...prev, newMsg]);
 
-    // Send to Supabase asynchronously
+    // 1. Instant Realtime broadcast to online teammates
     try {
-      await supabase.from("team_chat").insert([
-        {
-          team_name: teamName,
-          sender_name: user,
-          sender_role: role,
+      const channel = supabase.channel(`team_chat_${normalizedTeam}`);
+      channel.send({
+        type: "broadcast",
+        event: "new_team_message",
+        payload: {
+          id: msgId,
+          senderName: user,
+          senderRole: role,
           channel: activeChannel,
-          content: textToSend,
+          text: textToSend,
+          timestamp: timeStr,
+        },
+      });
+    } catch (err) {
+      console.warn("[TeamChat] Broadcast send failed:", err);
+    }
+
+    // 2. Persistent cloud store via Supabase
+    try {
+      const payloadString = JSON.stringify({
+        type: "team_chat_msg",
+        teamName: normalizedTeam,
+        teamRaw: rawTeamName,
+        msgId,
+        senderName: user,
+        senderRole: role,
+        channel: activeChannel,
+        text: textToSend,
+        timestamp: timeStr,
+        createdAt: new Date().toISOString(),
+      });
+
+      const { error } = await supabase.from("copilot_chat").insert([
+        {
+          sender: "user",
+          message: payloadString,
           created_at: new Date().toISOString(),
         },
       ]);
-    } catch {}
+      if (error) {
+        console.warn("[TeamChat] Persistent store error:", error.message);
+      }
+    } catch (err) {
+      console.warn("[TeamChat] Send error:", err);
+    }
   };
 
   const channelMessages = messages.filter((m) => m.channel === activeChannel);
@@ -165,8 +281,9 @@ export function TeamChatView({ currentUserName, currentUserRole }: Props) {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-bold text-white tracking-tight">{teamName} Team Chat</h1>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                Live Organization
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                {isRealtimeConnected ? "Live Realtime Sync" : "Cloud Sync Active"}
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
